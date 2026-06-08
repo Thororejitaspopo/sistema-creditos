@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEMA ALPHA V5 - Control Avanzado</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <aside>
+        <div>
+            <div class="logo-sistema">SISTEMA ALPHA V5</div>
+            
+            <nav class="menu-nav">
+                <button class="btn-menu active" onclick="cambiarModulo('inicio')">🏠 Inicio</button>
+                <button class="btn-menu btn-consultar-destacado" onclick="cambiarModulo('consultar')">🔍 ⚡ CONSULTAR MATRIZ</button>
+
+                <div class="menu-categoria">📊 Operaciones</div>
+                <button class="btn-menu" onclick="cambiarModulo('clientes')">👥 Registrar Clientes</button>
+                <button class="btn-menu" onclick="cambiarModulo('creditos')">💳 Crear Crédito</button>
+                <button class="btn-menu" onclick="cambiarModulo('pagos')">📝 Registrar Pago</button>
+                <button class="btn-menu" onclick="cambiarModulo('gastos')">💸 Gastos Varios</button>
+
+                <div class="menu-categoria">💰 Caja y Contabilidad</div>
+                <button class="btn-menu" onclick="cambiarModulo('capital')">🏛️ Módulo Capital</button>
+                <button class="btn-menu" onclick="cambiarModulo('interes')">📈 Módulo Interés</button>
+                <button class="btn-menu" onclick="cambiarModulo('cierre')">🔒 Cierre de Caja</button>
+
+                <div class="menu-categoria">👔 Personal y Auditoría</div>
+                <button class="btn-menu" onclick="cambiarModulo('supervisores')">👔 Supervisores</button>
+                <button class="btn-menu" onclick="cambiarModulo('cobradores')">🏍️ Cobradores</button>
+                <button class="btn-menu" onclick="cambiarModulo('reportes')">📋 Reportes Generales</button>
+                <button class="btn-menu" style="color: var(--rojo-peligro);" onclick="cambiarModulo('eliminar')">🗑️ Depurar / Eliminar</button>
+            </nav>
+        </div>
+        
+        <div class="config-rapida">
+            <span>⚙️ Tasa Base:</span>
+            <div>
+                <input type="number" class="input-interes" value="20"> %
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <div class="header-main">
+            <h1 id="titulo-panel">Bienvenido, Administrador</h1>
+            <p id="subtitulo-panel">Resumen general del estado de tus rutas y cobros.</p>
+        </div>
+
+        <div id="mod-inicio" class="modulo-contenido active">
+            <h3>Página de Inicio</h3>
+            <p style="color: #64748b; margin-top: 10px;">Vista global del sistema.</p>
+        </div>
+
+        <div id="mod-consultar" class="modulo-contenido">
+            <h3>🔍 Matriz Global de Consultas</h3>
+        </div>
+
+        <div id="mod-clientes" class="modulo-contenido">
+            <div class="distribucion-clientes contenedor-sistema-alpha">
+                
+                <div class="seccion-formulario seccion-registro">
+                    
+                    <div class="grupo-bloque">
+                        <h2>Personal y Identificación</h2>
+                        
+                        <div class="fila-campos" style="grid-template-columns: 1fr 2fr 2fr;">
+                            <div class="campo">
+                                <label>ID Sistema</label>
+                                <input type="text" id="cli-id-auto" value="AUTO" disabled>
+                            </div>
+                            <div class="campo">
+                                <label>Nombres</label>
+                                <input type="text" id="cli-nombres" placeholder="Ej: JUAN CARLOS" oninput="this.value = this.value.toUpperCase()">
+                            </div>
+                            <div class="campo">
+                                <label>Apellidos</label>
+                                <input type="text" id="cli-apellidos" placeholder="Ej: PÉREZ MORA" oninput="this.value = this.value.toUpperCase()">
+                            </div>
+                        </div>
+                        
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Cédula / RUC</label>
+                                <input type="text" id="cli-cedula" placeholder="Ej: 120XXXXXXX" maxlength="13" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="campo">
+                                <label>WhatsApp</label>
+                                <input type="text" id="cli-whatsapp" placeholder="Ej: 09XXXXXXXX" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                        </div>
+
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Correo Electrónico</label>
+                                <input type="email" id="cli-correo" placeholder="juan@gmail.com">
+                            </div>
+                        </div>
+
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Garante / Referido (Clientes Guardados en Sistema)</label>
+                                <select id="cli-garante">
+                                    <option value="">🚫 Sin Garante / Cliente Directo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div> <div class="grupo-bloque">
+                        <h2>Ubicación y Logística de Ruta</h2>
+                        
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Sector (Quevedo)</label>
+                                <select id="cli-sector">
+                                    <option value="Sector 1 (San Camilo)">📍 Sector 1 (San Camilo)</option>
+                                    <option value="Sector 2 (San Cristóbal)">📍 Sector 2 (San Cristóbal)</option>
+                                    <option value="Sector 3 (Venus del Río)">📍 Sector 3 (Venus del Río Quevedo)</option>
+                                    <option value="Sector 4 (Nicolás Infante)">📍 Sector 4 (Nicolás Infante Díaz)</option>
+                                    <option value="Sector 5 (Guayacán)">📍 Sector 5 (Guayacán)</option>
+                                    <option value="Sector 6 (Siete de Octubre)">📍 Sector 6 (Siete de Octubre)</option>
+                                    <option value="Sector 7 (24 de Mayo)">📍 Sector 7 (24 de Mayo)</option>
+                                    <option value="Sector 8 (Viva Alfaro)">📍 Sector 8 (Viva Alfaro)</option>
+                                    <option value="Sector 9 (Ruta del Río)">📍 Sector 9 (Ruta del Río)</option>
+                                    <option value="Sector 10 (Zona Periférica)">📍 Sector 10 (Zona Periférica)</option>
+                                </select>
+                            </div>
+                            <div class="campo">
+                                <label>Ruta de Cobro</label>
+                                <select id="cli-ruta">
+                                    <option value="Ruta Norte">🏍️ Ruta Norte</option>
+                                    <option value="Ruta Sur">🏍️ Ruta Sur</option>
+                                    <option value="Ruta Centro">🏍️ Ruta Centro</option>
+                                    <option value="Ruta Este">🏍️ Ruta Este</option>
+                                    <option value="Ruta Oeste">🏍️ Ruta Oeste</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="campo" style="margin-bottom: 15px;">
+                            <label>Dirección Exacta</label>
+                            <input type="text" id="cli-direccion" placeholder="Ej: AV. QUITO Y CALLE 12" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Referencia Física</label>
+                                <input type="text" id="cli-referencia" placeholder="Ej: JUNTO A LA FARMACIA SAN REGINO" oninput="this.value = this.value.toUpperCase()">
+                            </div>
+                            <div class="campo">
+                                <label>Teléfono Referencia</label>
+                                <input type="text" id="cli-tel-referencia" placeholder="Ej: 09XXXXXXXX" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                        </div>
+
+                        <div class="campo">
+                            <label>Observaciones de Ruta</label>
+                            <textarea id="cli-observaciones" rows="2" placeholder="Ej: COBRAR SOLO LOS SÁBADOS POR LA MAÑANA" oninput="this.value = this.value.toUpperCase()"></textarea>
+                        </div>
+                    </div> <div class="grupo-bloque">
+                        <h2>Información Financiera</h2>
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Nivel de Cliente</label>
+                                <select id="cli-nivel" onchange="actualizarLimite()">
+                                <option value="🥉 Bronce(Nuevo)">🥉 Bronce(Nuevo)</option>
+                                <option value="🥈 Plata(Cumplidor)">🥈 Plata(Cumplidor)</option>
+                                <option value="🥇 Oro(Excelente)">🥇 Oro(Excelente)</option>
+                                <option value="💎 Platino(Vip)">💎 Platino(Vip)</option>
+                                <option value="👑 Diamante(Inversionista)">👑 Diamante(Inversionista)</option>
+                                </select>
+                            </div>
+                            <div class="campo">
+                                <label>Límite de Créditos Activos</label>
+                                <input type="number" id="cli-limite" value="2">
+                            </div>
+                        </div>
+                    </div> <div class="grupo-bloque">
+                        <h2>Documentación Digital</h2>
+                        <div class="fila-campos">
+                            <div class="campo">
+                                <label>Foto del Cliente</label>
+                                <input type="file" id="cli-foto-perfil">
+                            </div>
+                            <div class="campo">
+                                <label>Foto de la Cédula</label>
+                                <input type="file" id="cli-foto-cedula">
+                            </div>
+                        </div>
+                    </div> <button class="btn-guardar" onclick="registrarCliente()">💾 REGISTRAR CLIENTE ALPHA</button>
+                </div> <div class="seccion-lista seccion-tabla-clientes">
+                    <h2>Clientes Registrados en Sistema</h2>
+                    <div class="buscador-caja">
+                        <span class="icono-buscar">🔍</span>
+                        <input type="text" id="input-buscar-cliente" class="input-buscar" placeholder="Buscar por Nombre o Cédula..." oninput="filtrarClientes()">
+                    </div>
+                    
+                    <div class="lista-tarjetas" id="lista-clientes"></div>
+                    <div class="lista-tarjetas" id="lista-clientes"></div>
+                    <div id="paginacion-clientes" class="contenedor-paginacion"></div>
+                </div> </div> </div> <div id="mod-creditos" class="modulo-contenido"><h3>💳 Desembolso de Nuevos Créditos</h3></div>
+        <div id="mod-pagos" class="modulo-contenido"><h3>📝 Recaudación de Abonos</h3></div>
+        <div id="mod-gastos" class="modulo-contenido"><h3>💸 Control de Egresos y Gastos Varios</h3></div>
+        <div id="mod-capital" class="modulo-contenido"><h3>🏛️ Bóveda de Capital Real</h3></div>
+        <div id="mod-interes" class="modulo-contenido"><h3>📈 Bóveda de Intereses y Recargos</h3></div>
+        <div id="mod-cierre" class="modulo-contenido"><h3>🔒 Cierre de Caja Definitivo</h3></div>
+        <div id="mod-supervisores" class="modulo-contenido"><h3>👔 Control de Personal Supervisor</h3></div>
+        <div id="mod-cobradores" class="modulo-contenido"><h3>🏍️ Control de Rutas de Cobradores</h3></div>
+        <div id="mod-reportes" class="modulo-contenido"><h3>📋 Generador de Reportes y Auditorías</h3>
+        <div id="modulo-reportes" class="modulo-seccion" style="padding: 20px;">
+        <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
+        <h2 style="color: var(--azul-premium); margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+            📋 Centro de Reportes e Inteligencia de Negocio
+        </h2>
+        <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+            Exporte y audite la base de datos de la cartera de clientes activa en tiempo real.
+        </p>
+        </div>
+        <div class="tarjetas-reporte-contenedor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; width: 100%; box-sizing: border-box;">
+        
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <span style="font-size: 24px;">📊</span>
+                    <h3 style="margin: 0; color: #16a34a; font-size: 18px; font-weight: 600;">Microsoft Excel (.xlsx)</h3>
+                </div>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+                    Ideal para el departamento contable. Genera una sábana de datos optimizada para tablas dinámicas, filtros avanzados y macros. Limpia de manera automática caracteres especiales y emojis para evitar errores en las fórmulas.
+                </p>
+            </div>
+            <button onclick="exportarExcelClientes()" style="background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+                📊 Descargar Base Contable
+            </button>
+        </div>
+
+        <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <span style="font-size: 24px;">📄</span>
+                    <h3 style="margin: 0; color: #dc2626; font-size: 18px; font-weight: 600;">Documento PDF (.pdf)</h3>
+                </div>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+                    Formato corporativo formal configurado en orientación horizontal (Landscape) para auditorías internas inmediatas. Incluye membrete dinámico automatizado, marcas de tiempo oficiales e indicadores clave (KPIs) del estado actual de tu cartera.
+                </p>
+            </div>
+            <button onclick="generarPdfClientes()" style="background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+                📄 Generar PDF de Auditoría
+            </button>
+        </div>
+
+        </div>
+</div>
+        
+        
+        
+        </div>
+        <div id="mod-eliminar" class="modulo-contenido"><h3>🗑️ Zona de Seguridad - Eliminar Registros</h3></div>
+    </main>
+
+    <div id="modal-ver-cliente" class="modal-overlay">
+        <div class="modal-contenido">
+            <div class="modal-header">
+                <h2>📋 Ficha Técnica Alpha</h2>
+                <button class="btn-cerrar-modal" onclick="cerrarModal()">❌</button>
+            </div>
+            <div id="modal-cuerpo-detalles"></div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+/* ==========================================================================
+   CONFIGURACIÓN DE VARIABLES GLOBALES Y PALETA DE COLORES (ALPHA PREMIUM)
+   ========================================================================== */
+:root {
+    --bg-principal: #f8fafc; /* Gris ultra claro para el fondo general de la aplicación */
+    --sidebar-bg: #0b0f19; /* Azul oscuro profundo casi negro para el menú lateral */
+    --sidebar-text: #94a3b8; /* Gris suave para los textos de los botones apagados */
+    --sidebar-active: #38bdf8; /* Azul celeste brillante para resaltar el módulo activo */
+    --texto-oscuro: #0f172a; /* Azul marino oscuro para una lectura cómoda de los textos */
+    --blanco: #ffffff; /* Blanco absoluto para los fondos de los formularios y tarjetas */
+    --verde-exito: #10b981; /* Verde esmeralda para respuestas correctas o créditos */
+    --naranja-recargo: #f97316; /* Naranja vibrante para alertas o recargos del sistema */
+    --rojo-peligro: #ef4444; /* Rojo para el botón de eliminar o acciones críticas */
+    --azul-premium: #2563eb; /* Azul corporativo para los botones principales y títulos */
+    --borde: #e2e8f0; /* Línea gris muy delgada para separar las secciones con finura */
+}
+
+/* ==========================================================================
+   RESETEO GENERAL Y TIPOGRAFÍA BASE
+   ========================================================================== */
+* { 
+    margin: 0; /* Elimina márgenes invisibles que los navegadores traen por defecto */
+    padding: 0; /* Elimina espacios internos por defecto para iniciar desde cero */
+    box-sizing: border-box; /* Incluye bordes y rellenos en el tamaño final de las cajas */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Tipografía limpia y moderna */
+}
+
+body { 
+    display: flex; /* Coloca el Menú Lateral y el Bloque Principal frente a frente */
+    background-color: var(--bg-principal); /* Aplica el color gris ultra claro de fondo */
+    color: var(--texto-oscuro); /* Configura el color de las letras predeterminado */
+    height: 100vh; /* Fuerza a la aplicación a medir exactamente el alto del monitor */
+    overflow: hidden; /* Prohíbe que la pantalla entera tenga un scroll general feo */
+}
+
+/* ==========================================================================
+   BARRA LATERAL AVANZADA (ASIDE SIDEBAR)
+   ========================================================================== */
+aside {
+    width: 280px; /* Ancho fijo perfecto para que quepan holgadamente los textos del menú */
+    background-color: var(--sidebar-bg); /* Pinta el fondo del color oscuro profundo premium */
+    display: flex; /* Activa el motor flexible interno para ordenar sus elementos */
+    flex-direction: column; /* Apila el logo, el menú y la configuración de arriba a abajo */
+    justify-content: flex-start; /* Alinea el menú arriba para que no se desarme verticalmente */
+    padding: 20px 12px; /* Margen de amortiguación interna para cuidar las esquinas */
+    height: 100vh; /* Asegura que la barra negra cubra todo el alto del navegador */
+    overflow-y: auto; /* Permite scroll interno dentro del menú si creas demasiados módulos */
+}
+
+/* LOGOTIPO SUPERIOR DEL SIDEBAR */
+.logo-sistema {
+    color: var(--blanco); /* Pone las letras del logo en blanco brillante */
+    font-size: 18px; /* Tamaño de fuente ideal para destacar el nombre de tu marca */
+    font-weight: 800; /* Aplica una tipografía extra gruesa de estilo corporativo */
+    letter-spacing: 1.5px; /* Deja una separación elegante de espacio entre cada letra */
+    text-align: center; /* Centra el título perfectamente en el medio de su franja */
+    margin-bottom: 20px; /* Separación de cortesía con el inicio de los botones de abajo */
+    padding-bottom: 10px; /* Espacio antes de llegar a la línea divisoria inferior */
+    border-bottom: 1px solid #1e293b; /* Línea decorativa muy fina debajo del logotipo */
+}
+
+/* MENÚ DE ENLACES DEL SIDEBAR */
+.menu-nav { 
+    display: flex; /* Convierte el navegador en un contenedor elástico */
+    flex-direction: column; /* Alinea los accesos directos uno debajo del otro */
+    gap: 4px; /* Crea una pequeña separación uniforme entre botón y botón */
+}
+
+/* SEPARADORES O TEXTOS DE CATEGORÍAS */
+.menu-categoria {
+    font-size: 11px; /* Letras pequeñas y discretas para subtítulos organizadores */
+    text-transform: uppercase; /* Convierte los títulos de secciones a mayúsculas estrictas */
+    color: #475569; /* Color gris apagado para no competir visualmente con los botones */
+    font-weight: 700; /* Aplica estilo negrita para jerarquizar el bloque */
+    letter-spacing: 1px; /* Espaciado fino entre caracteres tipográficos */
+    margin: 15px 0 5px 12px; /* Márgenes para acomodar el texto sin que toque las paredes */
+}
+
+/* BOTONES INDIVIDUALES DEL MENÚ */
+.btn-menu {
+    display: flex; /* Alinea de forma horizontal el icono y el texto del botón */
+    align-items: center; /* Centra verticalmente el contenido interno del botón */
+    gap: 12px; /* Espacio de separación entre el icono y el texto descriptor */
+    padding: 10px 12px; /* Colchón de clic interno para que sea cómodo presionar el botón */
+    color: var(--sidebar-text); /* Color gris suave predeterminado para botones inactivos */
+    background: none; /* Elimina fondos grises automáticos de los botones HTML */
+    border: none; /* Elimina los bordes rígidos nativos del navegador */
+    border-radius: 6px; /* Redondea las esquinas del botón para un look moderno */
+    cursor: pointer; /* Cambia la flecha del mouse por una mano al pasar por encima */
+    text-align: left; /* Alinea el texto a la izquierda de forma natural */
+    font-size: 14px; /* Tamaño de fuente estándar para sistemas informáticos */
+    font-weight: 500; /* Grosor de letra intermedio y de alta legibilidad */
+    transition: all 0.2s ease; /* Transición suave de color al interactuar con el mouse */
+}
+
+/* EFECTO HOVER EN BOTONES */
+.btn-menu:hover { 
+    background-color: #1e293b; /* Ilumina el fondo a un gris azulado al pasar el puntero */
+    color: var(--blanco); /* Cambia el color de la letra a blanco absoluto al apuntarlo */
+}
+
+/* BOTÓN DE MENÚ ACTIVADO ACTUALMENTE */
+.btn-menu.active { 
+    background-color: #1e293b; /* Deja el fondo iluminado fijo para saber dónde estamos parados */
+    color: var(--sidebar-active); /* Aplica el hermoso azul celeste brillante al texto activo */
+    font-weight: 600; /* Aumenta el grosor de la tipografía para denotar selección */
+}
+
+/* BOTÓN RESALTADO: CONSULTAR MATRIZ */
+.btn-consultar-destacado {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); /* Fondo degradado premium */
+    border: 1px solid #38bdf8; /* Añade un contorno brillante de color celeste */
+    color: var(--blanco); /* Letras blancas para contrastar el fondo oscuro */
+    font-weight: 700; /* Aplica una tipografía gruesa que llame la atención */
+    margin: 10px 0; /* Espaciado exterior para separarlo del resto del menú */
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1); /* Sombra luminosa sutil a los lados */
+}
+.btn-consultar-destacado:hover { 
+    background: #38bdf8; /* Invierte el fondo a celeste sólido al pasar el mouse */
+    color: #0b0f19; /* Cambia la letra al color oscuro del fondo para legibilidad */
+    transform: translateY(-1px); /* Levanta el botón un milímetro dando efecto de pulsación */
+}
+
+/* CONFIGURACIÓN DE TASA EN EL PIE DE LA BARRA LATERAL */
+.config-rapida { 
+    background-color: #111827; /* Fondo negro puro para aislar la zona de configuración */
+    padding: 12px; /* Amortiguación interna para espaciar el input y el texto */
+    border-radius: 6px; /* Redondeado idéntico al de tus botones del sistema */
+    margin-top: auto; /* Empuja automáticamente esta caja al extremo inferior del menú */
+    border: 1px solid #1e293b; /* Borde oscuro para integrarlo con fineza */
+    color: #94a3b8; /* Letras grises suaves informativas */
+    font-size: 13px; /* Tamaño de fuente compacto */
+    display: flex; /* Distribución elástica horizontal */
+    justify-content: space-between; /* Envía el texto a la izquierda y el cuadro a la derecha */
+    align-items: center; /* Alinea los centros de ambos elementos en el eje horizontal */
+}
+
+.input-interes { 
+    width: 60px; /* Ancho fijo ideal para albergar números de porcentajes cortos */
+    padding: 4px; /* Espacio interior para que el número no toque sus bordes */
+    border-radius: 4px; /* Pequeño redondeado de esquina */
+    border: 1px solid #334155; /* Contorno gris plomo */
+    background: #1f2937; /* Fondo gris oscuro para integrarlo al diseño */
+    color: var(--blanco); /* Número en color blanco llamativo */
+    text-align: center; /* Centra el número en medio de su pequeña casilla */
+    font-weight: bold; /* Tipografía gruesa para leer la tasa velozmente */
+}
+
+/* ==========================================================================
+   PANEL CONTENEDOR PRINCIPAL (MAIN BLOCKS)
+   ========================================================================== */
+main { 
+    flex-grow: 1; /* Le ordena al panel central absorber todo el ancho restante del monitor */
+    padding: 40px; /* Genera un marco espacioso y elegante alrededor de los módulos */
+    overflow-y: auto; /* Si el contenido es largo, este panel creará su propio scroll independiente */
+    display: flex; /* Activa el posicionamiento vertical elástico */
+    flex-direction: column; /* Coloca el encabezado arriba y el módulo abajo */
+    gap: 25px; /* Distancia prudencial entre el título de la página y los datos */
+}
+
+.header-main h1 { font-size: 24px; font-weight: 700; color: #0f172a; } /* Estilo del título principal */
+.header-main p { color: #64748b; margin-top: 4px; font-size: 13px; } /* Estilo del subtítulo descriptivo */
+
+/* CAJAS SÓLIDAS PARA LOS MÓDULOS CONTENEDORES */
+.modulo-contenido { 
+    display: none; /* Mantiene ocultos todos los módulos por defecto */
+    background: var(--blanco); /* Fondo blanco absoluto para emular una tarjeta limpia */
+    padding: 30px; /* Separación interna generosa para organizar las columnas */
+    border-radius: 12px; /* Esquinas bien redondeadas con look de interfaz premium */
+    border: 1px solid var(--borde); /* Delgada línea perimetral gris */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Fina sombra que da un leve efecto flotante */
+}
+
+/* CLASE QUE ACTIVA VISUALMENTE EL MÓDULO ABIERTO */
+.modulo-contenido.active { 
+    display: block !important; /* Muestra el módulo seleccionado cancelando el "none" previo */
+    animation: slideUp 0.25s ease-out; /* Ejecuta la animación suave de entrada */
+}
+
+/* ANIMACIÓN SUAVE AL NAVEGAR ENTRE PANTALLAS */
+@keyframes slideUp { 
+    from { opacity: 0; transform: translateY(8px); } /* Inicia invisible y un poco más abajo */
+    to { opacity: 1; transform: translateY(0); } /* Termina visible en su posición real */
+}
+
+/* TÍTULOS DE SUBSECCIONES INTERNAS EN FORMULARIOS */
+.modulo-contenido h2 { 
+    font-size: 15px; /* Tamaño de letra compacto para subtítulos de control */
+    color: var(--azul-premium); /* Color azul corporativo de tu marca */
+    text-transform: uppercase; /* Fuerza el uso de letras mayúsculas */
+    letter-spacing: 0.5px; /* Separación milimétrica entre letras */
+    margin-bottom: 15px; /* Espaciado inferior para separarlo del primer input */
+    padding-bottom: 5px; /* Margen antes del borde inferior */
+    border-bottom: 2px solid #f1f5f9; /* Línea divisoria inferior de base gris claro */
+}
+
+/* ==========================================================================
+   🏛️ ARQUITECTURA DE DISEÑO INTERNACIONAL: SIMETRÍA Y EXPANSIÓN VERTICAL 🏛️
+   ========================================================================== */
+
+/* 1. MÁSTIL DE DISTRIBUCIÓN: Une horizontalmente el formulario y la lista de clientes */
+.distribucion-clientes.contenedor-sistema-alpha {
+    display: flex !important; /* Mantiene activo el modelo flexbox horizontal */
+    flex-direction: row !important; /* Obliga a los dos bloques a colocarse de lado a lado */
+    gap: 30px !important; /* Separación elegante y aireada estilo panel financiero moderno de 30px */
+    align-items: stretch !important; /* ¡REGLA DE SIMETRÍA! Fuerza a ambas columnas a medir exactamente la misma altura de fondo */
+    width: 100% !important; /* Aprovecha la totalidad del ancho utilizable de la pantalla central */
+    box-sizing: border-box !important; /* Asegura que los márgenes se mantengan por dentro de los límites */
+}
+
+/* 2. COLUMNA IZQUIERDA: Formulario de Registro de Clientes */
+.seccion-formulario.seccion-registro {
+    flex: 1.2 !important; /* Proporción de ancho dominante para acomodar cómodamente las filas de inputs */
+    min-width: 0 !important; /* Previene deformaciones en pantallas más angostas */
+    box-sizing: border-box !important; /* Encapsula los rellenos dentro de la caja */
+    background: #f8fafc !important; /* Fondo gris claro impecable que enmarca los grupos blancos */
+    padding: 25px !important; /* Colchón de amortiguación perimetral interna */
+    border-radius: 12px !important; /* Actualizado a 12px para emparejar con el diseño premium */
+    border: 1px solid var(--borde) !important; /* Fina línea divisoria lateral gris */
+}
+
+/* 3. COLUMNA DERECHA: Listado Integral de Clientes Registrados */
+.seccion-lista.seccion-tabla-clientes {
+    flex: 1 !important; /* Espacio horizontal equilibrado para la lectura ágil de tarjetas */
+    min-width: 0 !important; /* Permite la flexibilidad elástica sin colisionar con el formulario */
+    box-sizing: border-box !important; /* Resguarda que los padding no rompan la estructura */
+    background: #f8fafc !important; /* Fondo gris claro idéntico al izquierdo para simetría visual perfecta */
+    padding: 25px !important; /* Mismo colchón de espacio perimetral interno de 25px */
+    border-radius: 12px !important; /* Actualizado a 12px para crear esquinas curvas homogéneas */
+    border: 1px solid var(--borde) !important; /* Contorno perimetral gris unificado */
+    
+    /* Configuración Elástica Vertical */
+    display: flex !important; /* Activa el modelo flexible vertical interno */
+    flex-direction: column !important; /* Apila el buscador, la lista de tarjetas y la paginación hacia abajo */
+    height: 100% !important; /* ¡SOLUCIÓN MAESTRA! Obliga a este bloque derecho a estirarse hasta el ras inferior del formulario */
+}
+
+/* 4. REGLA MAESTRA DE ENCUADRE: Inputs limpios que no desbordan */
+.fila-campos .campo input,
+.fila-campos .campo select,
+.fila-campos .campo textarea {
+    width: 100% !important; /* Hace que cada control abarque exactamente el 100% de su celda asignada */
+    min-width: 0 !important; /* Elimina anchos mínimos invisibles que inflaban y deformaban los cuadros */
+    box-sizing: border-box !important; /* Garantiza que el contorno y el padding se queden por dentro */
+}
+
+/* 5. REJILLA DEL FORMULARIO: Mantiene las filas de datos alineadas */
+.seccion-registro .fila-campos {
+    display: grid !important; /* Mantiene activo el sistema de rejilla para organizar campos en paralelo */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important; /* Distribución automática inteligente */
+    gap: 15px !important; /* Distancia constante y limpia de 15px entre celdas */
+    width: 100% !important; /* Acopla la fila al ancho total de la sección del formulario */
+    box-sizing: border-box !important; /* Protege las proporciones visuales */
+}
+
+/* ==========================================================================
+   CONFIGURACIÓN INTERNA DE CAMPOS Y ENTRADAS DE DATOS
+   ========================================================================== */
+.grupo-bloque { 
+    background: var(--blanco); /* Encapsula secciones de campos en un fondo blanco puro */
+    padding: 20px; /* Otorga aire interno a cada bloque de información */
+    border-radius: 8px; /* Redondeado fino para cada sub-caja */
+    border: 1px solid var(--borde); /* Marco gris delgado perimetral */
+    margin-bottom: 20px; /* Separación vertical con bloques inferiores */
+}
+
+.campo { 
+    display: flex; /* Habilita el posicionamiento elástico del campo */
+    flex-direction: column; /* Pone la etiqueta (label) arriba y el input abajo */
+    gap: 6px; /* Distancia milimétrica controlada entre etiqueta y cuadro de texto */
+}
+
+.campo label { 
+    font-size: 12px; /* Letras pequeñas y sofisticadas para los nombres de campos */
+    font-weight: 600; /* Aplica seminegrita para leer rápido qué solicita el cuadro */
+    color: #475569; /* Tono grisáceo oscuro legible */
+}
+
+.campo input, .campo select, .campo textarea {
+    padding: 10px; /* Amortiguación interna para que el texto digitado no choque los bordes */
+    border: 1px solid #cbd5e1; /* Borde estándar gris azulado suave */
+    border-radius: 6px; /* Redondeado fino en las esquinas de los inputs */
+    font-size: 14px; /* Tamaño de letra idóneo para escritura de registros */
+    color: var(--texto-oscuro); /* Letras escritas en color azul marino oscuro */
+    background-color: var(--blanco); /* Fondo blanco limpio para la digitación */
+    transition: all 0.2s; /* Transición veloz para animaciones de foco */
+}
+
+/* EFECTO DE LUZ AZUL PREMIUM AL HACER FOCUS */
+.campo input:focus, .campo select:focus, .campo textarea:focus { 
+    outline: none; /* Desactiva el borde negro nativo y tosco del navegador */
+    border-color: var(--azul-premium); /* Cambia el color del borde al azul corporativo */
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); /* Aura azul difuminada muy sofisticada */
+}
+
+/* CAMPOS AUTO-GENERADOS DESHABILITADOS */
+.campo input:disabled { 
+    background-color: #f1f5f9; /* Fondo gris claro indicando bloqueo o inactividad */
+    color: #64748b; /* Texto gris tenue */
+    font-weight: 700; /* Resalta el dato automático con tipografía gruesa */
+    border-style: dashed; /* Cambia el borde a líneas entrecortadas de tipo borrador */
+    cursor: not-allowed; /* Muestra un símbolo de prohibido al poner el mouse arriba */
+}
+
+.campo input[type="file"] { 
+    padding: 5px; /* Relleno menor exclusivo para el cargador de archivos */
+    font-size: 12px; /* Letra un punto más chica para rutas de archivos */
+}
+
+/* BOTÓN CENTRALIZADO REGISTRAR */
+.btn-guardar {
+    width: 100%; /* Expande el botón a todo el ancho del formulario disponible */
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); /* Degradado de azul premium a azul oscuro */
+    color: var(--blanco); /* Letra en blanco puro brillante */
+    padding: 14px; /* Botón robusto y de fácil acceso al clic */
+    border: none; /* Sin bordes toscos */
+    border-radius: 6px; /* Esquinas curvas integradas */
+    font-size: 15px; /* Texto ligeramente más grande para jerarquía de acción */
+    font-weight: 700; /* Letras gruesas e imponentes */
+    cursor: pointer; /* Mano seleccionadora instantánea */
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); /* Sombra azulada elegante en la base */
+    transition: all 0.2s; /* Suavizador de movimiento */
+}
+.btn-guardar:hover { 
+    transform: translateY(-1px); /* Pequeña elevación interactiva al apuntarlo */
+    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3); /* Aumenta el volumen de la sombra al vuelo */
+}
+
+/* ==========================================================================
+   HOJA DE ESTILOS PARA LA TARJETERÍA DE LA DERECHA (DINÁMICA E INTERNACIONAL)
+   ========================================================================== */
+.buscador-caja { 
+    position: relative; /* Base de posicionamiento para que el icono de lupa flote dentro */
+    margin-bottom: 20px; /* Separación inferior fija antes de que empiecen las tarjetas */
+}
+.input-buscar { 
+    width: 100%; /* Buscador expandido al ras de su contenedor */
+    padding: 12px 12px 12px 40px; /* Margen izquierdo gigante de 40px para no tapar el icono de lupa */
+    border: 1px solid #cbd5e1; /* Borde estándar unificado */
+    border-radius: 6px; /* Esquinas suavizadas */
+    font-size: 14px; /* Tamaño tipográfico idóneo */
+}
+.icono-buscar { 
+    position: absolute; /* Desconecta el icono permitiéndole flotar libremente */
+    left: 15px; /* Lo ubica milimétricamente pegado al borde izquierdo interno */
+    top: 13px; /* Lo centra de forma vertical en el corazón del buscador */
+    color: #94a3b8; /* Gris suave para denotar un icono pasivo */
+    font-size: 14px; /* Dimensión cuadrada perfecta del icono */
+}
+
+/* CONTENEDOR ESPECÍFICO DE LAS TARJETAS: MÁXIMO RENDIMIENTO Y EXPANSIÓN */
+.lista-tarjetas, #lista-clientes { 
+    display: flex !important; /* Convierte el contenedor en una caja flexible */
+    flex-direction: column !important; /* Apila las tarjetas verticalmente una abajo de la otra */
+    gap: 12px !important; /* Mantiene una separación limpia y simétrica entre cada cliente */
+    
+    /* ¡EL CAMBIO INTELIGENTE DE ESPACIO! */
+    flex: 1 1 auto !important; /* ¡OPTIMIZACIÓN BANCO! Absorbe con fuerza todo el vacío vertical disponible en la caja gris */
+    overflow-y: auto !important; /* Muestra scroll interno fluido SOLO si los clientes superan la altura del formulario */
+    max-height: none !important; /* Anula límites arcaicos que recortaban el fondo de forma abrupta */
+    margin-bottom: 20px !important; /* Margen de holgura inferior para no asfixiar los botones de control de páginas */
+    padding-right: 5px !important; /* Pequeño margen a la derecha para que la barra de scroll no pise la estética de las tarjetas */
+}
+
+.tarjeta-cliente {
+    background: var(--blanco); /* Fondo blanco puro para que resalten los nombres */
+    padding: 15px; /* Espaciado interno cómodo para envolver los perfiles */
+    border-radius: 8px; /* Bordes amigables redondeados */
+    border: 1px solid var(--borde); /* Delgada línea divisoria gris de contorno */
+    display: flex; /* Coloca la información del perfil a la izquierda y los botones a la derecha */
+    justify-content: space-between; /* Empuja los dos bloques anteriores a los extremos de la tarjeta */
+    align-items: center; /* Sincroniza los centers de forma vertical */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02); /* Sombra milimétrica de apoyo visual */
+}
+
+.info-perfil { 
+    display: flex; /* Enlaza horizontalmente el círculo del avatar y el texto */
+    align-items: center; /* Alinea sus ejes centrales de forma horizontal */
+    gap: 12px; /* Separación fija entre el círculo y los nombres */
+}
+
+/* AVATAR REDONDO CON INICIALES */
+.avatar-letra { 
+    width: 40px; /* Ancho idóneo para círculos de perfil del sistema */
+    height: 40px; /* Alto idóneo idéntico para asegurar una figura perfecta */
+    background: #e0f2fe; /* Fondo celeste pastel sutil y limpio */
+    color: #0369a1; /* Letras iniciales en azul marino corporativo */
+    border-radius: 50%; /* Transforma un cuadrado perfecto en un círculo impecable */
+    display: flex; /* Habilita el centrado total interior */
+    align-items: center; /* Centra la inicial de arriba a abajo */
+    justify-content: center; /* Centra la inicial de izquierda a derecha */
+    font-weight: 700; /* Letra de inicial extra gruesa */
+    font-size: 14px; /* Dimensión de lectura clara */
+}
+
+.detalles-perfil h4 { font-size: 14px; font-weight: 700; color: var(--texto-oscuro); } /* Estilo del nombre de cliente */
+.detalles-perfil h4 span { color: var(--azul-premium); font-weight: 800; } /* Resaltador numérico o de código en nombre */
+.detalles-perfil p { font-size: 12px; color: #64748b; margin-top: 2px; } /* Estilo para la cédula o ruta inferior */
+
+.acciones-cliente { display: flex; gap: 6px; } /* Contenedor de botones en fila con espacio controlado */
+
+/* BOTONERAS DE ACCIÓN INTERNAS */
+.btn-accion { 
+    padding: 6px 10px; /* Relleno compacto para botones pequeños tipo celda */
+    border: none; /* Remueve bordes nativos */
+    border-radius: 4px; /* Esquinas levemente curvas */
+    font-size: 11px; /* Letras micro de alta tecnología */
+    font-weight: 700; /* Letras gruesas para leer la acción al vuelo */
+    cursor: pointer; /* Transforma cursor a mano selectiva */
+    transition: all 0.2s; /* Animación de pulsación */
+}
+
+.btn-ver { background-color: #f1f5f9; color: #475569; } /* Botón ver: Gris neutral discreto */
+.btn-edit { background-color: #fef08a; color: #854d0e; } /* Botón editar: Amarillo advertencia pasivo */
+.btn-credito { background-color: #dcfce7; color: #15803d; } /* Botón crédito: Verde financiero positivo */
+.btn-elim { background-color: #fee2e2; color: #b91c1c; } /* Botón eliminar: Rojo peligro de alto contraste */
+.btn-accion:hover { transform: translateY(-1px); opacity: 0.9; } /* Leve realce interactivo al apuntar botones */
+
+/* ==========================================================================
+   ESTILOS PARA LA VENTANA FLOTANTE DE DETALLES (MODAL)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed; /* Desconecta el modal fijándolo por encima de toda la página entera */
+    top: 0; /* Lo alinea al ras del techo del navegador */
+    left: 0; /* Lo alinea al ras de la pared izquierda de la pantalla */
+    width: 100%; /* Cubre el ancho entero de la ventana física */
+    height: 100%; /* Cubre el alto completo de la ventana física */
+    background-color: rgba(11, 15, 25, 0.7); /* Fondo traslúcido oscuro de cine para enfocar la vista */
+    display: flex; /* Habilita el centrado del cuadro interior */
+    align-items: center; /* Centra la tarjeta flotante verticalmente */
+    justify-content: center; /* Centra la tarjeta flotante horizontalmente */
+    z-index: 1000; /* Forzamos un nivel de capa altísimo para que se ponga encima de todo */
+    opacity: 0; /* Lo vuelve invisible por defecto al cargar la app */
+    pointer-events: none; /* Apaga clics accidentales mientras esté escondido */
+    transition: all 0.25s ease; /* Transición elegante de aparición */
+}
+
+/* CLASE QUE ACTIVA EL MODAL EN PANTALLA */
+.modal-overlay.active {
+    opacity: 1; /* Lo vuelve completamente visible */
+    pointer-events: auto; /* Habilita clics e interacción en sus inputs y botones */
+}
+
+.modal-contenido {
+    background-color: var(--blanco); /* Fondo de la tarjeta flotante en blanco absoluto */
+    padding: 30px; /* Relleno interior muy fino para la ficha técnica del cliente */
+    border-radius: 12px; /* Esquinas curvas súper profesionales */
+    width: 90%; /* Se adapta elásticamente a dispositivos móviles */
+    max-width: 550px; /* Tamaño máximo elegante para monitores de escritorio */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); /* Sombra profunda realista de flotación */
+    transform: scale(0.9); /* Inicia un toque más pequeño para el efecto de rebote visual */
+    transition: all 0.25s ease; /* Suavizador del efecto escala */
+}
+
+.modal-overlay.active .modal-contenido {
+    transform: scale(1); /* Crece a su tamaño real nativo al activarse de golpe */
+}
+
+.modal-header {
+    display: flex; /* Enlaza horizontalmente el título y la 'X' de cierre */
+    justify-content: space-between; /* Envía el título a la izquierda y la cruz a la derecha */
+    align-items: center; /* Sincroniza sus alturas */
+    margin-bottom: 20px; /* Margen inferior divisorio */
+    padding-bottom: 10px; /* Espacio protector antes de la línea */
+    border-bottom: 2px solid #f1f5f9; /* Línea delgada gris de base */
+}
+
+.btn-cerrar-modal {
+    background: none; /* Remueve fondos toscos de la cruz 'X' */
+    border: none; /* Quita contornos rígidos */
+    font-size: 16px; /* Tamaño idóneo de cruz interactiva */
+    cursor: pointer; /* Cursor tipo mano selectiva */
+    transition: transform 0.2s; /* Animación de rotación o escala rápida */
+}
+.btn-cerrar-modal:hover { transform: scale(1.2); } /* Engrandece la 'X' sutilmente al apuntarle */
+
+/* FILAS INTERNAS DE LA FICHA EN EL MODAL */
+.detalle-fila {
+    display: grid; /* Activa rejilla interna de dos posiciones fijas */
+    grid-template-columns: 1fr 1.8fr; /* Divide la celda dándole más espacio al valor que a la etiqueta */
+    padding: 8px 0; /* Colchón vertical de separación entre filas de datos */
+    border-bottom: 1px solid #f1f5f9; /* Línea gris muy sutil entre fila y fila */
+    font-size: 14px; /* Tipografía limpia de lectura técnica */
+}
+
+.detalle-label {
+    font-weight: 700; /* Texto de campo en negrita dura */
+    color: #475569; /* Color gris oscuro administrativo */
+}
+
+.detalle-valor {
+    color: var(--texto-oscuro); /* Valor real impreso en azul marino legible */
+}
+
+/* ==========================================================================
+   OPTIMIZACIÓN DE TAMAÑOS Y RESTRICCIONES EN EL FORMULARIO
+   ========================================================================== */
+.campo textarea {
+    resize: vertical; /* Impide que el usuario deforme las columnas hacia los lados horizontalmente */
+    min-height: 60px; /* Altura mínima segura */
+    max-height: 120px; /* Límite de estiramiento para que no tape los botones del fondo */
+}
+
+/* Forzamos a que los inputs tengan una altura limpia, idéntica y unificada */
+.campo input, .campo select {
+    height: 42px; /* Altura perfecta estandarizada para software corporativo */
+}
+
+/* ==========================================================================
+   📄 DISEÑO PREMIUM PARA LA PAGINACIÓN DEL SISTEMA ALPHA V5 (FIJACIÓN INFERIOR)
+   ========================================================================== */
+
+/* Alineación del bloque de paginación justo debajo de las tarjetas */
+.contenedor-paginacion, #paginacion-clientes {
+    display: flex !important; /* Activa el diseño elástico en fila horizontal para los números */
+    justify-content: flex-end !important; /* Empuja los botones de control hacia la esquina inferior derecha */
+    margin-top: auto !important; /* ¡IMÁN MAGNÉTIQUE! Envía y ancla la paginación al fondo absoluto de la caja gris */
+    padding-top: 15px !important; /* Agrega un pequeño colchón visual divisorio arriba del botón */
+    border-top: 1px solid rgba(0, 0, 0, 0.05) !important; /* Sutil división superior para marcar el fin del área utilizable */
+    width: 100% !important; /* Fuerza al contenedor a ocupar todo el ancho disponible de la columna */
+}
+
+/* Diseño base de los botones de números inactivos */
+.btn-pagina {
+    background-color: #f1f5f9 !important; /* Color gris claro de fondo para botones no seleccionados */
+    border: 1px solid #cbd5e1 !important; /* Borde delgado de contorno tridimensional sutil */
+    color: #334155 !important; /* Texto gris de alta visibilidad anti-fatiga visual */
+    padding: 8px 14px !important; /* Tamaño interior ideal para dar clics limpios y rápidos */
+    border-radius: 6px !important; /* Redondeado curvo que unifica el look del software Alpha */
+    cursor: pointer !important; /* Mano selectiva instantánea */
+    font-weight: 600 !important; /* Grosor de número seminegrita */
+    transition: all 0.2s ease !important; /* Suavizador de transiciones de color */
+}
+
+/* Efecto visual cuando el usuario pasa el cursor por encima de un número */
+.btn-pagina:hover {
+    background-color: #e2e8f0 !important; /* Oscurece el gris avisando que la casilla es cliqueable */
+    border-color: #94a3b8 !important; /* Fortalece el contorno del borde haciéndolo notar más */
+}
+
+/* Estilo exclusivo para el botón de la página que se está viendo en ese instante */
+.btn-pagina.active {
+    background-color: #0284c7 !important; /* Fondo azul brillante premium para marcar posición actual */
+    color: #ffffff !important; /* Texto en blanco absoluto para contraste perfecto */
+    border-color: #0284c7 !important; /* Reemplaza el contorno gris por el mismo tono azul */
+    cursor: default !important; /* Apaga la mano del mouse porque ya estás parado dentro de esa página */
+}
