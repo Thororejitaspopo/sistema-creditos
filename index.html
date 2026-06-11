@@ -297,7 +297,7 @@
         
         <div id="mod-capital" class="modulo-contenido">
     <h2>💰 Control y Gestión de Capital</h2>
-    <p class="subtitulo">Inyección de fondos, distribución de cajas para cobradores y saldos en vivo.</p>
+    <p class="subtitulo">Inyección de fondos, distribución de cajas y saldos en vivo.</p>
 
     <div class="fila-campos" style="display: flex; gap: 15px; margin-bottom: 25px;">
         <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
@@ -309,42 +309,50 @@
             <h3 id="saldo-bancos-txt" style="margin: 5px 0 0 0; color: #3b82f6; font-size: 24px;">$0.00</h3>
         </div>
         <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #f59e0b;">
-            <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">FONDO EN CALLE (COBRADORES)</span>
-            <h3 id="saldo-cobradores-txt" style="margin: 5px 0 0 0; color: #f59e0b; font-size: 24px;">$0.00</h3>
+            <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">CAPITAL GENERAL (SISTEMA)</span>
+            <h3 id="saldo-general-txt" style="margin: 5px 0 0 0; color: #f59e0b; font-size: 24px;">$0.00</h3>
         </div>
     </div>
 
-    <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151;">
+    <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151; margin-bottom: 25px;">
         <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📋 Registrar Movimiento de Fondos</h3>
         
         <div class="fila-campos" style="display: flex; gap: 15px; margin-top: 15px;">
             <div class="campo" style="flex: 1;">
-                <label>Seleccionar Caja/Destino</label>
-                <select id="cap-caja-destino" style="width: 100%;">
-                    <option value="" selected disabled>-- Seleccione la Caja --</option>
+                <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Seleccionar Caja/Destino</label>
+                <select id="cap-caja-destino" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
+                    <option value="" selected disabled>-- Seleccione Caja o Banco --</option>
                 </select>
             </div>
 
             <div class="campo" style="flex: 1;">
-                <label>Monto a Ingresar ($)</label>
-                <input type="number" id="cap-monto" step="0.01" placeholder="0.00" style="width: 100%;">
+                <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Monto Operación ($)</label>
+                <input type="number" id="cap-monto" step="0.01" placeholder="0.00" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
             </div>
         </div>
 
         <div class="fila-campos" style="display: flex; gap: 15px; margin-top: 15px;">
             <div class="campo" style="flex: 1;">
-                <label>Concepto / Detalle del Movimiento</label>
-                <input type="text" id="cap-concepto" placeholder="Ej: Inyección capital inicial de Miguel para Ruta Norte" style="width: 100%;">
+                <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Concepto / Detalle del Movimiento</label>
+                <input type="text" id="cap-concepto" placeholder="Ej: Inyección capital inicial de Miguel para Ruta Norte" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
             </div>
         </div>
 
-        <div style="margin-top: 20px; text-align: right;">
-            <button type="button" onclick="procesarIngresoCapital()" style="background: #10b981; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                📥 APROBAR E INYECTAR CAPITAL
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 15px;">
+            <button type="button" onclick="procesarTransaccionCapital('RETIRAR')" style="background: #ef4444; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                💸 RETIRAR FONDOS
+            </button>
+            <button type="button" onclick="procesarTransaccionCapital('INGRESAR')" style="background: #10b981; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                📥 INGRESAR CAPITAL
             </button>
         </div>
     </div>
-</div>
+
+    <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151;">
+        <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📊 Historial de Auditoría (Últimos 50 Movimientos)</h3>
+        <div id="historial-capital-lista" style="max-height: 300px; overflow-y: auto; margin-top: 15px;">
+            </div>
+    </div>
         <div id="mod-interes" class="modulo-contenido"><h3>📈 Bóveda de Intereses y Recargos</h3></div>
         <div id="mod-cierre" class="modulo-contenido"><h3>🔒 Cierre de Caja Definitivo</h3></div>
         <div id="mod-supervisores" class="modulo-contenido"><h3>👔 Control de Personal Supervisor</h3></div>

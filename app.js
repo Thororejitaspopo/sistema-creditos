@@ -1016,125 +1016,241 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// 6. MOTOR DEL MÓDULO DE CAPITAL (SISTEMA ALPHA V5)
+// 6. MOTOR MASTER DEL MÓDULO DE CAPITAL (SISTEMA ALPHA V5 - FILTRADO)
 // =========================================================================
 
 /**
- * CARGAR SALDOS EN VIVO Y LLENAR EL SELECTOR DE CAJAS
- * Conecta con Supabase, descarga los saldos reales de la bóveda,
- * calcula los totales por tipo y llena el combobox del formulario.
+ * CARGAR SALDOS EN VIVO Y CALCULAR EL CAPITAL GENERAL
+ * CORE DEL SISTEMA: Descarga el estado de todas las cajas en Supabase,
+ * suma absolutamente todo para hallar el "Capital General" e inyecta
+ * los desgloses de Efectivo y Banco en las tarjetas correspondientes.
+ * NOTA: Filtrado estricto para mostrar solo Banco Principal y Efectivo Matriz.
  */
 async function inicializarModuloCapital() {
     try {
-        // 1. CONEXIÓN CORREGIDA: Traemos las cajas usando 'supabaseClient'
+        // 1. CONEXIÓN: Descargamos todas las fuentes de capital usando tu conector oficial
         const { data: cajas, error } = await supabaseClient
             .from('cajas_capital')
             .select('*');
 
         if (error) throw error;
 
-        // 2. VALIDACIÓN: Verificamos si el HTML cuenta con el selector listo en pantalla
+        // 2. COMPROBACIÓN: Validamos si el selector de destino está disponible en el HTML
         const selector = document.getElementById('cap-caja-destino');
         if (!selector) {
-            alert("Error del HTML: No se encontró el elemento id='cap-caja-destino'. Revisa el módulo en tu index.html");
+            console.warn("Aviso: El elemento 'cap-caja-destino' no está renderizado en esta pestaña.");
             return;
         }
 
-        // 3. LIMPIEZA: Dejamos el selector vacío con su opción informativa por defecto
-        selector.innerHTML = '<option value="" selected disabled>-- Seleccione la Caja --</option>';
+        // 3. LIMPIEZA DE INTERFAZ: Reseteamos el selector con su primera opción deshabilitada
+        selector.innerHTML = '<option value="" selected disabled>-- Seleccione Caja o Banco --</option>';
 
-        // 4. CONTROL: Si la tabla de la base de datos no tiene registros aún
+        // 4. VERIFICACIÓN DE REGISTROS: Si la base de datos está vacía, emitimos alerta de control
         if (!cajas || cajas.length === 0) {
-            alert("Aviso: Las tablas existen en Supabase pero no hay cajas registradas.");
+            alert("Aviso de Auditoría: No existen cajas configuradas en la tabla 'cajas_capital'.");
             return;
         }
 
-        let totalEfectivo = 0;
-        let totalBancos = 0;
-        let totalCobradores = 0;
+        // 5. MATEMÁTICA CONTABLE: Inicializamos los acumuladores originales en cero
+        let capitalGeneralAcumulado = 0; // -> Suma absoluta de todo el dinero del sistema
+        let capitalEfectivo = 0;         // -> Suma exclusiva de dinero físico (Cajas)
+        let capitalBanco = 0;            // -> Suma exclusiva de dinero digital (Transferencias)
 
-        // 5. PROCESAMIENTO: Iteramos los datos de Supabase para acumular dinero y fabricar las opciones
+        // 6. ITERACIÓN DE CAJAS: Procesamos registro por registro en tiempo real
         cajas.forEach(caja => {
-            if (caja.tipo === 'efectivo') totalEfectivo += parseFloat(caja.saldo_actual || 0);
-            if (caja.tipo === 'banco') totalBancos += parseFloat(caja.saldo_actual || 0);
-            if (caja.tipo === 'cobrador') totalCobradores += parseFloat(caja.saldo_actual || 0);
+            // Pasamos el nombre a minúsculas para evaluar sin importar tildes o mayúsculas erróneas
+            const nombreLimpio = caja.nombre_caja.toLowerCase();
+            const saldoMonto = parseFloat(caja.saldo_actual || 0);
 
-            // Añadimos cada caja disponible dentro del selector desplegable
-            const option = document.createElement('option');
-            option.value = caja.id;
-            option.textContent = caja.nombre_caja;
-            selector.appendChild(option);
+            // FILTRO ESTRICTO: Solo dejamos pasar las dos cuentas autorizadas por Miguel
+            if (nombreLimpio.includes('matriz') || nombreLimpio.includes('central') || nombreLimpio.includes('banco principal')) {
+                
+                // Regla Absoluta: Toda caja autorizada suma directamente al Capital General del negocio
+                capitalGeneralAcumulado += saldoMonto;
+
+                // Clasificación interna por tipos para llenar los tableros secundarios (Usando tus variables de siempre)
+                if (caja.tipo === 'efectivo') {
+                    capitalEfectivo += saldoMonto;
+                } else if (caja.tipo === 'banco') {
+                    capitalBanco += saldoMonto;
+                }
+
+                // Inyección en el combobox de la interfaz (Muestra el nombre y su saldo disponible)
+                const option = document.createElement('option');
+                option.value = caja.id;
+                option.textContent = `${caja.nombre_caja} ($${saldoMonto.toFixed(2)})`;
+                selector.appendChild(option);
+            }
+            // Las cajas de rutas o cobradores se omiten en silencio para mantener limpia la pantalla
         });
 
-        // 6. INYECCIÓN VISUAL: Mostramos los montos consolidados en las tarjetas de la interfaz
-        document.getElementById('saldo-efectivo-txt').textContent = `$${totalEfectivo.toFixed(2)}`;
-        document.getElementById('saldo-bancos-txt').textContent = `$${totalBancos.toFixed(2)}`;
-        document.getElementById('saldo-cobradores-txt').textContent = `$${totalCobradores.toFixed(2)}`;
+        // 7. INYECCIÓN VISUAL EN LAS TARJETAS (Pintado con las variables originales del sistema)
+        // Tarjeta Master: Capital General (Suma de Efectivo + Banco)
+        const txtGeneral = document.getElementById('saldo-general-txt');
+        if (txtGeneral) txtGeneral.textContent = `$${capitalGeneralAcumulado.toFixed(2)}`;
+
+        // Tarjeta Secundaria A: Capital Real en Bóveda (Dinero físico)
+        const txtEfectivo = document.getElementById('saldo-efectivo-txt');
+        if (txtEfectivo) txtEfectivo.textContent = `$${capitalEfectivo.toFixed(2)}`;
+
+        // Tarjeta Secundaria B: Capital en Banco (Transferencias)
+        const txtBancos = document.getElementById('saldo-bancos-txt');
+        if (txtBancos) txtBancos.textContent = `$${capitalBanco.toFixed(2)}`;
+
+        // 8. RENDERIZADO DEL LOG: Cargamos el historial detallado de movimientos a la derecha
+        await cargarHistorialCapital();
 
     } catch (error) {
-        console.error('Error al cargar la bóveda:', error.message);
-        // Alerta informativa si la red o Supabase deniega la solicitud
-        alert('Supabase rechazó la lectura de capital: ' + error.message);
+        console.error('Error crítico en la sincronización de capital:', error.message);
+        alert('Supabase rechazó la sincronización de fondos: ' + error.message);
     }
 }
-
 /**
- * PROCESAR E INYECTAR EL DINERO REAL A LA BÓVEDA
- * Captura el monto del formulario, inserta el registro en el historial
- * de movimientos y actualiza el saldo de la caja seleccionada.
+ * EJECUTAR TRANSACCIÓN DE CAPITAL (INGRESOS Y RETIROS)
+ * ACCIÓN DINÁMICA: Procesa de forma segura la entrada o salida de capital.
+ * Valida campos obligatorios, modifica balances y genera auditoría con signo.
+ * @param {string} tipoAccion - Recibe 'INGRESAR' o 'RETIRAR' para definir el flujo matemático.
  */
-async function procesarIngresoCapital() {
-    // 1. CAPTURA: Obtenemos los valores que el administrador digitó en pantalla
+async function procesarTransaccionCapital(tipoAccion) {
+    // 1. CAPTURA: Extraemos los valores del formulario lateral de la interfaz
     const cajaId = document.getElementById('cap-caja-destino').value;
     const montoInput = document.getElementById('cap-monto').value;
     const concepto = document.getElementById('cap-concepto').value.trim();
 
-    // 2. AUDITORÍA INTERNA: Frenamos el envío si faltan campos obligatorios
+    // 2. AUDITORÍA PREVENTIVA: Si falta seleccionar destino, monto o el detalle descriptivo, frena el script
     if (!cajaId || !montoInput || !concepto) {
-        alert('Por favor, completa todos los campos para registrar el movimiento.');
+        alert('Error: Todos los campos (Caja destino, Monto y Concepto/Detalle) son estrictamente obligatorios.');
         return;
     }
 
-    const monto = parseFloat(montoInput);
+    // Convertimos la entrada de texto en número flotante puro
+    let montoFlotante = parseFloat(montoInput);
+    if (montoFlotante <= 0 || isNaN(montoFlotante)) {
+        alert('Por favor, digite un monto numérico válido y mayor a cero.');
+        return;
+    }
 
     try {
-        // 3. HISTORIAL: Agregamos la auditoría del movimiento en la tabla 'historial_capital'
-        const { error: errorHistorial } = await supabaseClient
-            .from('historial_capital')
-            .insert([{ caja_id: parseInt(cajaId), monto: monto, concepto: concepto }]);
-
-        if (errorHistorial) throw errorHistorial;
-
-        // 4. LECTURA SÍNCRONA: Consultamos el saldo actual para efectuar el cálculo exacto
+        // 3. CONSULTA SÍNCRONA: Leemos el saldo actual de la caja elegida antes de operar
         const { data: caja, error: errorFetch } = await supabaseClient
             .from('cajas_capital')
-            .select('saldo_actual')
+            .select('saldo_actual, nombre_caja')
             .eq('id', cajaId)
             .single();
 
         if (errorFetch) throw errorFetch;
 
-        // Sumamos el capital entrante al dinero que ya custodiaba la caja
-        const nuevoSaldo = parseFloat(caja.saldo_actual) + monto;
+        let saldoActualizado = parseFloat(caja.saldo_actual || 0);
+        let montoParaHistorial = montoFlotante;
 
-        // 5. ACTUALIZACIÓN: Guardamos el nuevo balance finalizado en Supabase
+        // 4. LOGIC ENGINE (Matemática de transacciones):
+        if (tipoAccion === 'INGRESAR') {
+            // Incrementamos fondos en la caja destino
+            saldoActualizado += montoFlotante;
+        } else if (tipoAccion === 'RETIRAR') {
+            // Validación de fondos: Previene que la caja quede en saldo negativo si no es permitido
+            if (montoFlotante > saldoActualizado) {
+                alert(`Fondos Insuficientes: No puede retirar $${montoFlotante.toFixed(2)} de la caja "${caja.nombre_caja}" porque solo dispone de $${saldoActualizado.toFixed(2)}.`);
+                return;
+            }
+            // Decrementamos fondos y guardamos el monto con signo negativo para las auditorías del historial
+            saldoActualizado -= montoFlotante;
+            montoParaHistorial = -montoFlotante; 
+        }
+
+        // 5. REGISTRO EN HISTORIAL: Inyectamos la fila contable para la auditoría diaria
+        const { error: errorHistorial } = await supabaseClient
+            .from('historial_capital')
+            .insert([{ 
+                caja_id: parseInt(cajaId), 
+                monto: montoParaHistorial, 
+                concepto: concepto 
+            }]);
+
+        if (errorHistorial) throw errorHistorial;
+
+        // 6. ACTUALIZACIÓN DE BALANCE: Sobreescribimos el balance final de la caja modificada en Supabase
         const { error: errorUpdate } = await supabaseClient
             .from('cajas_capital')
-            .update({ saldo_actual: nuevoSaldo })
+            .update({ saldo_actual: saldoActualizado })
             .eq('id', cajaId);
 
         if (errorUpdate) throw errorUpdate;
 
-        // 6. CONCLUSIÓN: Limpiamos el formulario e informamos del éxito
-        alert('¡Capital inyectado con éxito en la bóveda!');
+        // 7. CONCLUSIÓN EXITOSA: Notificamos al operador y limpiamos la pantalla de datos sensibles
+        alert(`¡Transacción de ${tipoAccion === 'INGRESAR' ? 'ingreso' : 'retiro'} ejecutada correctamente!`);
         document.getElementById('cap-monto').value = '';
         document.getElementById('cap-concepto').value = '';
 
-        // 7. SINCRONIZACIÓN: Forzamos la recarga de saldos en pantalla de inmediato
+        // 8. REFRESCAR SISTEMA: Invocamos el recálculo masivo para pintar los nuevos totales
         await inicializarModuloCapital();
 
     } catch (error) {
-        console.error('Error en la transacción:', error.message);
-        alert('No se pudo procesar la inyección de capital de manera segura.');
+        console.error('Error crítico al procesar la transacción:', error.message);
+        alert('La operación fue cancelada por seguridad: ' + error.message);
+    }
+}
+
+/**
+ * RENDERIZAR HISTORIAL DETALLADO DE MOVIMIENTOS
+ * AUDITORÍA VISUAL: Descarga los movimientos contables recientes,
+ * acopla el formato de fecha exacto y genera las filas con sus colores correspondientes.
+ */
+async function cargarHistorialCapital() {
+    const contenedorHistorial = document.getElementById('historial-capital-lista');
+    if (!contenedorHistorial) return; // Si no existe el contenedor visual, abortamos la carga
+
+    try {
+        // Traemos las últimas 50 transacciones ordenadas cronológicamente por ID descendente
+        const { data: movimientos, error } = await supabaseClient
+            .from('historial_capital')
+            .select(`
+                id,
+                monto,
+                concepto,
+                created_at,
+                cajas_capital ( nombre_caja )
+            `)
+            .order('id', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        // Limpiamos la lista para renderizar en frío
+        contenedorHistorial.innerHTML = '';
+
+        if (!movimientos || movimientos.length === 0) {
+            contenedorHistorial.innerHTML = '<p class="text-muted text-center py-3">No existen movimientos registrados en la bóveda.</p>';
+            return;
+        }
+
+        // Construimos el HTML dinámico basándonos en tu formato riguroso de fechas
+        movimientos.forEach(mov => {
+            const esIngreso = parseFloat(mov.monto) >= 0;
+            const montoFormateado = (esIngreso ? '+' : '') + parseFloat(mov.monto).toFixed(2);
+            const colorClase = esIngreso ? 'text-success' : 'text-danger'; // Verde para entradas, Rojo para salidas
+            
+            // Conversión estricta de tiempo de auditoría local
+            const fechaObjeto = new Date(mov.created_at);
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
+            const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            const itemHTML = `
+                <div class="movimiento-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                    <div>
+                        <small class="text-muted d-block">${fFormateada}, ${hFormateada} M.</small>
+                        <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong> | ${mov.concepto}
+                    </div>
+                    <div class="text-end">
+                        <span class="${colorClase} fw-bold">$${montoFormateado}</span>
+                    </div>
+                </div>
+            `;
+            contenedorHistorial.insertAdjacentHTML('beforeend', itemHTML);
+        });
+
+    } catch (error) {
+        console.error('Error al pintar el log de auditoría:', error.message);
     }
 }
