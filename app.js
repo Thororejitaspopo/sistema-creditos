@@ -22,6 +22,14 @@ let paginaActual = 1;
 // AJUSTE: He cambiado el límite de 15 a 10 para cumplir con tu requerimiento de 10 por página
 const clientesPorPagina = 10; 
 
+// --------------------------------------------------------------------------
+// CONTROL DE HISTORIAL Y AUDITORÍA - MODULO CAPITAL
+// --------------------------------------------------------------------------
+// Registra de forma fija la página del log de auditoría
+let paginaActualHistorial = 1;            
+// Límite estricto de 10 movimientos por página indicado por Miguel
+const filasPorPaginaHistorial = 10;
+
 /* ==========================================================================
    3. ARRANCADORES AUTOMÁTICOS AL INICIAR LA HOJA
    ========================================================================== */
@@ -1184,73 +1192,134 @@ async function procesarTransaccionCapital(tipoAccion) {
 
         // 8. REFRESCAR SISTEMA: Invocamos el recálculo masivo para pintar los nuevos totales
         await inicializarModuloCapital();
+        
+        // 🚀 NUEVA LÍNEA: Actualiza la tabla de auditoría con los 10 registros nuevos en vivo
+        await cargarHistorialCapital();
 
     } catch (error) {
         console.error('Error crítico al procesar la transacción:', error.message);
-        alert('La operación fue cancelada por seguridad: ' + error.message);
+        alert('La operation fue cancelada por seguridad: ' + error.message);
     }
 }
 
 /**
  * RENDERIZAR HISTORIAL DETALLADO DE MOVIMIENTOS
- * AUDITORÍA VISUAL: Descarga los movimientos contables recientes,
- * acopla el formato de fecha exacto y genera las filas con sus colores correspondientes.
+ * AUDITORÍA VISUAL: Genera filas horizontales compactas unificando fecha, 
+ * caja, concepto y monto con colores condicionales en una sola línea.
  */
 async function cargarHistorialCapital() {
     const contenedorHistorial = document.getElementById('historial-capital-lista');
     if (!contenedorHistorial) return; // Si no existe el contenedor visual, abortamos la carga
 
     try {
-        // Traemos las últimas 50 transacciones ordenadas cronológicamente por ID descendente
-        const { data: movimientos, error } = await supabaseClient
+        // BLOQUE 1: CÁLCULO DE RANGOS DINÁMICOS
+        const desde = (paginaActualHistorial - 1) * filasPorPaginaHistorial;
+        const hasta = desde + filasPorPaginaHistorial - 1;
+
+        // BLOQUE 2: CONSULTA A SUPABASE
+        const { data: movimientos, error, count } = await supabaseClient
             .from('historial_capital')
             .select(`
                 id,
                 monto,
                 concepto,
-                created_at,
                 cajas_capital ( nombre_caja )
-            `)
+            `, { count: 'exact' })
             .order('id', { ascending: false })
-            .limit(50);
+            .range(desde, hasta); 
 
         if (error) throw error;
 
-        // Limpiamos la lista para renderizar en frío
+        // BLOQUE 3: LIMPIEZA DE CONTENEDOR
         contenedorHistorial.innerHTML = '';
 
         if (!movimientos || movimientos.length === 0) {
             contenedorHistorial.innerHTML = '<p class="text-muted text-center py-3">No existen movimientos registrados en la bóveda.</p>';
+            renderizarPaginacionHistorial(0); 
             return;
         }
 
-        // Construimos el HTML dinámico basándonos en tu formato riguroso de fechas
+        // BLOQUE 4: MAQUETACIÓN INLINE (TODO EN UNA FILA)
         movimientos.forEach(mov => {
-            const esIngreso = parseFloat(mov.monto) >= 0;
-            const montoFormateado = (esIngreso ? '+' : '') + parseFloat(mov.monto).toFixed(2);
-            const colorClase = esIngreso ? 'text-success' : 'text-danger'; // Verde para entradas, Rojo para salidas
+            const numMonto = parseFloat(mov.monto);
+            const esIngreso = numMonto >= 0;
             
-            // Conversión estricta de tiempo de auditoría local
-            const fechaObjeto = new Date(mov.created_at);
+            // Ajuste estricto de formato: $+100.00 o $-100.00
+            const signo = esIngreso ? '+' : '-';
+            const montoAbsoluto = Math.abs(numMonto).toFixed(2);
+            const montoFormateado = `$${signo}${montoAbsoluto}`;
+            
+            // Asignación de colores (Verde para ingresos, Rojo para salidas)
+            const colorClase = esIngreso ? 'text-success' : 'text-danger'; 
+            const pepaColor = esIngreso ? '#10b981' : '#ef4444'; 
+
+            // Conversión de tiempo de auditoría local
+            const fechaObjeto = new Date(); // Cambiar por tu columna de fecha cuando la verifiques
             const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
             const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
+            // TEMPLATE HORIZONTAL CONTINUO
             const itemHTML = `
-                <div class="movimiento-item d-flex justify-content-between align-items-center p-2 border-bottom">
-                    <div>
-                        <small class="text-muted d-block">${fFormateada}, ${hFormateada} M.</small>
-                        <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong> | ${mov.concepto}
-                    </div>
-                    <div class="text-end">
-                        <span class="${colorClase} fw-bold">$${montoFormateado}</span>
-                    </div>
+                <div class="movimiento-item d-flex align-items-center p-2 border-bottom" style="gap: 8px; flex-wrap: wrap;">
+                    
+                    <span style="height: 10px; width: 10px; background-color: ${pepaColor}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${pepaColor}; flex-shrink: 0;"></span>
+                    
+                    <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
+                    <span class="text-muted small">|</span>
+                    
+                    <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
+                    <span class="text-muted">|</span>
+                    
+                    <span>${mov.concepto}</span>
+                    <span class="text-muted">|</span>
+                    
+                    <span class="${colorClase} fw-bold">${montoFormateado}</span>
+                    
                 </div>
             `;
             contenedorHistorial.insertAdjacentHTML('beforeend', itemHTML);
         });
 
+        // BLOQUE 5: PAGINACIÓN
+        renderizarPaginacionHistorial(count);
+
     } catch (error) {
         console.error('Error al pintar el log de auditoría:', error.message);
     }
+}
+
+/**
+ * RENDERIZAR BOTONES DE PAGINACIÓN DEL HISTORIAL
+ * Calcula las páginas totales en base a los bloques de 10 registros
+ * e inyecta los botones de navegación deshabilitándolos en los límites contables.
+ */
+function renderizarPaginacionHistorial(totalRegistros) {
+    const totalPaginas = Math.ceil(totalRegistros / filasPorPaginaHistorial);
+    const contenedorPaginas = document.getElementById('paginacion-historial-controles');
+    if (!contenedorPaginas) return;
+
+    // Pintamos los botones usando estilos limpios alineados a tu diseño
+    contenedorPaginas.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+            <button class="btn btn-sm btn-secondary" ${paginaActualHistorial === 1 ? 'disabled' : ''} onclick="cambiarPaginaHistorial(-1)">
+                Anterior
+            </button>
+            <span class="fw-bold small text-muted"> 
+                Página ${paginaActualHistorial} de ${totalPaginas || 1} 
+            </span>
+            <button class="btn btn-sm btn-secondary" ${paginaActualHistorial >= totalPaginas ? 'disabled' : ''} onclick="cambiarPaginaHistorial(1)">
+                Siguiente
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * EVENTO CAMBIO DE PÁGINA DEL HISTORIAL
+ * Suma o resta una página a la vista y vuelve a llamar al motor de carga fusionado.
+ */
+async function cambiarPaginaHistorial(direccion) {
+    paginaActualHistorial += direccion;
+    await cargarHistorialCapital();
 }
