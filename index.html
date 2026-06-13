@@ -218,78 +218,87 @@
         </div>
 
         <div id="mod-creditos" class="modulo-contenido">
-            <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
-                <div style="text-align: left;">
-                    <h2 style="color: var(--azul-premium, #0284c7); margin: 0; font-size: 22px; font-weight: 700;">
-                        💸 Emisión y Registro de Crédito Nuevo
-                    </h2>
-                    <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
-                        Complete los parámetros financieros para calcular y registrar una nueva obligación en la cartera.
-                    </p>
-                </div>
-                
-                <div style="text-align: right; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; min-width: 220px;">
-                    <span style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; display: block; letter-spacing: 0.5px;">Fecha de Emisión</span>
-                    <span id="cred-fecha-servidor" style="font-size: 13px; color: #1e293b; font-weight: 600; display: block; margin-top: 2px;">Cargando fecha...</span>
-                </div>
-            </div>
-
-            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; max-width: 650px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); text-align: left;">
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">👤 Cliente Registrado:</label>
-                    <select id="cred-cliente-id" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff;">
-                        <option value="">-- Seleccione un cliente activo --</option>
-                    </select>
-                </div>
-
-                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">💰 Monto Prestado ($):</label>
-                        <input type="number" id="cred-monto" oninput="calcularProyeccionCredito()" placeholder="0.00" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px; font-weight: 600;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">📈 Interés Regulado (%):</label>
-                        <input type="number" id="cred-tasa-interes" oninput="calcularProyeccionCredito()" value="20" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px; background: #f8fafc; font-weight: 600; color: #0284c7;">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <div style="flex: 1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">🔢 N° de Cuotas:</label>
-                        <input type="number" id="cred-cuotas" oninput="calcularProyeccionCredito()" value="1" min="1" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">🔄 Frecuencia de Pago:</label>
-                        <select id="cred-modalidad" onchange="calcularProyeccionCredito()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff; height: 41px;">
-                            <option value="diario">📆 Cobro Diario (Lun a Sáb)</option>
-                            <option value="semanal">🗓️ Cobro Semanal</option>
-                            <option value="quincenal">🌓 Cobro Quincenal</option>
-                            <option value="mensual">📊 Cobro Mensual</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div style="background: #0f172a; padding: 18px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
-                    <div>
-                        <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Cobro por Cuota</span>
-                        <h4 id="lbl-cuota-valor" style="margin: 5px 0 0 0; font-size: 20px; color: #38bdf8; font-weight: 700;">$0.00</h4>
-                    </div>
-                    <div>
-                        <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Ganancia Interés</span>
-                        <h4 id="lbl-interes-total" style="margin: 5px 0 0 0; font-size: 20px; color: #f87171; font-weight: 700;">$0.00</h4>
-                    </div>
-                    <div>
-                        <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total a Devolver</span>
-                        <h4 id="lbl-pagar-total" style="margin: 5px 0 0 0; font-size: 20px; color: #4ade80; font-weight: 800;">$0.00</h4>
-                    </div>
-                </div>
-
-                <button onclick="guardarNuevoCredito()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border: none; padding: 14px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; width: 100%; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: all 0.2s;">
-                    ⚡ Aprobar y Registrar Crédito
-                </button>
-            </div>
+    <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+        <div style="text-align: left;">
+            <h2 style="color: var(--azul-premium, #0284c7); margin: 0; font-size: 22px; font-weight: 700;">
+                💸 Emisión y Registro de Crédito Nuevo
+            </h2>
+            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+                Complete los parámetros financieros para calcular y registrar una nueva obligación en la cartera.
+            </p>
         </div>
+        
+        <div style="text-align: right; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; min-width: 220px;">
+            <span style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; display: block; letter-spacing: 0.5px;">Fecha de Emisión</span>
+            <span id="cred-fecha-servidor" style="font-size: 13px; color: #1e293b; font-weight: 600; display: block; margin-top: 2px;">Cargando fecha...</span>
+        </div>
+    </div>
+
+  <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; max-width: 650px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); text-align: left;">
+        
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">👤 Cliente Registrado:</label>
+        <select id="cred-cliente-id" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff;">
+            <option value="">-- Seleccione un cliente activo --</option>
+        </select>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div style="flex: 1;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">💰 Monto Prestado ($):</label>
+            <input type="number" id="cred-monto" oninput="calcularProyeccionCredito()" placeholder="0.00" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px; font-weight: 600;">
+        </div>
+        <div style="flex: 1;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">📈 Interés Regulado (%):</label>
+            <input type="number" id="cred-tasa-interes" oninput="calcularProyeccionCredito()" value="20" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px; background: #f8fafc; font-weight: 600; color: #0284c7;">
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div style="flex: 1;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">🔢 N° de Cuotas:</label>
+            <input type="number" id="cred-cuotas" oninput="calcularProyeccionCredito()" value="1" min="1" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px;">
+        </div>
+        <div style="flex: 1;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">🔄 Frecuencia de Pago:</label>
+            <select id="cred-modalidad" onchange="calcularProyeccionCredito()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff; height: 41px;">
+                <option value="diario">📆 Cobro Diario (Lun a Sáb)</option>
+                <option value="semanal">🗓️ Cobro Semanal</option>
+                <option value="quincenal">🌓 Cobro Quincenal</option>
+                <option value="mensual">📊 Cobro Mensual</option>
+            </select>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #334155;">💳 Forma de Entrega / Origen de Caja *</label>
+        <select id="cred-forma-entrega" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff; height: 41px;" required>
+            <option value="" disabled selected>-- Seleccione de dónde sale el dinero --</option>
+            <option value="1">💵 Efectivo Matriz (Caja 1)</option>
+            <option value="2">🏦 Transferencia Bancaria (Caja 2)</option>
+        </select>
+    </div>
+
+    <div style="background: #0f172a; padding: 18px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+        <div>
+            <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Cobro por Cuota</span>
+            <h4 id="lbl-cuota-valor" style="margin: 5px 0 0 0; font-size: 20px; color: #38bdf8; font-weight: 700;">$0.00</h4>
+        </div>
+        <div>
+            <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Ganancia Interés</span>
+            <h4 id="lbl-interes-total" style="margin: 5px 0 0 0; font-size: 20px; color: #f87171; font-weight: 700;">$0.00</h4>
+        </div>
+        <div>
+            <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total a Devolver</span>
+            <h4 id="lbl-pagar-total" style="margin: 5px 0 0 0; font-size: 20px; color: #4ade80; font-weight: 800;">$0.00</h4>
+        </div>
+    </div>
+
+    <button onclick="guardarNuevoCredito()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border: none; padding: 14px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; width: 100%; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: all 0.2s;">
+        ⚡ Aprobar y Registrar Crédito
+    </button>
+</div>
+</div>
 
         <div id="mod-pagos" class="modulo-contenido"><h3>📝 Recaudación de Abonos</h3></div>
         <div id="mod-gastos" class="modulo-contenido"><h3>💸 Control de Egresos y Gastos Varios</h3></div>

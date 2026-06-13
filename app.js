@@ -576,22 +576,20 @@ function filtrarClientes() {
  * Altera la visibilidad de los paneles del software según el botón seleccionado del menú.
  */
 function cambiarModulo(idModulo) {
-    // 1. Remueve la clase activa de todos los bloques
+    // 1. CONTROL DE INTERFAZ: Remueve la clase activa de todos los bloques y botones
     document.querySelectorAll('.modulo-contenido').forEach(mod => mod.classList.remove('active'));
     document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
     
-    // 2. Añade la clase activa al módulo solicitado
-    // OJO: Asegúrate que tu div en HTML sea <div id="mod-capital" ...> 
-    // Si tu div tiene id="modulo-capital", cámbialo aquí a `modulo-${idModulo}`
+    // 2. ACTIVACIÓN VISUAL: Añade la clase activa al div del módulo solicitado en el HTML
     document.getElementById(`mod-${idModulo}`).classList.add('active');
     
     if(window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add('active');
     }
 
-    // 3. Diccionario de títulos
+    // 3. DICCIONARIO DE TÍTULOS: Cambia dinámicamente el H1 y Subtítulo del Header principal
     const titulos = {
-        'inicio': ['Bienvenido, Administrador', 'Resumen general del estado de tu negocio.'],
+        'inicio': ['Bienvenido, Administrator', 'Resumen general del estado de tu negocio.'],
         'consultar': ['Matriz de Consulta Rápida', 'Búsqueda instantánea de clientes y saldos.'],
         'clientes': ['Gestión de Clientes', 'Fichas técnicas y registro de usuarios.'],
         'creditos': ['Colocación de Créditos', 'Control de préstamos activos y tablas de cuotas.'],
@@ -609,12 +607,17 @@ function cambiarModulo(idModulo) {
     document.getElementById('titulo-panel').innerText = titulos[idModulo][0];
     document.getElementById('subtitulo-panel').innerText = titulos[idModulo][1];
 
-    // 4. Lógica de activación específica
+    // 4. LÓGICA DE ACTIVACIÓN ESPECÍFICA POR MÓDULO
+    
+    // Si entramos a la pestaña de CRÉDITOS:
     if (idModulo === 'creditos') {
-        setTimeout(() => { aplicarTasaAlAbrirModulo(); }, 50);
+        setTimeout(() => { 
+            aplicarTasaAlAbrirModulo(); 
+            cargarClientesDropdown(); // 👥 DISPARADOR: Trae los clientes de Supabase al selector en vivo
+        }, 50);
     }
 
-    // --- AQUÍ ESTÁ LO QUE ME PEDISTE: EL DISPARADOR DE CAPITAL ---
+    // Si entramos a la pestaña de CAPITAL:
     if (idModulo === 'capital') {
         inicializarModuloCapital();
     }
@@ -1439,3 +1442,228 @@ async function buscarPorId() {
         console.error('Error al ejecutar la búsqueda por ID:', error.message);
     }
 }
+
+/**
+ * REGISTRAR UN NUEVO CRÉDITO EN EL SISTEMA
+ * Captura los datos de colocación, valida saldos en boveda,
+ * inserta el crédito en Supabase y descuenta el capital de la caja elegida.
+ */
+async function guardarCreditoEnSistema() {
+    // 1. CAPTURA DE CAMPOS (Asegúrate de tener estos IDs en tu HTML de créditos)
+    const selectorCliente = document.getElementById('cred-cliente-id'); // Select con el ID del cliente
+    const selectorCaja = document.getElementById('cred-caja-origen');   // Select para elegir de qué caja sale el dinero
+    const inputMonto = document.getElementById('cred-monto');
+    const inputTasa = document.getElementById('cred-tasa-interes');
+    const inputCuotas = document.getElementById('cred-cuotas');
+
+    if (!selectorCliente || !selectorCaja || !inputMonto || !inputTasa || !inputCuotas) {
+        alert("❌ Error: Faltan componentes de interfaz en el módulo de créditos.");
+        return;
+    }
+
+    const clienteId = parseInt(selectorCliente.value);
+    const cajaId = parseInt(selectorCaja.value);
+    const monto = parseFloat(inputMonto.value) || 0;
+    const tasa = parseFloat(inputTasa.value) || 0;
+    const cuotas = parseInt(inputCuotas.value) || 0;
+
+    // 2. VALIDACIÓN PREVENTIVA DE ENTRADAS
+    if (!clienteId || !cajaId || monto <= 0 || cuotas <= 0) {
+        alert("⚠️ Por favor, complete todos los campos: seleccione cliente, caja de origen, monto y cuotas.");
+        return;
+    }
+
+    try {
+        // 3. VERIFICACIÓN DE FONDOS: ¿Hay dinero en la caja elegida para prestar?
+        const { data: caja, error: errorCaja } = await supabaseClient
+            .from('cajas_capital')
+            .select('saldo_actual, nombre_caja')
+            .eq('id', cajaId)
+            .single();
+
+        if (errorCaja) throw errorCaja;
+
+        if (monto > parseFloat(caja.saldo_actual)) {
+            alert(`❌ Fondos insuficientes en "${caja.nombre_caja}". Saldo disponible: $${parseFloat(caja.saldo_actual).toFixed(2)}`);
+            return;
+        }
+
+        // 4. MATEMÁTICA DE AUDITORÍA
+        const totalInteres = monto * (tasa / 100);
+        const totalPagar = monto + totalInteres;
+        const valorCuota = totalPagar / cuotas;
+
+        // Confirmación final del operador
+        const seguro = confirm(`¿Está seguro de colocar este crédito por un total de $${totalPagar.toFixed(2)} (${cuotas} cuotas de $${valorCuota.toFixed(2)})?`);
+        if (!seguro) return;
+
+        // 5. INSERCIÓN EN LA TABLA 'CREDITOS'
+        const { data: nuevoCredito, error: errorCredito } = await supabaseClient
+            .from('creditos')
+            .insert([{
+                cliente_id: clienteId,
+                caja_id: cajaId,
+                monto_capital: monto,
+                tasa_interes: tasa,
+                total_interes: totalInteres,
+                total_pagar: totalPagar,
+                saldo_pendiente: totalPagar, // Al iniciar, debe todo
+                num_cuotas: cuotas,
+                valor_cuota: valorCuota,
+                usuario_registro: 'Administrador' // Puedes dinamizarlo después
+            }])
+            .select()
+            .single();
+
+        if (errorCredito) throw errorCredito;
+
+        // 6. DESCUENTO DE FONDOS DE LA CAJA SELECCIONADA
+        const nuevoSaldoCaja = parseFloat(caja.saldo_actual) - monto;
+        const { error: errorUpdateCaja } = await supabaseClient
+            .from('cajas_capital')
+            .update({ saldo_actual: nuevoSaldoCaja })
+            .eq('id', cajaId);
+
+        if (errorUpdateCaja) throw errorUpdateCaja;
+
+        // 7. REGISTRO EN EL HISTORIAL DE CAPITAL (Auditoría de salida)
+        const { error: errorHistorial } = await supabaseClient
+            .from('historial_capital')
+            .insert([{
+                caja_id: cajaId,
+                monto: -monto, // Negativo porque es desembolso
+                concepto: `DESEMBOLSO CRÉDITO #CLI-${String(clienteId).padStart(6, '0')}`
+            }]);
+
+        if (errorHistorial) throw errorHistorial;
+
+        // 8. ÉXITO Y RESETEO
+        alert(`🎉 ¡Crédito generado con éxito! ID de operación asignado.`);
+        inputMonto.value = '';
+        inputCuotas.value = '';
+        
+        // Si el operador tiene abierto el módulo de capital de fondo, lo actualizamos en vivo
+        if (typeof inicializarModuloCapital === 'function') {
+            await inicializarModuloCapital();
+        }
+
+    } catch (error) {
+        console.error('Error crítico al generar crédito:', error.message);
+        alert('La operación fue cancelada por error en el servidor: ' + error.message);
+    }
+}
+
+// 1. FUNCIÓN PARA CALCULAR LOS NÚMEROS EN VIVO MIENTRAS ESCRIBES
+function calcularProyeccionCredito() {
+    const monto = parseFloat(document.getElementById('cred-monto').value) || 0;
+    const tasa = parseFloat(document.getElementById('cred-tasa-interes').value) || 0;
+    const cuotas = parseInt(document.getElementById('cred-cuotas').value) || 1;
+
+    // Cálculos matemáticos limpios
+    const totalInteres = (monto * tasa) / 100;
+    const totalPagar = monto + totalInteres;
+    const valorCuota = cuotas > 0 ? (totalPagar / cuotas) : 0;
+
+    // Inyectar los resultados en las etiquetas negras de tu HTML
+    document.getElementById('lbl-interes-total').innerText = `$${totalInteres.toFixed(2)}`;
+    document.getElementById('lbl-pagar-total').innerText = `$${totalPagar.toFixed(2)}`;
+    document.getElementById('lbl-cuota-valor').innerText = `$${valorCuota.toFixed(2)}`;
+}
+
+// 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+async function guardarNuevoCredito() {
+    // Capturar datos usando los IDs EXACTOS de tu index.html
+    const clienteId = document.getElementById('cred-cliente-id').value;
+    const monto = parseFloat(document.getElementById('cred-monto').value);
+    const tasa = parseFloat(document.getElementById('cred-tasa-interes').value);
+    const cuotas = parseInt(document.getElementById('cred-cuotas').value);
+    const cajaId = document.getElementById('cred-forma-entrega').value; // Retorna "1" o "2"
+
+    // Validación rápida de seguridad
+    if (!clienteId || !monto || isNaN(monto) || !cuotas || !cajaId) {
+        alert("⚠️ Por favor, complete todos los campos obligatorios antes de aprobar.");
+        return;
+    }
+
+    // Procesar valores finales para la base de datos
+    const totalInteres = parseFloat(((monto * tasa) / 100).toFixed(2));
+    const totalPagar = parseFloat((monto + totalInteres).toFixed(2));
+    const valorCuota = parseFloat((totalPagar / cuotas).toFixed(2));
+
+    try {
+        // Insertar registro en la tabla 'creditos' que creamos con éxito en Supabase
+        const { data, error } = await supabaseClient
+            .from('creditos')
+            .insert([
+                {
+                    cliente_id: parseInt(clienteId),
+                    caja_id: parseInt(cajaId),
+                    monto_capital: monto,
+                    tasa_interes: tasa,
+                    total_interes: totalInteres,
+                    total_pagar: totalPagar,
+                    saldo_pendiente: totalPagar, // Inicia debiendo el total
+                    num_cuotas: cuotas,
+                    valor_cuota: valorCuota,
+                    estado: 'activo',
+                    usuario_registro: 'Administrador'
+                }
+            ])
+            .select();
+
+        if (error) throw error;
+
+        alert("🚀 ¡Crédito aprobado y registrado con éxito en Supabase!");
+        
+        // Limpiar el formulario para el siguiente registro
+        document.getElementById('cred-monto').value = '';
+        document.getElementById('cred-cuotas').value = '1';
+        document.getElementById('cred-forma-entrega').value = '';
+        
+        // Resetear los contadores visuales
+        document.getElementById('lbl-cuota-valor').innerText = '$0.00';
+        document.getElementById('lbl-interes-total').innerText = '$0.00';
+        document.getElementById('lbl-pagar-total').innerText = '$0.00';
+
+    } catch (error) {
+        console.error("Error al registrar crédito:", error);
+        alert("❌ Hubo un error al guardar en la base de datos: " + error.message);
+    }
+}
+
+// 3. FUNCIÓN PARA TRAER LOS CLIENTES DESDE SUPABASE AL SELECTOR
+async function cargarClientesDropdown() {
+    try {
+        // Vamos a Supabase a traer el ID, Nombres y Apellidos ordenador alfabéticamente
+        const { data: clientes, error } = await supabaseClient
+            .from('clientes')
+            .select('id, nombres, apellidos')
+            .order('nombres', { ascending: true });
+
+        if (error) throw error;
+
+        const selectCliente = document.getElementById('cred-cliente-id');
+        if (!selectCliente) return;
+
+        // Limpiamos el selector y dejamos solo la opción por defecto
+        selectCliente.innerHTML = '<option value="">-- Seleccione un cliente activo --</option>';
+
+        // Recorremos los clientes de la base de datos y los inyectamos en el HTML
+        clientes.forEach(cliente => {
+            const option = document.createElement('option');
+            option.value = cliente.id; // El ID real de la base de datos
+            option.textContent = `🆔 ${cliente.id} - ${cliente.nombres} ${cliente.apellidos}`.toUpperCase();
+            selectCliente.appendChild(option);
+        });
+
+        console.log("👥 Selector de clientes cargado con éxito.");
+    } catch (error) {
+        console.error("Error al cargar clientes en el dropdown:", error);
+    }
+}
+
+// Esto hace que la lista se cargue automáticamente apenas se abra el sistema
+document.addEventListener('DOMContentLoaded', () => {
+    // Un pequeño delay de medio segundo para asegurar que Supabase ya esté conectado
+    setTimeout(cargarClientesDropdown, 500);
+});
