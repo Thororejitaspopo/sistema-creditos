@@ -22,6 +22,14 @@ let paginaActual = 1;
 // AJUSTE: He cambiado el límite de 15 a 10 para cumplir con tu requerimiento de 10 por página
 const clientesPorPagina = 10; 
 
+// --------------------------------------------------------------------------
+// CONTROL DE HISTORIAL Y AUDITORÍA - MODULO CAPITAL
+// --------------------------------------------------------------------------
+// Registra de forma fija la página del log de auditoría
+let paginaActualHistorial = 1;            
+// Límite estricto de 10 movimientos por página indicado por Miguel
+const filasPorPaginaHistorial = 10;
+
 /* ==========================================================================
    3. ARRANCADORES AUTOMÁTICOS AL INICIAR LA HOJA
    ========================================================================== */
@@ -244,21 +252,61 @@ function prepararEdicion(id) {
 /**
  * Recopila los inputs y decide si guarda un nuevo registro o actualiza uno existente en Supabase.
  */
+// =========================================================================
+// DETECTORES DE ENTRADA: Quitan el color rojo en vivo apenas el usuario escribe
+// =========================================================================
+document.getElementById('cli-nombres').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-apellidos').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-cedula').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-whatsapp').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-correo').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+if(document.getElementById('cli-sector')) {
+    document.getElementById('cli-sector').addEventListener('change', (e) => e.target.classList.remove('campo-error'));
+}
+if(document.getElementById('cli-ruta')) {
+    document.getElementById('cli-ruta').addEventListener('change', (e) => e.target.classList.remove('campo-error'));
+}
+
 async function registrarCliente() {
-    // Captura y limpia los espacios en blanco de cada campo del formulario
-    const nombres = document.getElementById('cli-nombres').value.trim();
-    const apellidos = document.getElementById('cli-apellidos').value.trim();
-    const cedula = document.getElementById('cli-cedula').value.trim();
-    const whatsapp = document.getElementById('cli-whatsapp').value.trim();
-    const correo = document.getElementById('cli-correo').value.trim();
+    // Asegurar que la variable de edición exista de forma segura
+    const idEditando = typeof idClienteEditando !== 'undefined' ? idClienteEditando : null;
+
+    // -------------------------------------------------------------------------
+    // 1. CAPTURA DE ELEMENTOS HTML (Nodos completos para aplicar las clases CSS)
+    // -------------------------------------------------------------------------
+    const inputNombres = document.getElementById('cli-nombres');
+    const inputApellidos = document.getElementById('cli-apellidos');
+    const inputCedula = document.getElementById('cli-cedula');
+    const inputWhatsapp = document.getElementById('cli-whatsapp');
+    const inputCorreo = document.getElementById('cli-correo');
+    const inputSector = document.getElementById('cli-sector');
+    const inputRuta = document.getElementById('cli-ruta');
+
+    // -------------------------------------------------------------------------
+    // 2. LIMPIEZA DE ERRORES: Removemos la clase roja antes de validar
+    // -------------------------------------------------------------------------
+    inputNombres.classList.remove('campo-error');
+    inputApellidos.classList.remove('campo-error');
+    inputCedula.classList.remove('campo-error');
+    inputWhatsapp.classList.remove('campo-error');
+    inputCorreo.classList.remove('campo-error');
+    if(inputSector) inputSector.classList.remove('campo-error');
+    if(inputRuta) inputRuta.classList.remove('campo-error');
+
+    // Extraemos los valores limpios de espacios
+    const nombres = inputNombres.value.trim();
+    const apellidos = inputApellidos.value.trim();
+    const cedula = inputCedula.value.trim();
+    const whatsapp = inputWhatsapp.value.trim();
+    const correo = inputCorreo.value.trim();
     
-    // Captura el ID del garante seleccionado (si no hay, guarda un valor vacío/null)
+    // Captura el ID del garante seleccionado
     const garanteSeleccionado = document.getElementById('cli-garante').value;
     const garante_id = garanteSeleccionado ? parseInt(garanteSeleccionado) : null;
 
     // Captura los datos de ubicación, rutas y nivel del cliente
-    const sector = document.getElementById('cli-sector').value;
-    const ruta = document.getElementById('cli-ruta').value;
+    const sector = inputSector ? inputSector.value : '';
+    const ruta = inputRuta ? inputRuta.value : '';
     const direccion = document.getElementById('cli-direccion').value.trim();
     const referencia = document.getElementById('cli-referencia').value.trim();
     const tel_referencia = document.getElementById('cli-tel-referencia').value.trim();
@@ -266,47 +314,70 @@ async function registrarCliente() {
     const nivel = document.getElementById('cli-nivel').value;
     const limite_creditos = parseInt(document.getElementById('cli-limite').value) || 2;
 
-    // 1. Revisa que NINGÚN campo obligatorio se quede vacío antes de avanzar
-    if (!nombres || !apellidos || !cedula || !whatsapp || !correo || !sector || !ruta) {
+    // -------------------------------------------------------------------------
+    // 3. VALIDACIÓN DE CAMPOS VACÍOS: Pinta de rojo campos obligatorios faltantes
+    // -------------------------------------------------------------------------
+    let tieneCamposVacios = false;
+
+    if (!nombres) { inputNombres.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!apellidos) { inputApellidos.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!cedula) { inputCedula.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!whatsapp) { inputWhatsapp.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!correo) { inputCorreo.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (inputSector && !sector) { inputSector.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (inputRuta && !ruta) { inputRuta.classList.add('campo-error'); tieneCamposVacios = true; }
+
+    if (tieneCamposVacios) {
         alert("❌ Error: Nombres, Apellidos, Cédula, WhatsApp, Correo, Sector y Ruta son OBLIGATORIOS.");
         return;
     }
 
-    // --- VALIDACIÓN DE FORMATO DE CORREO ---
+    // -------------------------------------------------------------------------
+    // 4. VALIDACIÓN DE FORMATO DE CORREO
+    // -------------------------------------------------------------------------
     const patronCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!patronCorreo.test(correo)) {
+        inputCorreo.classList.add('campo-error');
         alert("⚠️ Error: El formato del correo electrónico ingresado no es válido.");
         return;
     }
 
-    // 2. Verifica que la cédula ecuatoriana cumpla con el tamaño mínimo
+    // -------------------------------------------------------------------------
+    // 5. VALIDACIÓN DE LONGITUD DE CÉDULA
+    // -------------------------------------------------------------------------
     if (cedula.length < 10) {
+        inputCedula.classList.add('campo-error');
         alert("⚠️ La cédula ingresada está incompleta. Debe tener al menos 10 dígitos.");
         return;
     }
 
-    // 3. Comprueba que la Cédula/RUC no exista ya en otro cliente registrado
-    const cedulaExiste = listaClientesGlobal.some(c => c.cedula === cedula && c.id !== idClienteEditando);
+    // -------------------------------------------------------------------------
+    // 6. VALIDACIÓN DE DUPLICADOS LOCALES
+    // -------------------------------------------------------------------------
+    const cedulaExiste = listaClientesGlobal.some(c => c.cedula === cedula && c.id !== idEditando);
     if (cedulaExiste) {
+        inputCedula.classList.add('campo-error');
         alert("⛔ Error: Este número de Cédula / RUC ya está registrado con otro cliente.");
         return;
     }
 
-    // 4. Comprueba que el número de WhatsApp no esté repetido en el sistema
-    const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idClienteEditando);
+    const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idEditando);
     if (whatsappExiste) {
+        inputWhatsapp.classList.add('campo-error');
         alert("⛔ Error: Este número de WhatsApp ya está asignado a otro cliente.");
         return;
     }
 
-    // 5. Comprueba que el Correo Electrónico sea único en el sistema
-    const correoExiste = listaClientesGlobal.some(c => c.correo && c.correo.toLowerCase() === correo.toLowerCase() && c.id !== idClienteEditando);
+    const correoExiste = listaClientesGlobal.some(c => c.correo && c.correo.toLowerCase() === correo.toLowerCase() && c.id !== idEditando);
     if (correo && correoExiste) {
+        inputCorreo.classList.add('campo-error');
         alert("⛔ Error: Este Correo Electrónico ya está registrado con otro cliente.");
         return;
     }
 
-    // --- GENERACIÓN AUTOMÁTICA DE FECHA Y HORA ---
+    // -------------------------------------------------------------------------
+    // 7. GENERACIÓN AUTOMÁTICA DE FECHA Y HORA
+    // -------------------------------------------------------------------------
     const ahora = new Date();
     const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -320,50 +391,44 @@ async function registrarCliente() {
     horas = horas % 12 || 12;
     const fechaRegistro = `${nombreDia} ${diaNum}/${mesNombre}/${anio} hora ${horas}:${minutos} ${ampm}`;
 
-    // --- SUBIDA DE ARCHIVOS A SUPABASE STORAGE ---
-    // Enlazamos los elementos input de tipo file de tu HTML
+    // -------------------------------------------------------------------------
+    // 8. SUBIDA DE ARCHIVOS A SUPABASE STORAGE
+    // -------------------------------------------------------------------------
     const inputFotoCliente = document.getElementById('cli-foto-perfil'); 
     const inputFotoCedula = document.getElementById('cli-foto-cedula');   
 
-    // Inicializamos las variables de las URLs vacías por defecto
     let urlFotoCliente = null;
     let urlFotoCedula = null;
 
-    // PROTECCIÓN DE DATOS: Si estamos editando, extraemos primero las fotos que ya existen en memoria
-    if (idClienteEditando !== null) {
-        const clienteExistente = listaClientesGlobal.find(c => c.id === idClienteEditando);
+    if (idEditando !== null) {
+        const clienteExistente = listaClientesGlobal.find(c => c.id === idEditando);
         if (clienteExistente) {
-            urlFotoCliente = clienteExistente.url_foto_cliente; // Conservamos la foto previa por defecto
-            urlFotoCedula = clienteExistente.url_foto_cedula;   // Conservamos la cédula previa por defecto
+            urlFotoCliente = clienteExistente.url_foto_cliente; 
+            urlFotoCedula = clienteExistente.url_foto_cedula;   
         }
     }
 
-    // Procesamos la Foto del Cliente si el usuario seleccionó un archivo nuevo
     if (inputFotoCliente && inputFotoCliente.files.length > 0) {
-        const archivoPerfil = inputFotoCliente.files[0]; // Capturamos el archivo binario de la imagen
-        const nombreArchivo = `perfil_${cedula}_${Date.now()}.${archivoPerfil.name.split('.').pop()}`; // Creamos un nombre único usando la cédula y el tiempo
+        const archivoPerfil = inputFotoCliente.files[0]; 
+        const nombreArchivo = `perfil_${cedula}_${Date.now()}.${archivoPerfil.name.split('.').pop()}`; 
         
-        // Subimos el archivo directamente al bucket de Supabase
         const { data, error: errorPerfil } = await supabaseClient.storage
             .from('fotos_clientes')
             .upload(nombreArchivo, archivoPerfil);
 
         if (errorPerfil) {
             alert("⚠️ Error al subir la foto de perfil: " + errorPerfil.message);
-            return; // Detiene el flujo si falla la carga del archivo crítico
+            return; 
         }
         
-        // Obtenemos la URL pública generada para este archivo subido
         const { data: urlPublica } = supabaseClient.storage.from('fotos_clientes').getPublicUrl(nombreArchivo);
-        urlFotoCliente = urlPublica.publicUrl; // Actualizamos la variable con el nuevo enlace
+        urlFotoCliente = urlPublica.publicUrl; 
     }
 
-    // Procesamos la Foto de la Cédula si el usuario seleccionó un archivo nuevo
     if (inputFotoCedula && inputFotoCedula.files.length > 0) {
-        const archivoCedula = inputFotoCedula.files[0]; // Capturamos el archivo de la cédula
-        const nombreArchivoCed = `cedula_${cedula}_${Date.now()}.${archivoCedula.name.split('.').pop()}`; // Estructuramos un nombre único
+        const archivoCedula = inputFotoCedula.files[0]; 
+        const nombreArchivoCed = `cedula_${cedula}_${Date.now()}.${archivoCedula.name.split('.').pop()}`; 
         
-        // Subimos el archivo de la cédula al bucket
         const { data, error: errorCedula } = await supabaseClient.storage
             .from('fotos_clientes')
             .upload(nombreArchivoCed, archivoCedula);
@@ -373,25 +438,28 @@ async function registrarCliente() {
             return;
         }
 
-        // Obtenemos la URL pública para la cédula
         const { data: urlPublicaCed } = supabaseClient.storage.from('fotos_clientes').getPublicUrl(nombreArchivoCed);
-        urlFotoCedula = urlPublicaCed.publicUrl; // Actualizamos la variable con el nuevo enlace
+        urlFotoCedula = urlPublicaCed.publicUrl; 
     }
 
-    // Empaqueta todos los datos, incluyendo los campos de auditoría y las imágenes correspondientes
+    // -------------------------------------------------------------------------
+    // 9. EMPAQUETADO DE DATOS FINALES (¡Corregido garante_id!)
+    // -------------------------------------------------------------------------
     const datosCliente = { 
         nombres, apellidos, cedula, whatsapp, correo, 
         sector, ruta, direccion, referencia, 
         tel_referencia, observaciones, nivel, limite_creditos,
-        garante_id,
-        fecha_ingreso: idClienteEditando === null ? fechaRegistro : (listaClientesGlobal.find(c => c.id === idClienteEditando)?.fecha_ingreso || fechaRegistro), // Mantiene la fecha original si es edición
+        garante_id, // <-- ¡Corregido aquí! Antes decía gerante_id
+        fecha_ingreso: idEditando === null ? fechaRegistro : (listaClientesGlobal.find(c => c.id === idEditando)?.fecha_ingreso || fechaRegistro), 
         usuario_registro: 'Administrador',
-        url_foto_cliente: urlFotoCliente, // Vinculamos la URL final (nueva o previamente guardada)
-        url_foto_cedula: urlFotoCedula    // Vinculamos la URL final (nueva o previamente guardada)
+        url_foto_cliente: urlFotoCliente, 
+        url_foto_cedula: urlFotoCedula    
     };
 
-    if (idClienteEditando === null) {
-        // OPERACIÓN DE INSERCIÓN: Guarda un cliente nuevo con imágenes adjuntas
+    // -------------------------------------------------------------------------
+    // 10. ENVÍO DE DATOS A SUPABASE (Inserción o Actualización)
+    // -------------------------------------------------------------------------
+    if (idEditando === null) {
         const { data, error } = await supabaseClient
             .from('clientes')
             .insert([datosCliente]);
@@ -404,11 +472,10 @@ async function registrarCliente() {
             cargarClientes();
         }
     } else {
-        // OPERACIÓN DE ACTUALIZACIÓN: Modifica los datos del cliente preservando los archivos previos
         const { data, error } = await supabaseClient
             .from('clientes')
             .update(datosCliente)
-            .eq('id', idClienteEditando);
+            .eq('id', idEditando);
 
         if (error) {
             alert("Error al actualizar: " + error.message);
@@ -505,20 +572,24 @@ function filtrarClientes() {
 /**
  * Altera la visibilidad de los paneles del software según el botón seleccionado del menú.
  */
+/**
+ * Altera la visibilidad de los paneles del software según el botón seleccionado del menú.
+ */
 function cambiarModulo(idModulo) {
-    // Remueve la clase activa de todos los bloques de contenido para ocultarlos en lote
+    // 1. Remueve la clase activa de todos los bloques
     document.querySelectorAll('.modulo-contenido').forEach(mod => mod.classList.remove('active'));
-    // Desactiva el color resaltado de todos los botones de navegación del menú lateral
     document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
     
-    // Añade la clase activa exclusivamente al módulo HTML que solicitó el usuario
+    // 2. Añade la clase activa al módulo solicitado
+    // OJO: Asegúrate que tu div en HTML sea <div id="mod-capital" ...> 
+    // Si tu div tiene id="modulo-capital", cámbialo aquí a `modulo-${idModulo}`
     document.getElementById(`mod-${idModulo}`).classList.add('active');
-    // Verifica que el evento del cursor exista para pintar de azul el botón presionado
+    
     if(window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add('active');
     }
 
-    // Diccionario estructurado que almacena los títulos y subtítulos del encabezado principal
+    // 3. Diccionario de títulos
     const titulos = {
         'inicio': ['Bienvenido, Administrador', 'Resumen general del estado de tu negocio.'],
         'consultar': ['Matriz de Consulta Rápida', 'Búsqueda instantánea de clientes y saldos.'],
@@ -535,11 +606,21 @@ function cambiarModulo(idModulo) {
         'eliminar': ['Auditoría Estricta', 'Eliminación controlada de transacciones erróneas.']
     };
 
-    // Actualiza dinámicamente el título principal del rótulo del panel de control
     document.getElementById('titulo-panel').innerText = titulos[idModulo][0];
-    // Actualiza dinámicamente el texto descriptivo del subtítulo de la barra superior
     document.getElementById('subtitulo-panel').innerText = titulos[idModulo][1];
+
+    // 4. Lógica de activación específica
+    if (idModulo === 'creditos') {
+        setTimeout(() => { aplicarTasaAlAbrirModulo(); }, 50);
+    }
+
+    // --- AQUÍ ESTÁ LO QUE ME PEDISTE: EL DISPARADOR DE CAPITAL ---
+    if (idModulo === 'capital') {
+        inicializarModuloCapital();
+    }
 }
+
+
 
 /**
  * Busca al cliente seleccionado y despliega el modal flotante con sus datos completos.
@@ -808,4 +889,437 @@ function generarPdfClientes() {
 
     // Disparar la generación y descarga directa del PDF
     html2pdf().set(opcionesConfig).from(elementoTemporal).save();
+}
+
+// =========================================================================
+// MOTOR FINANCIERO V5: RELOJ DE AUDITORÍA Y MATEMÁTICA EN TIEMPO REAL
+// =========================================================================
+
+/**
+ * Función 1: CONTROL DE TIEMPO EN VIVO
+ * Captura de forma continua los datos cronológicos del equipo local,
+ * formateando el string para que calce idéntico a las reglas de auditoría.
+ */
+
+// =========================================================================
+// 5. MOTOR FINANCIERO V5: RELOJ DE AUDITORÍA Y MATEMÁTICA EN TIEMPO REAL
+// =========================================================================
+
+/**
+ * CONTROL DE TIEMPO EN VIVO
+ * Captura de forma continua los datos cronológicos del equipo local,
+ * formateando el string para que calce idéntico a las reglas de auditoría.
+ */
+function actualizarFechaEmision() {
+    // 1. CAPTURA: Buscamos el contenedor de la fecha en la cabecera del módulo
+    const contenedorFecha = document.getElementById('cred-fecha-servidor');
+    if (!contenedorFecha) return; // Si no está en pantalla, aborta para evitar errores
+
+    // 2. PROCESAMIENTO: Obtenemos el objeto de tiempo del servidor local
+    const ahora = new Date();
+    
+    // Configuración regional para forzar formato largo idéntico al sistema anterior
+    const opciones = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    
+    const fechaFormateada = ahora.toLocaleDateString('es-ES', opciones);
+    const horaFormateada = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    // 3. INYECCIÓN: Pintamos la marca de tiempo exacta en la interfaz
+    contenedorFecha.innerText = `${fechaFormateada}, ${horaFormateada}`;
+}
+
+// Bucle repetidor: Fuerza a la interfaz a actualizar el segundero del reloj cada 1000 milisegundos (1 segundo)
+setInterval(actualizarFechaEmision, 1000);
+
+// =========================================================================
+// VARIABLE GLOBAL DE CONTROL FINANCIERO
+// DESCRIPCIÓN: Almacena en la memoria del navegador la tasa base del sistema
+//              para mantenerla disponible sin importar en qué pestaña esté.
+// =========================================================================
+let tasaBaseSistema = 20; 
+
+/**
+ * CÁLCULO DE PROYECCIÓN DE CRÉDITO
+ * Ejecuta la matemática financiera en tiempo real. Captura los 
+ * datos de entrada e inyecta los resultados en el tablero negro.
+ */
+function calcularProyeccionCredito() {
+    // 1. CAPTURA: Obtenemos los inputs numéricos del formulario
+    const inputMonto = document.getElementById('cred-monto');
+    const inputTasa = document.getElementById('cred-tasa-interes');
+    const inputCuotas = document.getElementById('cred-cuotas');
+    
+    // Auditoría de Control: Si el formulario no está renderizado, detiene el script
+    if (!inputMonto || !inputTasa || !inputCuotas) return;
+
+    // 2. CONVERSIÓN: Pasamos los textos a números operables limpiando campos vacíos
+    const monto = parseFloat(inputMonto.value) || 0;
+    const porcentajeTasa = parseFloat(inputTasa.value) || 0;
+    const cuotas = parseInt(inputCuotas.value) || 1;
+
+    // 3. MATEMÁTICA: Desarrollo de ecuaciones contables de la cartera
+    const totalInteres = monto * (porcentajeTasa / 100); // Ganancia líquida
+    const totalADevolver = monto + totalInteres;         // Capital final amortizado
+    const valorCuota = cuotas > 0 ? (totalADevolver / cuotas) : 0; // Prorrateo exacto
+
+    // 4. INYECCIÓN: Formateamos las cifras neón con 2 decimales fijos en el panel oscuro
+    document.getElementById('lbl-cuota-valor').innerText = `$${valorCuota.toFixed(2)}`;
+    document.getElementById('lbl-interes-total').innerText = `$${totalInteres.toFixed(2)}`;
+    document.getElementById('lbl-pagar-total').innerText = `$${totalADevolver.toFixed(2)}`;
+}
+
+/**
+ * ACTUALIZACIÓN DE TASA EN MEMORIA
+ * Monitorea el menú lateral izquierdo. Al digitar una nueva tasa,
+ * la guarda en memoria global y actualiza el crédito si está abierto.
+ */
+function actualizarTasaMemoria() {
+    // 1. CAPTURA: Obtenemos el input que está fijo en la barra lateral
+    const inputTasaMenu = document.getElementById('menu-tasa-base');
+    if (!inputTasaMenu) return;
+
+    // 2. MEMORIA: Guardamos el valor en nuestra variable global protectora
+    tasaBaseSistema = parseFloat(inputTasaMenu.value) || 20; // Si está vacío pone 20% por defecto
+
+    // 3. SINCRONIZACIÓN EN VIVO: Buscamos el interés regulado del formulario de crédito
+    const inputTasaCredito = document.getElementById('cred-tasa-interes');
+    
+    // Si el usuario justo está viendo la pestaña de créditos, actualiza el espejo e itera la matemática
+    if (inputTasaCredito) {
+        inputTasaCredito.value = tasaBaseSistema;
+        calcularProyeccionCredito();
+    }
+}
+
+/**
+ * SINCRONIZACIÓN AL CAMBIAR DE MÓDULO
+ * Actúa como puente al cambiar de pestaña. Asegura que cuando
+ * el operador abra el módulo de créditos, este herede la tasa global.
+ */
+function aplicarTasaAlAbrirModulo() {
+    // 1. CAPTURA: Localizamos el input de interés del formulario recién activado
+    const inputTasaCredito = document.getElementById('cred-tasa-interes');
+    
+    // 2. TRANSFERENCIA: Si existe el campo, le inyectamos lo acumulado en la memoria global
+    if (inputTasaCredito) {
+        inputTasaCredito.value = tasaBaseSistema;
+        
+        // 3. RECÁLCULO: Forzamos al tablero a actualizarse en frío
+        calcularProyeccionCredito();
+    }
+}
+
+// =========================================================================
+// DISPARADOR DE ARRANQUE GENERAL (DOM LOADED)
+// Sincroniza y arranca todos los motores automáticos al iniciar el sistema
+// =========================================================================
+window.addEventListener('DOMContentLoaded', () => {
+    actualizarTasaMemoria();
+    actualizarFechaEmision();
+});
+
+// =========================================================================
+// 6. MOTOR MASTER DEL MÓDULO DE CAPITAL (SISTEMA ALPHA V5 - FILTRADO)
+// =========================================================================
+
+/**
+ * CARGAR SALDOS EN VIVO Y CALCULAR EL CAPITAL GENERAL
+ * CORE DEL SISTEMA: Descarga el estado de todas las cajas en Supabase,
+ * suma absolutamente todo para hallar el "Capital General" e inyecta
+ * los desgloses de Efectivo y Banco en las tarjetas correspondientes.
+ * NOTA: Filtrado estricto para mostrar solo Banco Principal y Efectivo Matriz.
+ */
+async function inicializarModuloCapital() {
+    try {
+        // 1. CONEXIÓN: Descargamos todas las fuentes de capital usando tu conector oficial
+        const { data: cajas, error } = await supabaseClient
+            .from('cajas_capital')
+            .select('*');
+
+        if (error) throw error;
+
+        // 2. COMPROBACIÓN: Validamos si el selector de destino está disponible en el HTML
+        const selector = document.getElementById('cap-caja-destino');
+        if (!selector) {
+            console.warn("Aviso: El elemento 'cap-caja-destino' no está renderizado en esta pestaña.");
+            return;
+        }
+
+        // 3. LIMPIEZA DE INTERFAZ: Reseteamos el selector con su primera opción deshabilitada
+        selector.innerHTML = '<option value="" selected disabled>-- Seleccione Caja o Banco --</option>';
+
+        // 4. VERIFICACIÓN DE REGISTROS: Si la base de datos está vacía, emitimos alerta de control
+        if (!cajas || cajas.length === 0) {
+            alert("Aviso de Auditoría: No existen cajas configuradas en la tabla 'cajas_capital'.");
+            return;
+        }
+
+        // 5. MATEMÁTICA CONTABLE: Inicializamos los acumuladores originales en cero
+        let capitalGeneralAcumulado = 0; // -> Suma absoluta de todo el dinero del sistema
+        let capitalEfectivo = 0;         // -> Suma exclusiva de dinero físico (Cajas)
+        let capitalBanco = 0;            // -> Suma exclusiva de dinero digital (Transferencias)
+
+        // 6. ITERACIÓN DE CAJAS: Procesamos registro por registro en tiempo real
+        cajas.forEach(caja => {
+            // Pasamos el nombre a minúsculas para evaluar sin importar tildes o mayúsculas erróneas
+            const nombreLimpio = caja.nombre_caja.toLowerCase();
+            const saldoMonto = parseFloat(caja.saldo_actual || 0);
+
+            // FILTRO ESTRICTO: Solo dejamos pasar las dos cuentas autorizadas por Miguel
+            if (nombreLimpio.includes('matriz') || nombreLimpio.includes('central') || nombreLimpio.includes('banco principal')) {
+                
+                // Regla Absoluta: Toda caja autorizada suma directamente al Capital General del negocio
+                capitalGeneralAcumulado += saldoMonto;
+
+                // Clasificación interna por tipos para llenar los tableros secundarios (Usando tus variables de siempre)
+                if (caja.tipo === 'efectivo') {
+                    capitalEfectivo += saldoMonto;
+                } else if (caja.tipo === 'banco') {
+                    capitalBanco += saldoMonto;
+                }
+
+                // Inyección en el combobox de la interfaz (Muestra el nombre y su saldo disponible)
+                const option = document.createElement('option');
+                option.value = caja.id;
+                option.textContent = `${caja.nombre_caja} ($${saldoMonto.toFixed(2)})`;
+                selector.appendChild(option);
+            }
+            // Las cajas de rutas o cobradores se omiten en silencio para mantener limpia la pantalla
+        });
+
+        // 7. INYECCIÓN VISUAL EN LAS TARJETAS (Pintado con las variables originales del sistema)
+        // Tarjeta Master: Capital General (Suma de Efectivo + Banco)
+        const txtGeneral = document.getElementById('saldo-general-txt');
+        if (txtGeneral) txtGeneral.textContent = `$${capitalGeneralAcumulado.toFixed(2)}`;
+
+        // Tarjeta Secundaria A: Capital Real en Bóveda (Dinero físico)
+        const txtEfectivo = document.getElementById('saldo-efectivo-txt');
+        if (txtEfectivo) txtEfectivo.textContent = `$${capitalEfectivo.toFixed(2)}`;
+
+        // Tarjeta Secundaria B: Capital en Banco (Transferencias)
+        const txtBancos = document.getElementById('saldo-bancos-txt');
+        if (txtBancos) txtBancos.textContent = `$${capitalBanco.toFixed(2)}`;
+
+        // 8. RENDERIZADO DEL LOG: Cargamos el historial detallado de movimientos a la derecha
+        await cargarHistorialCapital();
+
+    } catch (error) {
+        console.error('Error crítico en la sincronización de capital:', error.message);
+        alert('Supabase rechazó la sincronización de fondos: ' + error.message);
+    }
+}
+/**
+ * EJECUTAR TRANSACCIÓN DE CAPITAL (INGRESOS Y RETIROS)
+ * ACCIÓN DINÁMICA: Procesa de forma segura la entrada o salida de capital.
+ * Valida campos obligatorios, modifica balances y genera auditoría con signo.
+ * @param {string} tipoAccion - Recibe 'INGRESAR' o 'RETIRAR' para definir el flujo matemático.
+ */
+async function procesarTransaccionCapital(tipoAccion) {
+    // 1. CAPTURA: Extraemos los valores del formulario lateral de la interfaz
+    const cajaId = document.getElementById('cap-caja-destino').value;
+    const montoInput = document.getElementById('cap-monto').value;
+    const concepto = document.getElementById('cap-concepto').value.trim();
+
+    // 2. AUDITORÍA PREVENTIVA: Si falta seleccionar destino, monto o el detalle descriptivo, frena el script
+    if (!cajaId || !montoInput || !concepto) {
+        alert('Error: Todos los campos (Caja destino, Monto y Concepto/Detalle) son estrictamente obligatorios.');
+        return;
+    }
+
+    // Convertimos la entrada de texto en número flotante puro
+    let montoFlotante = parseFloat(montoInput);
+    if (montoFlotante <= 0 || isNaN(montoFlotante)) {
+        alert('Por favor, digite un monto numérico válido y mayor a cero.');
+        return;
+    }
+
+    try {
+        // 3. CONSULTA SÍNCRONA: Leemos el saldo actual de la caja elegida antes de operar
+        const { data: caja, error: errorFetch } = await supabaseClient
+            .from('cajas_capital')
+            .select('saldo_actual, nombre_caja')
+            .eq('id', cajaId)
+            .single();
+
+        if (errorFetch) throw errorFetch;
+
+        let saldoActualizado = parseFloat(caja.saldo_actual || 0);
+        let montoParaHistorial = montoFlotante;
+
+        // 4. LOGIC ENGINE (Matemática de transacciones):
+        if (tipoAccion === 'INGRESAR') {
+            // Incrementamos fondos en la caja destino
+            saldoActualizado += montoFlotante;
+        } else if (tipoAccion === 'RETIRAR') {
+            // Validación de fondos: Previene que la caja quede en saldo negativo si no es permitido
+            if (montoFlotante > saldoActualizado) {
+                alert(`Fondos Insuficientes: No puede retirar $${montoFlotante.toFixed(2)} de la caja "${caja.nombre_caja}" porque solo dispone de $${saldoActualizado.toFixed(2)}.`);
+                return;
+            }
+            // Decrementamos fondos y guardamos el monto con signo negativo para las auditorías del historial
+            saldoActualizado -= montoFlotante;
+            montoParaHistorial = -montoFlotante; 
+        }
+
+        // 5. REGISTRO EN HISTORIAL: Inyectamos la fila contable para la auditoría diaria
+        const { error: errorHistorial } = await supabaseClient
+            .from('historial_capital')
+            .insert([{ 
+                caja_id: parseInt(cajaId), 
+                monto: montoParaHistorial, 
+                concepto: concepto 
+            }]);
+
+        if (errorHistorial) throw errorHistorial;
+
+        // 6. ACTUALIZACIÓN DE BALANCE: Sobreescribimos el balance final de la caja modificada en Supabase
+        const { error: errorUpdate } = await supabaseClient
+            .from('cajas_capital')
+            .update({ saldo_actual: saldoActualizado })
+            .eq('id', cajaId);
+
+        if (errorUpdate) throw errorUpdate;
+
+        // 7. CONCLUSIÓN EXITOSA: Notificamos al operador y limpiamos la pantalla de datos sensibles
+        alert(`¡Transacción de ${tipoAccion === 'INGRESAR' ? 'ingreso' : 'retiro'} ejecutada correctamente!`);
+        document.getElementById('cap-monto').value = '';
+        document.getElementById('cap-concepto').value = '';
+
+        // 8. REFRESCAR SISTEMA: Invocamos el recálculo masivo para pintar los nuevos totales
+        await inicializarModuloCapital();
+        
+        // 🚀 NUEVA LÍNEA: Actualiza la tabla de auditoría con los 10 registros nuevos en vivo
+        await cargarHistorialCapital();
+
+    } catch (error) {
+        console.error('Error crítico al procesar la transacción:', error.message);
+        alert('La operation fue cancelada por seguridad: ' + error.message);
+    }
+}
+
+/**
+ * RENDERIZAR HISTORIAL DETALLADO DE MOVIMIENTOS
+ * AUDITORÍA VISUAL: Genera filas horizontales compactas unificando fecha, 
+ * caja, concepto y monto con colores condicionales en una sola línea.
+ */
+async function cargarHistorialCapital() {
+    const contenedorHistorial = document.getElementById('historial-capital-lista');
+    if (!contenedorHistorial) return; // Si no existe el contenedor visual, abortamos la carga
+
+    try {
+        // BLOQUE 1: CÁLCULO DE RANGOS DINÁMICOS
+        const desde = (paginaActualHistorial - 1) * filasPorPaginaHistorial;
+        const hasta = desde + filasPorPaginaHistorial - 1;
+
+        // BLOQUE 2: CONSULTA A SUPABASE
+        const { data: movimientos, error, count } = await supabaseClient
+            .from('historial_capital')
+            .select(`
+                id,
+                monto,
+                concepto,
+                cajas_capital ( nombre_caja )
+            `, { count: 'exact' })
+            .order('id', { ascending: false })
+            .range(desde, hasta); 
+
+        if (error) throw error;
+
+        // BLOQUE 3: LIMPIEZA DE CONTENEDOR
+        contenedorHistorial.innerHTML = '';
+
+        if (!movimientos || movimientos.length === 0) {
+            contenedorHistorial.innerHTML = '<p class="text-muted text-center py-3">No existen movimientos registrados en la bóveda.</p>';
+            renderizarPaginacionHistorial(0); 
+            return;
+        }
+
+        // BLOQUE 4: MAQUETACIÓN INLINE (TODO EN UNA FILA)
+        movimientos.forEach(mov => {
+            const numMonto = parseFloat(mov.monto);
+            const esIngreso = numMonto >= 0;
+            
+            // Ajuste estricto de formato: $+100.00 o $-100.00
+            const signo = esIngreso ? '+' : '-';
+            const montoAbsoluto = Math.abs(numMonto).toFixed(2);
+            const montoFormateado = `$${signo}${montoAbsoluto}`;
+            
+            // Asignación de colores (Verde para ingresos, Rojo para salidas)
+            const colorClase = esIngreso ? 'text-success' : 'text-danger'; 
+            const pepaColor = esIngreso ? '#10b981' : '#ef4444'; 
+
+            // Conversión de tiempo de auditoría local
+            const fechaObjeto = new Date(); // Cambiar por tu columna de fecha cuando la verifiques
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
+            const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            // TEMPLATE HORIZONTAL CONTINUO
+            const itemHTML = `
+                <div class="movimiento-item d-flex align-items-center p-2 border-bottom" style="gap: 8px; flex-wrap: wrap;">
+                    
+                    <span style="height: 10px; width: 10px; background-color: ${pepaColor}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${pepaColor}; flex-shrink: 0;"></span>
+                    
+                    <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
+                    <span class="text-muted small">|</span>
+                    
+                    <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
+                    <span class="text-muted">|</span>
+                    
+                    <span>${mov.concepto}</span>
+                    <span class="text-muted">|</span>
+                    
+                    <span class="${colorClase} fw-bold">${montoFormateado}</span>
+                    
+                </div>
+            `;
+            contenedorHistorial.insertAdjacentHTML('beforeend', itemHTML);
+        });
+
+        // BLOQUE 5: PAGINACIÓN
+        renderizarPaginacionHistorial(count);
+
+    } catch (error) {
+        console.error('Error al pintar el log de auditoría:', error.message);
+    }
+}
+
+/**
+ * RENDERIZAR BOTONES DE PAGINACIÓN DEL HISTORIAL
+ * Calcula las páginas totales en base a los bloques de 10 registros
+ * e inyecta los botones de navegación deshabilitándolos en los límites contables.
+ */
+function renderizarPaginacionHistorial(totalRegistros) {
+    const totalPaginas = Math.ceil(totalRegistros / filasPorPaginaHistorial);
+    const contenedorPaginas = document.getElementById('paginacion-historial-controles');
+    if (!contenedorPaginas) return;
+
+    // Pintamos los botones usando estilos limpios alineados a tu diseño
+    contenedorPaginas.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+            <button class="btn btn-sm btn-secondary" ${paginaActualHistorial === 1 ? 'disabled' : ''} onclick="cambiarPaginaHistorial(-1)">
+                Anterior
+            </button>
+            <span class="fw-bold small text-muted"> 
+                Página ${paginaActualHistorial} de ${totalPaginas || 1} 
+            </span>
+            <button class="btn btn-sm btn-secondary" ${paginaActualHistorial >= totalPaginas ? 'disabled' : ''} onclick="cambiarPaginaHistorial(1)">
+                Siguiente
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * EVENTO CAMBIO DE PÁGINA DEL HISTORIAL
+ * Suma o resta una página a la vista y vuelve a llamar al motor de carga fusionado.
+ */
+async function cambiarPaginaHistorial(direccion) {
+    paginaActualHistorial += direccion;
+    await cargarHistorialCapital();
 }

@@ -545,3 +545,109 @@ main {
     border-color: #0284c7 !important; /* Reemplaza el contorno gris por el mismo tono azul */
     cursor: default !important; /* Apaga la mano del mouse porque ya estás parado dentro de esa página */
 }
+
+/* ==========================================================================
+   ESTILOS PREMIUM PARA EL MÓDULO DE CRÉDITO
+   ========================================================================== */
+
+/* Contenedor principal del formulario de crédito */
+.credito-formulario-tarjeta {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 25px;
+    border-radius: 10px;
+    max-width: 600px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    text-align: left;
+}
+
+/* Grupos de campos (etiqueta + input) */
+.credito-campo-grupo {
+    margin-bottom: 15px;
+}
+
+.credito-campo-grupo label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #334155;
+}
+
+/* Inputs y selectores estilizados */
+.credito-input, .credito-select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.credito-input:focus, .credito-select:focus {
+    outline: none;
+    border-color: var(--azul-premium, #0284c7);
+}
+
+/* Fila doble para poner Monto y Cuotas lado a lado */
+.credito-fila-doble {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.credito-columna {
+    flex: 1;
+}
+
+/* Cuadro gris de proyecciones en tiempo real (Grid) */
+.credito-tablero-proyeccion {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.credito-kpi-titulo {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.credito-kpi-valor {
+    margin: 5px 0 0 0;
+    font-size: 18px;
+    color: #0f172a;
+}
+
+/* Botón de acción principal */
+.credito-btn-guardar {
+    background: var(--azul-premium, #0284c7);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    font-size: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: background-color 0.2s;
+}
+
+.credito-btn-guardar:hover {
+    background: #0369a1; /* Un azul un poco más oscuro al pasar el mouse */
+}
+
+/* Clase para resaltar campos obligatorios vacíos o duplicados */
+.campo-error {
+    border: 2px solid #ff4d4d !important;
+    background-color: #ffe6e6 !important;
+    box-shadow: 0 0 8px rgba(255, 77, 77, 0.5);
+    transition: all 0.3s ease;
+}
