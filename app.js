@@ -1326,3 +1326,116 @@ async function cambiarPaginaHistorial(direccion) {
     paginaActualHistorial += direccion;
     await cargarHistorialCapital();
 }
+
+/**
+ * BUSCAR MOVIMIENTO INDIVIDUAL POR ID EN CALIENTE
+ * AUDITORÍA DETALLADA: Busca un ID secuencial único de la tabla 'historial_capital'
+ * y dibuja el resultado alineado de extremo a extremo usando el diseño de anoche.
+ */
+async function buscarPorId() {
+    // 1. CAPTURA: Extraemos el valor digitado en el buscador
+    const idBuscado = document.getElementById('input-buscar-id').value.trim();
+    const contenedorHistorial = document.getElementById('historial-capital-lista');
+    if (!contenedorHistorial) return;
+
+    // Si el operador borra el buscador y le da a buscar, recargamos el listado tradicional de 10 en 10
+    if (!idBuscado) {
+        paginaActualHistorial = 1; // Reseteamos a la página 1
+        await cargarHistorialCapital();
+        return;
+    }
+
+    try {
+        // 2. CONEXIÓN A SUPABASE: Solicitamos el registro con filtro exacto .eq()
+        const { data: mov, error } = await supabaseClient
+            .from('historial_capital')
+            .select(`
+                id,
+                monto,
+                concepto,
+                cajas_capital ( nombre_caja )
+            `)
+            .eq('id', parseInt(idBuscado))
+            .maybeSingle(); // Usamos maybeSingle para que no bote excepción si el ID no existe
+
+        if (error) throw error;
+
+        // Limpiamos la lista para preparar la pantalla
+        contenedorHistorial.innerHTML = '';
+
+        // 3. CONTROL DE EXISTENCIA: Si el ID no existe en Supabase, avisamos al operador
+        if (!mov) {
+            contenedorHistorial.innerHTML = `
+                <div class="text-center py-3">
+                    <span style="color: #ef4444; font-weight: bold; font-size: 0.95rem;">
+                        ❌ El ID de movimiento #${idBuscado} no existe en la base de datos de la bóveda.
+                    </span>
+                </div>
+            `;
+            // Dejamos la paginación vacía
+            const contenedorPaginas = document.getElementById('paginacion-historial-controles');
+            if (contenedorPaginas) contenedorPaginas.innerHTML = '';
+            return;
+        }
+
+        // 4. MAQUETACIÓN VISUAL DE EXTREMO A EXTREMO
+        const numMonto = parseFloat(mov.monto);
+        const esIngreso = numMonto >= 0;
+        
+        // Ajuste de formato: $+100.00 o $-100.00
+        const signo = esIngreso ? '+' : '-';
+        const montoAbsoluto = Math.abs(numMonto).toFixed(2);
+        const montoFormateado = `$${signo}${montoAbsoluto}`;
+        
+        // Colores: Verde para entradas y Rojo brillante para retiros
+        const colorActual = esIngreso ? '#10b981' : '#ef4444';
+
+        // Usamos la fecha del sistema actual de forma segura para evitar roturas
+        const fechaObjeto = new Date();
+        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
+        const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+        const itemHTML = `
+            <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 20px; background-color: rgba(37, 99, 235, 0.05); border-radius: 4px;">
+                
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="height: 10px; width: 10px; background-color: ${colorActual}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${colorActual}; flex-shrink: 0;"></span>
+                    
+                    <strong style="color: #3b82f6; font-size: 0.9rem;">#${mov.id}</strong>
+                    <span class="text-muted small">|</span>
+                    
+                    <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
+                    <span class="text-muted small">|</span>
+                    
+                    <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
+                    <span class="text-muted">|</span>
+                    
+                    <span class="text-light">${mov.concepto}</span>
+                </div>
+
+                <div style="white-space: nowrap !important; flex-shrink: 0; text-align: right;">
+                    <span class="fw-bold" style="color: ${colorActual}; font-size: 1.05rem; letter-spacing: 0.5px;">${montoFormateado}</span>
+                </div>
+                
+            </div>
+        `;
+
+        contenedorHistorial.insertAdjacentHTML('beforeend', itemHTML);
+
+        // Apagamos los controles de la paginación ordinaria durante una consulta específica
+        const contenedorPaginas = document.getElementById('paginacion-historial-controles');
+        if (contenedorPaginas) {
+            contenedorPaginas.innerHTML = `
+                <div class="d-flex justify-content-center mt-3">
+                    <button class="btn btn-sm btn-secondary" onclick="document.getElementById('input-buscar-id').value=''; buscarPorId();">
+                        🔄 Mostrar todos los movimientos
+                    </button>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('Error al ejecutar la búsqueda por ID:', error.message);
+    }
+}

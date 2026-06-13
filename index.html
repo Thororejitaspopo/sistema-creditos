@@ -116,7 +116,6 @@
                         <h2>Ubicación y Logística de Ruta</h2>
                         
                         <div class="fila-campos" style="display: flex; gap: 15px;">
-
                             <div class="campo" style="flex: 1;">
                                 <label>Sector (Quevedo)</label>
                                 <select id="cli-sector" style="width: 100%;">
@@ -145,8 +144,8 @@
                                     <option value="Ruta Oeste">🏍️ Ruta Oeste</option>
                                 </select>
                             </div>
-
                         </div>
+
                         <div class="campo" style="margin-bottom: 15px;">
                             <label>Dirección Exacta</label>
                             <input type="text" id="cli-direccion" placeholder="Ej: AV. QUITO Y CALLE 12" oninput="this.value = this.value.toUpperCase()">
@@ -296,65 +295,77 @@
         <div id="mod-gastos" class="modulo-contenido"><h3>💸 Control de Egresos y Gastos Varios</h3></div>
         
         <div id="mod-capital" class="modulo-contenido">
-    <h2>💰 Control y Gestión de Capital</h2>
-    <p class="subtitulo">Inyección de fondos, distribución de cajas y saldos en vivo.</p>
+            <h2>💰 Control y Gestión de Capital</h2>
+            <p class="subtitulo">Inyección de fondos, distribución de cajas y saldos en vivo.</p>
 
-    <div class="fila-campos" style="display: flex; gap: 15px; margin-bottom: 25px;">
-        <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
-            <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">EFECTIVO MATRIZ</span>
-            <h3 id="saldo-efectivo-txt" style="margin: 5px 0 0 0; color: #10b981; font-size: 24px;">$0.00</h3>
-        </div>
-        <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #3b82f6;">
-            <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">BANCOS TOTAL</span>
-            <h3 id="saldo-bancos-txt" style="margin: 5px 0 0 0; color: #3b82f6; font-size: 24px;">$0.00</h3>
-        </div>
-        <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #f59e0b;">
-            <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">CAPITAL GENERAL (SISTEMA)</span>
-            <h3 id="saldo-general-txt" style="margin: 5px 0 0 0; color: #f59e0b; font-size: 24px;">$0.00</h3>
-        </div>
-    </div>
-
-    <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151; margin-bottom: 25px;">
-        <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📋 Registrar Movimiento de Fondos</h3>
-        
-        <div class="fila-campos" style="display: flex; gap: 15px; margin-top: 15px;">
-            <div class="campo" style="flex: 1;">
-                <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Seleccionar Caja/Destino</label>
-                <select id="cap-caja-destino" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
-                    <option value="" selected disabled>-- Seleccione Caja o Banco --</option>
-                </select>
+            <div class="fila-campos" style="display: flex; gap: 15px; margin-bottom: 25px;">
+                <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
+                    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">EFECTIVO MATRIZ</span>
+                    <h3 id="saldo-efectivo-txt" style="margin: 5px 0 0 0; color: #10b981; font-size: 24px;">$0.00</h3>
+                </div>
+                <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #3b82f6;">
+                    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">BANCOS TOTAL</span>
+                    <h3 id="saldo-bancos-txt" style="margin: 5px 0 0 0; color: #3b82f6; font-size: 24px;">$0.00</h3>
+                </div>
+                <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #f59e0b;">
+                    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">CAPITAL GENERAL (SISTEMA)</span>
+                    <h3 id="saldo-general-txt" style="margin: 5px 0 0 0; color: #f59e0b; font-size: 24px;">$0.00</h3>
+                </div>
             </div>
 
-            <div class="campo" style="flex: 1;">
-                <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Monto Operación ($)</label>
-                <input type="number" id="cap-monto" step="0.01" placeholder="0.00" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
+            <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151; margin-bottom: 25px;">
+                <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📋 Registrar Movimiento de Fondos</h3>
+                
+                <div class="fila-campos" style="display: flex; gap: 15px; margin-top: 15px;">
+                    <div class="campo" style="flex: 1;">
+                        <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Seleccionar Caja/Destino</label>
+                        <select id="cap-caja-destino" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
+                            <option value="" selected disabled>-- Seleccione Caja o Banco --</option>
+                        </select>
+                    </div>
+
+                    <div class="campo" style="flex: 1;">
+                        <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Monto Operación ($)</label>
+                        <input type="number" id="cap-monto" step="0.01" placeholder="0.00" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
+                    </div>
+                </div>
+
+                <div class="fila-campos" style="display: flex; gap: 15px; margin-top: 15px;">
+                    <div class="campo" style="flex: 1;">
+                        <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Concepto / Detalle del Movimiento</label>
+                        <input type="text" id="cap-concepto" placeholder="Ej: Inyección capital inicial de Miguel para Ruta Norte" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 15px;">
+                    <button type="button" onclick="procesarTransaccionCapital('RETIRAR')" style="background: #ef4444; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                        💸 RETIRAR FONDOS
+                    </button>
+                    <button type="button" onclick="procesarTransaccionCapital('INGRESAR')" style="background: #10b981; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                        📥 INGRESAR CAPITAL
+                    </button>
+                </div>
+            </div>
+
+            <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151;">
+                <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📊 Historial de Auditoría (Últimos 50 Movimientos)</h3>
+                
+                <div style="display: flex; gap: 8px; margin-top: 15px; max-width: 320px;">
+                    <input type="number" id="input-buscar-id" placeholder="Buscar por ID de movimiento... Ej: 16" 
+                           style="padding: 8px 12px; border-radius: 6px; border: 1px solid #374151; background: #1f2937; color: #ffffff; width: 100%; font-size: 0.9rem; outline: none;">
+                    <button onclick="buscarPorId()" 
+                            style="padding: 8px 16px; border-radius: 6px; background: #2563eb; color: #ffffff; border: none; font-weight: bold; cursor: pointer;">
+                        Buscar
+                    </button>
+                </div>
+
+                <div id="historial-capital-lista" style="max-height: 300px; overflow-y: auto; margin-top: 15px; color: #ffffff;">
+                    </div>
+                
+                <div id="paginacion-historial-controles" style="margin-top: 15px;"></div>
             </div>
         </div>
 
-        <div class="fila-campos" style="display: flex; gap: 15px; margin-top: 15px;">
-            <div class="campo" style="flex: 1;">
-                <label style="color: #94a3b8; font-size: 12px; display: block; margin-bottom: 5px;">Concepto / Detalle del Movimiento</label>
-                <input type="text" id="cap-concepto" placeholder="Ej: Inyección capital inicial de Miguel para Ruta Norte" style="width: 100%; padding: 8px; background: #1e293b; color: #f3f4f6; border: 1px solid #374151; border-radius: 4px;">
-            </div>
-        </div>
-
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 15px;">
-            <button type="button" onclick="procesarTransaccionCapital('RETIRAR')" style="background: #ef4444; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                💸 RETIRAR FONDOS
-            </button>
-            <button type="button" onclick="procesarTransaccionCapital('INGRESAR')" style="background: #10b981; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                📥 INGRESAR CAPITAL
-            </button>
-        </div>
-    </div>
-
-    <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151;">
-        <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📊 Historial de Auditoría (Últimos 50 Movimientos)</h3>
-        <div id="historial-capital-lista" style="max-height: 300px; overflow-y: auto; margin-top: 15px; color: #ffffff;">
-    </div>
-            
-            <div id="paginacion-historial-controles"></div>
-    </div>
         <div id="mod-interes" class="modulo-contenido"><h3>📈 Bóveda de Intereses y Recargos</h3></div>
         <div id="mod-cierre" class="modulo-contenido"><h3>🔒 Cierre de Caja Definitivo</h3></div>
         <div id="mod-supervisores" class="modulo-contenido"><h3>👔 Control de Personal Supervisor</h3></div>
@@ -379,10 +390,10 @@
                                 <h3 style="margin: 0; color: #16a34a; font-size: 18px; font-weight: 600;">Microsoft Excel (.xlsx)</h3>
                             </div>
                             <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
-                                Ideal para el departamento contable. Genera una sábana de datos optimizada para tablas dinámicas, filtros avanzados y macros. Limpia de manera automática caracteres especiales y emojis para evitar errores en las fórmulas.
+                                Ideal para el departamento contable. Genera una sábana de datos optimizada para tablas dinámicas, filtros avanzados y macros. Limpia de manera automática caracteres especiales y emojis para evitar errors en las fórmulas.
                             </p>
                         </div>
-                        <button onclick="exportarExcelClientes()" style="background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+                        <button onclick="exportarExcelClientes()" style="background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
                             📊 Descargar Base Contable
                         </button>
                     </div>
@@ -397,7 +408,7 @@
                                 Formato corporativo formal configurado en orientación horizontal (Landscape) para auditorías internas inmediatas. Incluye membrete dinámico automatizado, marcas de tiempo oficiales e indicadores clave (KPIs) del estado actual de tu cartera.
                             </p>
                         </div>
-                        <button onclick="generarPdfClientes()" style="background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+                        <button onclick="generarPdfClientes()" style="background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
                             📄 Generar PDF de Auditoría
                         </button>
                     </div>
@@ -420,6 +431,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script src="app.js"></script>
 </body>
 </html>
