@@ -1204,12 +1204,12 @@ async function procesarTransaccionCapital(tipoAccion) {
 
 /**
  * RENDERIZAR HISTORIAL DETALLADO DE MOVIMIENTOS
- * AUDITORÍA VISUAL: Genera filas horizontales compactas unificando fecha, 
- * caja, concepto y monto con colores condicionales en una sola línea.
+ * AUDITORÍA VISUAL: Forzado horizontal estricto de extremo a extremo.
+ * Montos positivos en verde, montos negativos en rojo alineados a la derecha.
  */
 async function cargarHistorialCapital() {
     const contenedorHistorial = document.getElementById('historial-capital-lista');
-    if (!contenedorHistorial) return; // Si no existe el contenedor visual, abortamos la carga
+    if (!contenedorHistorial) return; 
 
     try {
         // BLOQUE 1: CÁLCULO DE RANGOS DINÁMICOS
@@ -1239,42 +1239,45 @@ async function cargarHistorialCapital() {
             return;
         }
 
-        // BLOQUE 4: MAQUETACIÓN INLINE (TODO EN UNA FILA)
+        // BLOQUE 4: MAQUETACIÓN INLINE RIGUROSA (IZQUIERDA Y DERECHA EXTREMA)
         movimientos.forEach(mov => {
             const numMonto = parseFloat(mov.monto);
             const esIngreso = numMonto >= 0;
             
-            // Ajuste estricto de formato: $+100.00 o $-100.00
+            // Formato de texto: $+100.00 o $-100.00
             const signo = esIngreso ? '+' : '-';
             const montoAbsoluto = Math.abs(numMonto).toFixed(2);
             const montoFormateado = `$${signo}${montoAbsoluto}`;
             
-            // Asignación de colores (Verde para ingresos, Rojo para salidas)
-            const colorClase = esIngreso ? 'text-success' : 'text-danger'; 
-            const pepaColor = esIngreso ? '#10b981' : '#ef4444'; 
+            // 🎨 REGLA DE COLORES: Verde para ingresos, Rojo para egresos (Naranja reservado)
+            const colorActual = esIngreso ? '#10b981' : '#ef4444'; 
 
             // Conversión de tiempo de auditoría local
-            const fechaObjeto = new Date(); // Cambiar por tu columna de fecha cuando la verifiques
+            const fechaObjeto = new Date(); // Reemplazar por tu columna de fecha de la BD cuando gustes
             const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
             const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-            // TEMPLATE HORIZONTAL CONTINUO
+            // TEMPLATE CON ESTILOS INLINE INMUTABLES
             const itemHTML = `
-                <div class="movimiento-item d-flex align-items-center p-2 border-bottom" style="gap: 8px; flex-wrap: wrap;">
+                <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 20px;">
                     
-                    <span style="height: 10px; width: 10px; background-color: ${pepaColor}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${pepaColor}; flex-shrink: 0;"></span>
-                    
-                    <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
-                    <span class="text-muted small">|</span>
-                    
-                    <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
-                    <span class="text-muted">|</span>
-                    
-                    <span>${mov.concepto}</span>
-                    <span class="text-muted">|</span>
-                    
-                    <span class="${colorClase} fw-bold">${montoFormateado}</span>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        
+                        <span style="height: 10px; width: 10px; background-color: ${colorActual}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${colorActual}; flex-shrink: 0;"></span>
+                        
+                        <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
+                        <span class="text-muted small">|</span>
+                        
+                        <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
+                        <span class="text-muted">|</span>
+                        
+                        <span class="text-light">${mov.concepto}</span>
+                    </div>
+
+                    <div style="white-space: nowrap !important; flex-shrink: 0; text-align: right;">
+                        <span class="fw-bold" style="color: ${colorActual}; font-size: 1.05rem; letter-spacing: 0.5px;">${montoFormateado}</span>
+                    </div>
                     
                 </div>
             `;
