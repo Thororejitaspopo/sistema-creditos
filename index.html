@@ -308,14 +308,15 @@
             <p class="subtitulo">Inyección de fondos, distribución de cajas y saldos en vivo.</p>
 
             <div class="fila-campos" style="display: flex; gap: 15px; margin-bottom: 25px;">
-                <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
-                    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">EFECTIVO MATRIZ</span>
-                    <h3 id="saldo-efectivo-txt" style="margin: 5px 0 0 0; color: #10b981; font-size: 24px;">$0.00</h3>
-                </div>
-                <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #3b82f6;">
-                    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">BANCOS TOTAL</span>
-                    <h3 id="saldo-bancos-txt" style="margin: 5px 0 0 0; color: #3b82f6; font-size: 24px;">$0.00</h3>
-                </div>
+                <div class="tarjeta-saldo" onclick="filtrarHistorial('MATRIZ')" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981; cursor: pointer;">
+    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">EFECTIVO MATRIZ</span>
+    <h3 id="saldo-efectivo-txt" style="margin: 5px 0 0 0; color: #10b981; font-size: 24px;">$0.00</h3>
+</div>
+
+<div class="tarjeta-saldo" onclick="filtrarHistorial('BANCO')" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #3b82f6; cursor: pointer;">
+    <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">BANCOS TOTAL</span>
+    <h3 id="saldo-bancos-txt" style="margin: 5px 0 0 0; color: #3b82f6; font-size: 24px;">$0.00</h3>
+</div>
                 <div class="tarjeta-saldo" style="flex: 1; background: #1e293b; padding: 15px; border-radius: 8px; border-left: 5px solid #f59e0b;">
                     <span style="color: #94a3b8; font-size: 13px; font-weight: bold;">CAPITAL GENERAL (SISTEMA)</span>
                     <h3 id="saldo-general-txt" style="margin: 5px 0 0 0; color: #f59e0b; font-size: 24px;">$0.00</h3>
@@ -358,7 +359,9 @@
 
             <div style="background: #111827; padding: 20px; border-radius: 8px; border: 1px solid #374151;">
                 <h3 style="margin-top: 0; color: #f3f4f6; border-bottom: 1px solid #374151; padding-bottom: 10px;">📊 Historial de Auditoría (Últimos 50 Movimientos)</h3>
-                
+                <button onclick="limpiarFiltros()" style="background: #374151; color: white; padding: 5px 15px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
+    🔄 MOSTRAR TODO / RESETEAR ORDEN
+</button>
                 <div style="display: flex; gap: 8px; margin-top: 15px; max-width: 320px;">
                     <input type="number" id="input-buscar-id" placeholder="Buscar por ID de movimiento... Ej: 16" 
                            style="padding: 8px 12px; border-radius: 6px; border: 1px solid #374151; background: #1f2937; color: #ffffff; width: 100%; font-size: 0.9rem; outline: none;">

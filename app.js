@@ -101,6 +101,9 @@ function actualizarComboGarantes(clientes) {
 /**
  * Convierte el array de clientes en bloques visuales de tarjetas con paginación de 10 en 10.
  */
+/**
+ * Convierte el array de clientes en bloques visuales de tarjetas con paginación de 10 en 10.
+ */
 function renderizarLista(clientes) {
     // Captura el panel donde se van a colgar las tarjetas físicas de los clientes
     const contenedor = document.getElementById('lista-clientes');
@@ -165,7 +168,9 @@ function renderizarLista(clientes) {
             <div class="acciones-cliente">
                 <button class="btn-accion btn-ver" title="Ver Historial" onclick="verCliente(${cliente.id})">👁️</button>
                 <button class="btn-accion btn-edit" title="Editar Datos del Cliente" onclick="prepararEdicion(${cliente.id})">✏️</button>
-                <button class="btn-accion btn-credito" title="Crear Crédito">💳</button>
+                
+                <button class="btn-accion btn-credito" title="Crear Crédito" onclick="redirigirACrearCredito(${cliente.id})">💳</button>
+                
                 <button class="btn-accion btn-elim" title="Eliminar de Raíz" onclick="eliminarCliente(${cliente.id})">🗑️</button>
             </div>
         `;
@@ -202,6 +207,35 @@ function renderizarLista(clientes) {
         if (contenedorPaginacion) {
             contenedorPaginacion.appendChild(boton);
         }
+    }
+}
+
+// =========================================================================
+// BLOCK 30: ATAJO HACIA MÓDULO CRÉDITO (CONEXIÓN INTEGRADA)
+// =========================================================================
+function redirigirACrearCredito(clienteId) {
+    // 1. Guardamos el ID en memoria para que el formulario de crédito lo capture
+    localStorage.setItem('cliente_para_credito_id', clienteId);
+
+    // 2. Usamos su función nativa 'cambiarModulo' para activar el DIV correspondiente
+    // Según su HTML, el ID del contenedor es 'mod-creditos'
+    if (typeof cambiarModulo === 'function') {
+        cambiarModulo('creditos'); 
+        
+        // 3. Opcional: Si su función 'cambiarModulo' no selecciona automáticamente el cliente en el select,
+        // forzamos la carga del select después de un pequeño retraso
+        setTimeout(() => {
+            const selectCliente = document.getElementById('cred-cliente-id');
+            if (selectCliente) {
+                selectCliente.value = clienteId;
+                // Si tiene una función de cálculo, la llamamos para que se activen los valores
+                if (typeof calcularProyeccionCredito === 'function') {
+                    calcularProyeccionCredito();
+                }
+            }
+        }, 300);
+    } else {
+        console.error("La función cambiarModulo no está definida.");
     }
 }
 // ... (El resto de tus funciones de edición, registro y eliminación se mantienen intactas)
@@ -361,6 +395,21 @@ async function registrarCliente() {
         return;
     }
 
+   // =========================================================================
+    // BLOCK 2.8: VALIDACIÓN OBLIGATORIA DE 10 DÍGITOS PARA WHATSAPP
+    // =========================================================================
+    // Filtro de Seguridad: Verifica que el número de WhatsApp tenga exactamente 10 caracteres
+    // Se ejecuta antes de validar duplicados para ahorrar recursos del sistema
+    if (whatsapp.length !== 10) {
+        inputWhatsapp.classList.add('campo-error'); // Pone el marco rojo visual de error
+        alert(`⚠️ Operación Cancelada: El número de WhatsApp es inválido.\n\nDebe tener exactamente 10 dígitos obligatorios (Ej: 099XXXXXXX).\nCaracteres actuales ingresados: ${whatsapp.length}`);
+        return; // Frena la función por completo y no permite avanzar al guardado
+    }
+
+    // =========================================================================
+    // BLOCK 2.9: CONTROL DE DUPLICADOS EN LA LISTA GLOBAL
+    // =========================================================================
+    // Revisa si el número ingresado ya le pertenece a otra persona registrado en el sistema
     const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idEditando);
     if (whatsappExiste) {
         inputWhatsapp.classList.add('campo-error');
@@ -1108,8 +1157,18 @@ async function inicializarModuloCapital() {
         const txtBancos = document.getElementById('saldo-bancos-txt');
         if (txtBancos) txtBancos.textContent = `$${capitalBanco.toFixed(2)}`;
 
+       // =========================================================================
+        // BLOQUE DE ARRANQUE GENERAL: INICIALIZACIÓN DE LA PANTALLA
+        // =========================================================================
+
         // 8. RENDERIZADO DEL LOG: Cargamos el historial detallado de movimientos a la derecha
         await cargarHistorialCapital();
+
+        // 🚀 CONTROL DE SELECTORES DE CRÉDITO: Carga los saldos entre paréntesis al iniciar
+        // Ejecuta la lectura de dinero en vivo para que el operador vea los saldos desde el segundo uno.
+        if (typeof cargarSaldosEnSelectorCredito === 'function') {
+            await cargarSaldosEnSelectorCredito();
+        }
 
     } catch (error) {
         console.error('Error crítico en la sincronización de capital:', error.message);
@@ -1211,19 +1270,24 @@ async function procesarTransaccionCapital(tipoAccion) {
  * Montos positivos en verde, montos negativos en rojo alineados a la derecha.
  */
 async function cargarHistorialCapital() {
+    // BLOQUE PREVENTIVO: VERIFICACIÓN DEL CONTENEDOR HTML
+    // Confirmamos que la lista visual exista en la pestaña actual antes de meter los datos.
     const contenedorHistorial = document.getElementById('historial-capital-lista');
     if (!contenedorHistorial) return; 
 
     try {
         // BLOQUE 1: CÁLCULO DE RANGOS DINÁMICOS
+        // Definimos los límites de registros que se van a mostrar según la página en la que esté el usuario.
         const desde = (paginaActualHistorial - 1) * filasPorPaginaHistorial;
         const hasta = desde + filasPorPaginaHistorial - 1;
 
         // BLOQUE 2: CONSULTA A SUPABASE
+        // IMPORTANTE: Añadimos 'created_at' en el select para jalar la fecha y hora congelada desde la base de datos.
         const { data: movimientos, error, count } = await supabaseClient
             .from('historial_capital')
             .select(`
                 id,
+                created_at,
                 monto,
                 concepto,
                 cajas_capital ( nombre_caja )
@@ -1234,8 +1298,10 @@ async function cargarHistorialCapital() {
         if (error) throw error;
 
         // BLOQUE 3: LIMPIEZA DE CONTENEDOR
+        // Vaciamos la lista vieja de la pantalla para que no se dupliquen los datos al recargar.
         contenedorHistorial.innerHTML = '';
 
+        // Si la tabla de la base de datos no arroja movimientos, mostramos un mensaje de control limpio.
         if (!movimientos || movimientos.length === 0) {
             contenedorHistorial.innerHTML = '<p class="text-muted text-center py-3">No existen movimientos registrados en la bóveda.</p>';
             renderizarPaginacionHistorial(0); 
@@ -1243,6 +1309,7 @@ async function cargarHistorialCapital() {
         }
 
         // BLOQUE 4: MAQUETACIÓN INLINE RIGUROSA (IZQUIERDA Y DERECHA EXTREMA)
+        // Recorremos fila por fila cada movimiento traído de Supabase para pintarlo en el HTML.
         movimientos.forEach(mov => {
             const numMonto = parseFloat(mov.monto);
             const esIngreso = numMonto >= 0;
@@ -1255,13 +1322,13 @@ async function cargarHistorialCapital() {
             // 🎨 REGLA DE COLORES: Verde para ingresos, Rojo para egresos (Naranja reservado)
             const colorActual = esIngreso ? '#10b981' : '#ef4444'; 
 
-            // Conversión de tiempo de auditoría local
-            const fechaObjeto = new Date(); // Reemplazar por tu columna de fecha de la BD cuando gustes
+            // SOLUCIÓN DEL RELOJ: Cambiamos el Date vacío por 'mov.created_at' para congelar el tiempo real de la base de datos.
+            const fechaObjeto = new Date(mov.created_at || new Date()); 
             const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
             const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-            // TEMPLATE CON ESTILOS INLINE INMUTABLES
+            // TEMPLATE CON ESTILOS INLINE INMUTABLES (Se mantiene intacto tu diseño visual original)
             const itemHTML = `
                 <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 20px;">
                     
@@ -1288,9 +1355,11 @@ async function cargarHistorialCapital() {
         });
 
         // BLOQUE 5: PAGINACIÓN
+        // Actualiza los botones numéricos de abajo en base al conteo exacto de registros en Supabase.
         renderizarPaginacionHistorial(count);
 
     } catch (error) {
+        // BLOQUE DE CONTROL DE ERRORES VISUALES
         console.error('Error al pintar el log de auditoría:', error.message);
     }
 }
@@ -1570,28 +1639,95 @@ function calcularProyeccionCredito() {
     document.getElementById('lbl-cuota-valor').innerText = `$${valorCuota.toFixed(2)}`;
 }
 
+// =========================================================================
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+// =========================================================================
+// =========================================================================
+// =========================================================================
+// 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+// =========================================================================
 async function guardarNuevoCredito() {
-    // Capturar datos usando los IDs EXACTOS de tu index.html
-    const clienteId = document.getElementById('cred-cliente-id').value;
+    // BLOCK 1: CAPTURA DE DATOS DESDE LA INTERFAZ HTML
+    // Capturamos el componente select completo del cliente para extraer su ID y su texto visible
+    const selectorCliente = document.getElementById('cred-cliente-id');
+    const clienteId = selectorCliente.value;
+    
+    // TRUCO DE ORO: Captura el Nombre y Apellido tal como aparece escrito en el selector de la pantalla
+    const nombreCliente = selectorCliente.options[selectorCliente.selectedIndex].text;
+
     const monto = parseFloat(document.getElementById('cred-monto').value);
     const tasa = parseFloat(document.getElementById('cred-tasa-interes').value);
     const cuotas = parseInt(document.getElementById('cred-cuotas').value);
     const cajaId = document.getElementById('cred-forma-entrega').value; // Retorna "1" o "2"
 
-    // Validación rápida de seguridad
+    // BLOCK 2: VALIDACIÓN DE SEGURIDAD PREVENTIVA
+    // Nos aseguramos de que ningún campo importante esté vacío antes de operar
     if (!clienteId || !monto || isNaN(monto) || !cuotas || !cajaId) {
         alert("⚠️ Por favor, complete todos los campos obligatorios antes de aprobar.");
         return;
     }
 
+    // BLOCK 2.5: CONTROL DE MONTOS EN NEGATIVO O CERO
+    // Filtro de seguridad: Bloquea intentos de registrar montos menores o iguales a cero
+    if (monto <= 0) {
+        alert("⚠️ Error: El monto del crédito debe ser un valor positivo mayor a cero.");
+        return;
+    }
+
+    // BLOCK 3: CÁLCULOS MATEMÁTICOS DEL CRÉDITO
     // Procesar valores finales para la base de datos
     const totalInteres = parseFloat(((monto * tasa) / 100).toFixed(2));
     const totalPagar = parseFloat((monto + totalInteres).toFixed(2));
     const valorCuota = parseFloat((totalPagar / cuotas).toFixed(2));
 
     try {
-        // Insertar registro en la tabla 'creditos' que creamos con éxito en Supabase
+        // BLOCK 4: CONSULTAR EL SALDO ACTUAL DE LA BÓVEDA/CAJA (SEGURIDAD ANTES DE REGISTRAR)
+        // Primero vamos a Supabase a traer cuánto dinero tiene la caja elegida para verificar fondos
+        const { data: caja, error: errorCaja } = await supabaseClient
+            .from('cajas_capital')
+            .select('saldo_actual, nombre_caja')
+            .eq('id', parseInt(cajaId))
+            .single();
+
+        if (errorCaja) throw errorCaja;
+
+        // BLOCK 4.5: VALIDACIÓN DE FONDOS INSUFICIENTES
+        // Si el monto a prestar es mayor que lo que hay en la caja, frena todo de inmediato
+        if (monto > parseFloat(caja.saldo_actual)) {
+            alert(`❌ Operación Cancelada: Fondos insuficientes en [${caja.nombre_caja}].\n\nSaldo disponible actual: $${parseFloat(caja.saldo_actual).toFixed(2)}\nMonto que intenta prestar: $${monto.toFixed(2)}`);
+            return; // Detiene la ejecución de la función por completo
+        }
+
+        // BLOCK 4.7: VALIDACIÓN DE LÍMITE DE CRÉDITOS ACTIVOS POR NIVEL DE CLIENTE
+        // Consultamos el nivel y el límite numérico configurado para este cliente específico
+        const { data: infoCliente, error: errorCliente } = await supabaseClient
+            .from('clientes')
+            .select('nivel, limite_creditos')
+            .eq('id', parseInt(clienteId))
+            .single();
+
+        if (errorCliente) throw errorCliente;
+
+        // Consultamos cuántos créditos activos mantiene abiertos este cliente en este instante
+        const { data: creditosActivos, error: errorConteo } = await supabaseClient
+            .from('creditos')
+            .select('id')
+            .eq('cliente_id', parseInt(clienteId))
+            .eq('estado', 'activo');
+
+        if (errorConteo) throw errorConteo;
+
+        // Extraemos el límite de la base de datos; si está vacío, asignamos 2 por seguridad
+        const limiteMaximoPermitido = parseInt(infoCliente.limite_creditos) || 2;
+
+        // Control de bloqueo: Si ya alcanzó o superó el límite asignado a su nivel, cancela el flujo
+        if (creditosActivos.length >= limiteMaximoPermitido) {
+            alert(`❌ Operación Cancelada: El cliente ha alcanzado su límite de créditos permitidos.\n\nNivel Actual: ${infoCliente.nivel || 'Sin Nivel'}\nCréditos Activos: ${creditosActivos.length}\nLímite Máximo: ${limiteMaximoPermitido}`);
+            return; // Detiene el almacenamiento por completo para proteger la cartera
+        }
+
+        // BLOCK 5: REGISTRO DEL CRÉDITO EN SUPABASE
+        // Ya habiendo pasado todos los filtros de dinero, procedemos a insertar el registro de forma segura
         const { data, error } = await supabaseClient
             .from('creditos')
             .insert([
@@ -1613,23 +1749,149 @@ async function guardarNuevoCredito() {
 
         if (error) throw error;
 
-        alert("🚀 ¡Crédito aprobado y registrado con éxito en Supabase!");
+        // BLOCK 6: DESCUENTO DE DINERO DE LA CAJA SELECCIONADA
+        // Restamos el dinero prestado al saldo actual que tenía la caja en la base de datos
+        const nuevoSaldoCaja = parseFloat(caja.saldo_actual) - monto;
         
+        // Enviamos el nuevo saldo actualizado de la caja a Supabase
+        const { error: errorUpdateCaja } = await supabaseClient
+            .from('cajas_capital')
+            .update({ saldo_actual: nuevoSaldoCaja })
+            .eq('id', parseInt(cajaId));
+
+        if (errorUpdateCaja) throw errorUpdateCaja;
+
+        // BLOCK 7: REGISTRO DE AUDITORÍA EN EL HISTORIAL DE CAPITAL
+        // Guardamos el concepto usando la variable 'nombreCliente' para que imprima el nombre real en vez del ID
+        const { error: errorHistorial } = await supabaseClient
+            .from('historial_capital')
+            .insert([{
+                caja_id: parseInt(cajaId),
+                monto: -monto, 
+                concepto: `DESEMBOLSO CRÉDITO A: ${nombreCliente}`
+            }]);
+
+        if (errorHistorial) throw errorHistorial;
+
+        // BLOCK 8: MENSAJE DE ÉXITO AL OPERADOR
+        alert("🚀 ¡Crédito aprobado, registrado y dinero descontado de caja con éxito!");
+        
+        // BLOCK 9: LIMPIEZA DE FORMULARIO DE INTERFAZ
         // Limpiar el formulario para el siguiente registro
+        document.getElementById('cred-cliente-id').value = ''; // 🌟 LÍNEA AGREGADA: Regresa el selector al texto "-- Seleccione un cliente activo --"
         document.getElementById('cred-monto').value = '';
         document.getElementById('cred-cuotas').value = '1';
         document.getElementById('cred-forma-entrega').value = '';
-        
-        // Resetear los contadores visuales
+
+        // Resetear los contadores visuales en la pantalla
         document.getElementById('lbl-cuota-valor').innerText = '$0.00';
         document.getElementById('lbl-interes-total').innerText = '$0.00';
         document.getElementById('lbl-pagar-total').innerText = '$0.00';
 
+        // BLOCK 10: ACTUALIZACIÓN EN VIVO DE LAS TARJETA DE CAPITAL Y SELECTORES
+        // Si el módulo de capital está cargado, refresca los saldos en la pantalla automáticamente
+        if (typeof inicializarModuloCapital === 'function') {
+            await inicializarModuloCapital();
+        }
+
+        // CONTROL DE REFRESCO DE CRÉDITOS: Ejecuta la recarga de saldos entre paréntesis de forma segura
+        if (typeof cargarSaldosEnSelectorCredito === 'function') {
+            await cargarSaldosEnSelectorCredito();
+        }
+
     } catch (error) {
+        // BLOCK 11: CONTROL DE ERRORES CRÍTICOS
         console.error("Error al registrar crédito:", error);
         alert("❌ Hubo un error al guardar en la base de datos: " + error.message);
     }
 }
+
+// =========================================================================
+// BLOCK 12: ESCUCHADOR EN TIEMPO REAL PARA RESTRINGIR LETRAS EN EL MONTO
+// =========================================================================
+// Bloque autónomo que limpia el campo de texto inmediatamente si detecta letras
+document.getElementById('cred-monto').addEventListener('input', function () {
+    // 1. Capturamos el contenido actual que el usuario escribe o pega
+    let entrada = this.value;
+
+    // 2. Filtro de Seguridad: Borra todo lo que NO sea un número del 0 al 9 o un punto decimal
+    let entradaLimpia = entrada.replace(/[^0-9.]/g, '');
+
+    // 3. Control de Doble Punto: Evitamos que rompan los cálculos escribiendo "100..50"
+    const partes = entradaLimpia.split('.');
+    if (partes.length > 2) {
+        // Mantiene el primer punto válido y junta el resto eliminando los puntos extra
+        entradaLimpia = partes[0] + '.' + partes.slice(1).join('');
+    }
+
+    // 4. Devolvemos el valor depurado a la interfaz en tiempo real
+    this.value = entradaLimpia;
+});
+
+// =========================================================================
+// BLOCK 14: BUSCADOR DINÁMICO DE CLIENTES EN TIEMPO REAL
+// =========================================================================
+// Crea un campo de búsqueda arriba del selector para filtrar instantáneamente 560+ clientes
+(function() {
+    const selector = document.getElementById('cred-cliente-id');
+    if (!selector) return;
+
+    // Construcción dinámica del input buscador
+    const buscarInput = document.createElement('input');
+    buscarInput.type = 'text';
+    buscarInput.id = 'cred-cliente-buscar';
+    buscarInput.placeholder = '🔍 Escribe aquí para buscar cliente... (Ej: Piguave)';
+    
+    // Estilos de acople visual estables para el diseño
+    buscarInput.style.width = '100%';
+    buscarInput.style.marginBottom = '6px';
+    buscarInput.style.padding = '8px';
+    buscarInput.style.boxSizing = 'border-box';
+    
+    // Inyección limpia del buscador justo antes del elemento select
+    selector.parentNode.insertBefore(buscarInput, selector);
+
+    let opcionesOriginales = [];
+
+    // Captura y respaldo de los datos reales del selector al enfocarse
+    buscarInput.addEventListener('focus', function() {
+        if (this.value === '') {
+            opcionesOriginales = Array.from(selector.options);
+        }
+    });
+
+    // Filtro dinámico en base al texto digitado por el usuario
+    buscarInput.addEventListener('input', function() {
+        const termino = this.value.toLowerCase().trim();
+        
+        if (termino === '') {
+            selector.innerHTML = '';
+            opcionesOriginales.forEach(opt => selector.add(opt.cloneNode(true)));
+            return;
+        }
+
+        const filtradas = opcionesOriginales.filter(opt => {
+            if (opt.value === '') return true; // Mantiene visible la opción por defecto por seguridad
+            return opt.text.toLowerCase().includes(termino);
+        });
+
+        selector.innerHTML = '';
+        filtradas.forEach(opt => selector.add(opt.cloneNode(true)));
+    });
+
+    // Limpieza del buscador y restauración integral del selector al elegir el registro
+    selector.addEventListener('change', function() {
+        if (buscarInput.value !== '' && opcionesOriginales.length > 0) {
+            const valorSeleccionado = selector.value;
+            buscarInput.value = ''; 
+            
+            selector.innerHTML = '';
+            opcionesOriginales.forEach(opt => selector.add(opt.cloneNode(true)));
+            
+            selector.value = valorSeleccionado; // Reasigna el id correcto al BLOCK 1
+        }
+    });
+})();
 
 // 3. FUNCIÓN PARA TRAER LOS CLIENTES DESDE SUPABASE AL SELECTOR
 async function cargarClientesDropdown() {
@@ -1665,5 +1927,108 @@ async function cargarClientesDropdown() {
 // Esto hace que la lista se cargue automáticamente apenas se abra el sistema
 document.addEventListener('DOMContentLoaded', () => {
     // Un pequeño delay de medio segundo para asegurar que Supabase ya esté conectado
-    setTimeout(cargarClientesDropdown, 500);
+    setTimeout(async () => {
+        // 1. Carga los clientes en el selector
+        await cargarClientesDropdown();
+        
+        // 2. Carga los saldos reales en el selector de créditos desde el arranque
+        if (typeof cargarSaldosEnSelectorCredito === 'function') {
+            await cargarSaldosEnSelectorCredito();
+        }
+    }, 500);
 });
+
+/**
+ * RENDERIZAR OPCIONES DE ENTREGA CON SALDOS EN VIVO
+ * GUIADO DEL MÓDULO CAPITAL: Formatea las opciones para mostrar el saldo real
+ * de cada caja entre paréntesis, evitando que se preste dinero sin fondos.
+ */
+async function cargarSaldosEnSelectorCredito() {
+    // BLOQUE 1: ATRA PAR EL SELECTOR DEL HTML
+    // Buscamos el ID exacto del combobox de forma de entrega en el módulo de créditos
+    const comboEntrega = document.getElementById('cred-forma-entrega');
+    if (!comboEntrega) return; // Si no está en pantalla, frena la función para evitar errores
+
+    try {
+        // BLOQUE 2: CONSULTA DIRECTA A SUPABASE (IGUAL A MÓDULO CAPITAL)
+        // Traemos las cajas registradas con sus nombres y montos reales desde la base de datos
+        const { data: cajas, error } = await supabaseClient
+            .from('cajas_capital')
+            .select('id, nombre_caja, saldo_actual')
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        // BLOQUE 3: SALVAGUARDAR SELECCIÓN ACTUAL DEL OPERADOR
+        // Guardamos la opción que ya tenga marcada el usuario para que no se le mueva el combo de golpe
+        const seleccionPrevia = comboEntrega.value;
+
+        // Limpiamos el contenido viejo dejando únicamente la opción por defecto
+        comboEntrega.innerHTML = '<option value="">-- Seleccione forma de entrega --</option>';
+
+        // BLOQUE 4: CONSTRUCCIÓN DEL TEMPLATE VISUAL (CON SALDOS EN VIVO)
+        // Recorremos las cajas e inyectamos el HTML calcando el formato exacto del Módulo Capital
+        cajas.forEach(caja => {
+            const saldoNumero = parseFloat(caja.saldo_actual).toFixed(2);
+            
+            // Creamos la etiqueta <option> manteniendo el ID de la caja ("1" o "2") en el value
+            // El texto visible queda idéntico: "Efectivo Central (Matriz) ($600.00)"
+            const opcionHTML = `<option value="${caja.id}">${caja.nombre_caja} ($${saldoNumero})</option>`;
+            
+            // Colocamos la opción al final de la lista del selector
+            comboEntrega.insertAdjacentHTML('beforeend', opcionHTML);
+        });
+
+        // BLOQUE 5: RESTAURACIÓN AUTOMÁTICA DE LA SELECCIÓN
+        // Si el operador ya había elegido "Banco" o "Matriz", se lo dejamos seleccionado otra vez
+        if (seleccionPrevia) {
+            comboEntrega.value = seleccionPrevia;
+        }
+
+    } catch (error) {
+        // BLOQUE DE CONTROL DE INCIDENCIAS
+        console.error('Error al calcar saldos en el selector de créditos:', error.message);
+    }
+}
+
+// =========================================================================
+// BLOQUE: CONTROL TOTAL DEL HISTORIAL
+// =========================================================================
+let filtroMemoria = "";
+
+// Función para filtrar al hacer clic en las tarjetas
+function filtrarHistorial(termino) {
+    filtroMemoria = termino;
+    aplicarFiltroAlHistorial();
+}
+
+// Función para limpiar filtros y mostrar todo ordenado
+function limpiarFiltros() {
+    filtroMemoria = ""; // Borramos el filtro
+    aplicarFiltroAlHistorial();
+}
+
+// Función que aplica la lógica visual
+function aplicarFiltroAlHistorial() {
+    const contenedor = document.getElementById('historial-capital-lista');
+    if (!contenedor) return;
+
+    const items = contenedor.querySelectorAll('div');
+    items.forEach(item => {
+        const texto = item.innerText.toUpperCase();
+        // Si el filtro está vacío, mostramos todo (display: block)
+        // Si hay un término, filtramos
+        if (filtroMemoria === "" || texto.includes(filtroMemoria.toUpperCase())) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// El "Guardia" para que no se mezcle al cambiar de página
+const observador = new MutationObserver(() => aplicarFiltroAlHistorial());
+const contenedorHistorial = document.getElementById('historial-capital-lista');
+if (contenedorHistorial) {
+    observador.observe(contenedorHistorial, { childList: true, subtree: true });
+}
