@@ -40,11 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   4. LOGÍSTICA ADMINISTRATIVA: FUNCIONES DE LA BASE DE DATOS
+   4. LOGÍSTICA ADMINISTRATIVA: FUNCIONES DE LA BASE DE DATOS (CON FILTRO DE ARCHIVADOS)
    ========================================================================== */
 
 /**
- * Consulta la base de datos remota para bajar la lista de clientes actualizados.
+ * Consulta la base de datos remota para bajar la lista de clientes activos.
  */
 async function cargarClientes() {
     // Captura el contenedor donde se listan las tarjetas de clientes
@@ -52,16 +52,20 @@ async function cargarClientes() {
     // Inyecta un texto temporal de carga para avisar al usuario que el sistema está trabajando
     contenedor.innerHTML = '<p style="text-align:center; color:#64748b; font-size:13px;">Cargando base de datos...</p>';
 
-    // Realiza la petición asíncrona a Supabase para traer los registros ordenados por ID descendente
+    // =====================================================================
+    // 🌟 NUEVO: EL FILTRO INTELIGENTE (.neq('estado', 'inactivo'))
+    // Le decimos a Supabase: "Tráeme todos, MENOS los inactivos/archivados"
+    // =====================================================================
     const { data: clientes, error } = await supabaseClient
         .from('clientes')
         .select('*')
+        .neq('estado', 'inactivo') 
         .order('id', { ascending: false });
 
     // Verifica si la conexión con la nube falló para reportar el error en pantalla
     if (error) {
         // Pinta el mensaje de error con letras rojas de peligro
-        contenedor.innerHTML = `<p style="text-align:center; color:var(--rojo-peligro); font-size:13px;">Error: ${error.message}</p>`;
+        contenedor.innerHTML = `<p style="text-align:center; color:red; font-size:13px;">Error: ${error.message}</p>`;
         // Detiene por completo la función para evitar colapsar el sistema
         return;
     }
@@ -306,7 +310,7 @@ async function registrarCliente() {
     const idEditando = typeof idClienteEditando !== 'undefined' ? idClienteEditando : null;
 
     // -------------------------------------------------------------------------
-    // 1. CAPTURA DE ELEMENTOS HTML (Nodos completos para aplicar las clases CSS)
+    // 1. CAPTURA DE ELEMENTOS HTML
     // -------------------------------------------------------------------------
     const inputNombres = document.getElementById('cli-nombres');
     const inputApellidos = document.getElementById('cli-apellidos');
@@ -317,7 +321,7 @@ async function registrarCliente() {
     const inputRuta = document.getElementById('cli-ruta');
 
     // -------------------------------------------------------------------------
-    // 2. LIMPIEZA DE ERRORES: Removemos la clase roja antes de validar
+    // 2. LIMPIEZA DE ERRORES
     // -------------------------------------------------------------------------
     inputNombres.classList.remove('campo-error');
     inputApellidos.classList.remove('campo-error');
@@ -327,18 +331,16 @@ async function registrarCliente() {
     if(inputSector) inputSector.classList.remove('campo-error');
     if(inputRuta) inputRuta.classList.remove('campo-error');
 
-    // Extraemos los valores limpios de espacios
+    // Extraemos los valores limpios
     const nombres = inputNombres.value.trim();
     const apellidos = inputApellidos.value.trim();
     const cedula = inputCedula.value.trim();
     const whatsapp = inputWhatsapp.value.trim();
     const correo = inputCorreo.value.trim();
     
-    // Captura el ID del garante seleccionado
     const garanteSeleccionado = document.getElementById('cli-garante').value;
     const garante_id = garanteSeleccionado ? parseInt(garanteSeleccionado) : null;
 
-    // Captura los datos de ubicación, rutas y nivel del cliente
     const sector = inputSector ? inputSector.value : '';
     const ruta = inputRuta ? inputRuta.value : '';
     const direccion = document.getElementById('cli-direccion').value.trim();
@@ -349,7 +351,7 @@ async function registrarCliente() {
     const limite_creditos = parseInt(document.getElementById('cli-limite').value) || 2;
 
     // -------------------------------------------------------------------------
-    // 3. VALIDACIÓN DE CAMPOS VACÍOS: Pinta de rojo campos obligatorios faltantes
+    // 3. VALIDACIÓN DE CAMPOS VACÍOS
     // -------------------------------------------------------------------------
     let tieneCamposVacios = false;
 
@@ -367,7 +369,7 @@ async function registrarCliente() {
     }
 
     // -------------------------------------------------------------------------
-    // 4. VALIDACIÓN DE FORMATO DE CORREO
+    // 4. VALIDACIÓN DE CORREO Y CÉDULA
     // -------------------------------------------------------------------------
     const patronCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!patronCorreo.test(correo)) {
@@ -376,9 +378,6 @@ async function registrarCliente() {
         return;
     }
 
-    // -------------------------------------------------------------------------
-    // 5. VALIDACIÓN DE LONGITUD DE CÉDULA
-    // -------------------------------------------------------------------------
     if (cedula.length < 10) {
         inputCedula.classList.add('campo-error');
         alert("⚠️ La cédula ingresada está incompleta. Debe tener al menos 10 dígitos.");
@@ -386,7 +385,7 @@ async function registrarCliente() {
     }
 
     // -------------------------------------------------------------------------
-    // 6. VALIDACIÓN DE DUPLICADOS LOCALES
+    // 5. VALIDACIÓN DE DUPLICADOS
     // -------------------------------------------------------------------------
     const cedulaExiste = listaClientesGlobal.some(c => c.cedula === cedula && c.id !== idEditando);
     if (cedulaExiste) {
@@ -395,21 +394,12 @@ async function registrarCliente() {
         return;
     }
 
-   // =========================================================================
-    // BLOCK 2.8: VALIDACIÓN OBLIGATORIA DE 10 DÍGITOS PARA WHATSAPP
-    // =========================================================================
-    // Filtro de Seguridad: Verifica que el número de WhatsApp tenga exactamente 10 caracteres
-    // Se ejecuta antes de validar duplicados para ahorrar recursos del sistema
     if (whatsapp.length !== 10) {
-        inputWhatsapp.classList.add('campo-error'); // Pone el marco rojo visual de error
-        alert(`⚠️ Operación Cancelada: El número de WhatsApp es inválido.\n\nDebe tener exactamente 10 dígitos obligatorios (Ej: 099XXXXXXX).\nCaracteres actuales ingresados: ${whatsapp.length}`);
-        return; // Frena la función por completo y no permite avanzar al guardado
+        inputWhatsapp.classList.add('campo-error'); 
+        alert(`⚠️ Operación Cancelada: El número de WhatsApp es inválido.\n\nDebe tener exactamente 10 dígitos obligatorios.`);
+        return; 
     }
 
-    // =========================================================================
-    // BLOCK 2.9: CONTROL DE DUPLICADOS EN LA LISTA GLOBAL
-    // =========================================================================
-    // Revisa si el número ingresado ya le pertenece a otra persona registrado en el sistema
     const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idEditando);
     if (whatsappExiste) {
         inputWhatsapp.classList.add('campo-error');
@@ -425,9 +415,11 @@ async function registrarCliente() {
     }
 
     // -------------------------------------------------------------------------
-    // 7. GENERACIÓN AUTOMÁTICA DE FECHA Y HORA
+    // 6. GENERACIÓN DE FECHAS, ARCHIVOS Y CÓDIGO BANCARIO
     // -------------------------------------------------------------------------
     const ahora = new Date();
+    
+    // Fecha para guardar en la base de datos
     const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
     const nombreDia = dias[ahora.getDay()];
@@ -440,9 +432,18 @@ async function registrarCliente() {
     horas = horas % 12 || 12;
     const fechaRegistro = `${nombreDia} ${diaNum}/${mesNombre}/${anio} hora ${horas}:${minutos} ${ampm}`;
 
-    // -------------------------------------------------------------------------
-    // 8. SUBIDA DE ARCHIVOS A SUPABASE STORAGE
-    // -------------------------------------------------------------------------
+    // Fecha corta y elegante para enviar en el SMS
+    const fechaLargaSMS = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+    const horaFormateadaSMS = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const fechaHoraSMS = `${fechaLargaSMS.charAt(0).toUpperCase() + fechaLargaSMS.slice(1)} | ${horaFormateadaSMS}`;
+
+    // === GENERACIÓN DEL CÓDIGO DE CLIENTE ===
+    const inicialN = nombres.charAt(0).toUpperCase();
+    const inicialA = apellidos.charAt(0).toUpperCase();
+    const ultimos4 = cedula.slice(-4);
+    const codigoUnico = `${inicialN}${inicialA}-${ultimos4}`; // Ej: MA-5760
+    const nombreCompleto = `${nombres.toUpperCase()} ${apellidos.toUpperCase()}`;
+
     const inputFotoCliente = document.getElementById('cli-foto-perfil'); 
     const inputFotoCedula = document.getElementById('cli-foto-cedula');   
 
@@ -460,16 +461,8 @@ async function registrarCliente() {
     if (inputFotoCliente && inputFotoCliente.files.length > 0) {
         const archivoPerfil = inputFotoCliente.files[0]; 
         const nombreArchivo = `perfil_${cedula}_${Date.now()}.${archivoPerfil.name.split('.').pop()}`; 
-        
-        const { data, error: errorPerfil } = await supabaseClient.storage
-            .from('fotos_clientes')
-            .upload(nombreArchivo, archivoPerfil);
-
-        if (errorPerfil) {
-            alert("⚠️ Error al subir la foto de perfil: " + errorPerfil.message);
-            return; 
-        }
-        
+        const { data, error: errorPerfil } = await supabaseClient.storage.from('fotos_clientes').upload(nombreArchivo, archivoPerfil);
+        if (errorPerfil) { alert("⚠️ Error foto perfil: " + errorPerfil.message); return; }
         const { data: urlPublica } = supabaseClient.storage.from('fotos_clientes').getPublicUrl(nombreArchivo);
         urlFotoCliente = urlPublica.publicUrl; 
     }
@@ -477,61 +470,96 @@ async function registrarCliente() {
     if (inputFotoCedula && inputFotoCedula.files.length > 0) {
         const archivoCedula = inputFotoCedula.files[0]; 
         const nombreArchivoCed = `cedula_${cedula}_${Date.now()}.${archivoCedula.name.split('.').pop()}`; 
-        
-        const { data, error: errorCedula } = await supabaseClient.storage
-            .from('fotos_clientes')
-            .upload(nombreArchivoCed, archivoCedula);
-
-        if (errorCedula) {
-            alert("⚠️ Error al subir la foto de la cédula: " + errorCedula.message);
-            return;
-        }
-
+        const { data, error: errorCedula } = await supabaseClient.storage.from('fotos_clientes').upload(nombreArchivoCed, archivoCedula);
+        if (errorCedula) { alert("⚠️ Error foto cédula: " + errorCedula.message); return; }
         const { data: urlPublicaCed } = supabaseClient.storage.from('fotos_clientes').getPublicUrl(nombreArchivoCed);
         urlFotoCedula = urlPublicaCed.publicUrl; 
     }
 
-    // -------------------------------------------------------------------------
-    // 9. EMPAQUETADO DE DATOS FINALES (¡Corregido garante_id!)
-    // -------------------------------------------------------------------------
     const datosCliente = { 
-        nombres, apellidos, cedula, whatsapp, correo, 
-        sector, ruta, direccion, referencia, 
-        tel_referencia, observaciones, nivel, limite_creditos,
-        garante_id, // <-- ¡Corregido aquí! Antes decía gerante_id
+        nombres, apellidos, cedula, whatsapp, correo, sector, ruta, direccion, referencia, 
+        tel_referencia, observaciones, nivel, limite_creditos, garante_id,
         fecha_ingreso: idEditando === null ? fechaRegistro : (listaClientesGlobal.find(c => c.id === idEditando)?.fecha_ingreso || fechaRegistro), 
-        usuario_registro: 'Administrador',
-        url_foto_cliente: urlFotoCliente, 
-        url_foto_cedula: urlFotoCedula    
+        usuario_registro: 'Administrador', url_foto_cliente: urlFotoCliente, url_foto_cedula: urlFotoCedula    
     };
 
     // -------------------------------------------------------------------------
-    // 10. ENVÍO DE DATOS A SUPABASE (Inserción o Actualización)
+    // 7. ENVÍO A SUPABASE Y SMS CON CÓDIGO BANCARIO Y FECHA
     // -------------------------------------------------------------------------
     if (idEditando === null) {
-        const { data, error } = await supabaseClient
-            .from('clientes')
-            .insert([datosCliente]);
+        // ==========================================
+        // RUTA 1: CLIENTE NUEVO
+        // ==========================================
+        const { data, error } = await supabaseClient.from('clientes').insert([datosCliente]);
 
         if (error) {
             alert("Error de Registro: " + error.message);
         } else {
-            alert("¡Cliente guardado con éxito en Sistema Alpha V5 con sus documentos!");
-            limpiarFormularioClientes();
-            cargarClientes();
+            let cobrarAfiliacion = confirm(`💰 COBRO DE AFILIACIÓN\n\n¿Deseas cobrar $1.00 de afiliación por ingresar este cliente al sistema?\n\n🟢 ACEPTAR = Cobrar $1.00\n🔴 CANCELAR = Gratis`);
+
+            if (cobrarAfiliacion) {
+                try {
+                    const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+                    await supabaseClient.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData.saldo_actual) + 1.00 }).eq('id', 1);
+                    
+                    await supabaseClient.from('historial_capital').insert([{
+                        caja_id: 1, monto: 1.00,
+                        concepto: `🟢 INGRESO: Afiliación nuevo cliente - ${codigoUnico} ${nombreCompleto}`
+                    }]);
+                    
+                    if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+                    if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+                } catch (errorCobro) { console.error("Error contable:", errorCobro); }
+            }
+
+            try {
+                // SMS PROFESIONAL (Fecha y Código separados)
+                const msjBienvenida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 ${codigoUnico}\n\nHola ${nombreCompleto}, tu registro ha sido exitoso.\n\nA partir de ahora podras acceder a nuestra linea de creditos.\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                if (typeof enviarSMSAutomatico === 'function') await enviarSMSAutomatico(whatsapp, msjBienvenida);
+            } catch (errorSMS) { console.error("Error SMS:", errorSMS); }
+
+            if (cobrarAfiliacion) { alert(`✅ ¡${codigoUnico} guardado, $1.00 cobrado y SMS enviado!`);
+            } else { alert(`✅ ¡${codigoUnico} guardado (Gratis) y SMS enviado!`); }
+
+            limpiarFormularioClientes(); cargarClientes();
         }
+
     } else {
-        const { data, error } = await supabaseClient
-            .from('clientes')
-            .update(datosCliente)
-            .eq('id', idEditando);
+        // ==========================================
+        // RUTA 2: EDICIÓN DE CLIENTE
+        // ==========================================
+        const { data, error } = await supabaseClient.from('clientes').update(datosCliente).eq('id', idEditando);
 
         if (error) {
             alert("Error al actualizar: " + error.message);
         } else {
-            alert("¡Cambios del cliente actualizados correctamente en la nube!");
-            limpiarFormularioClientes();
-            cargarClientes();
+            let cobrarEdicion = confirm(`💰 COBRO POR ACTUALIZACIÓN\n\n¿Deseas cobrar $0.50 por actualizar los datos de este cliente?\n\n🟢 ACEPTAR = Cobrar $0.50\n🔴 CANCELAR = Gratis`);
+
+            if (cobrarEdicion) {
+                try {
+                    const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+                    await supabaseClient.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData.saldo_actual) + 0.50 }).eq('id', 1);
+                    
+                    await supabaseClient.from('historial_capital').insert([{
+                        caja_id: 1, monto: 0.50,
+                        concepto: `🟢 INGRESO: Actualización de datos - ${codigoUnico} ${nombreCompleto}`
+                    }]);
+                    
+                    if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+                    if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+                } catch (errorCobro) { console.error("Error contable:", errorCobro); }
+            }
+
+            try {
+                // SMS PROFESIONAL (Fecha y Código separados)
+                const msjActualizacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 ${codigoUnico}\n\nHola ${nombreCompleto}, tus datos han sido actualizados exitosamente en nuestro sistema.\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                if (typeof enviarSMSAutomatico === 'function') await enviarSMSAutomatico(whatsapp, msjActualizacion);
+            } catch (errorSMS) { console.error("Error SMS:", errorSMS); }
+
+            if (cobrarEdicion) { alert(`✅ ¡Datos de ${codigoUnico} actualizados, $0.50 cobrados y SMS enviado!`);
+            } else { alert(`✅ ¡Datos de ${codigoUnico} actualizados (Gratis) y SMS enviado!`); }
+
+            limpiarFormularioClientes(); cargarClientes();
         }
     }
 }
@@ -568,28 +596,63 @@ function limpiarFormularioClientes() {
     btn.style.background = "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)";
 }
 /**
- * Remueve registros del sistema permanentemente usando la ID.
+ * ELIMINACIÓN INTELIGENTE: Borra de raíz si no hay historial, archiva si hay créditos.
  */
 async function eliminarCliente(id) {
-    // Despliega una advertencia de seguridad nativa consultando la intención del usuario
-    if (confirm("¿Seguro que deseas eliminar este cliente del sistema permanentemente?")) {
-        // Lanza la orden de eliminación filtrando rigurosamente por la ID del cliente
-        const { error } = await supabaseClient
-            .from('clientes')
-            .delete()
-            .eq('id', id);
+    try {
+        // 1. ESCANEO RÁPIDO: Verificamos si tiene créditos (vivos o muertos)
+        const { data: creditos, error: errCreditos } = await supabaseClient
+            .from('creditos')
+            .select('id')
+            .eq('cliente_id', id);
 
-        // Valida si ocurrió algún fallo de red o permisos con la base remota
-        if (error) {
-            alert("Error al eliminar: " + error.message);
-        } else {
-            // Si el cliente eliminado era el mismo que se estaba editando, limpia el formulario
-            if(idClienteEditando === id) {
-                limpiarFormularioClientes();
-            }
-            // Recarga la lista desde la nube para actualizar la interfaz en tiempo real
-            cargarClientes();
+        if (errCreditos) {
+            alert("⚠️ Error al verificar el historial del cliente: " + errCreditos.message);
+            return;
         }
+
+        // 2. RUTA A: CLIENTE SIN HISTORIAL (Cero créditos) -> BORRADO DEFINITIVO
+        if (creditos.length === 0) {
+            if (confirm("🗑️ Este cliente NO tiene historial de créditos ni deudas.\n\n¿Seguro que deseas ELIMINARLO permanentemente del sistema?")) {
+                
+                const { error } = await supabaseClient
+                    .from('clientes')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                if (typeof idClienteEditando !== 'undefined' && idClienteEditando === id) {
+                    limpiarFormularioClientes();
+                }
+                
+                alert("✅ Cliente eliminado definitivamente (Sin impacto contable).");
+                cargarClientes(); 
+            }
+        } 
+        // 3. RUTA B: CLIENTE CON HISTORIAL -> ARCHIVADO LÓGICO
+        else {
+            if (confirm(`📂 Este cliente tiene ${creditos.length} crédito(s) en su historial.\n\nPara proteger los cuadres de tu caja matriz, no se puede destruir su registro.\n\n¿Deseas ARCHIVARLO (Inactivarlo) para que desaparezca de tu lista principal?`)) {
+                
+                // Actualizamos el estado a 'inactivo' en lugar de borrar la fila
+                const { error } = await supabaseClient
+                    .from('clientes')
+                    .update({ estado: 'inactivo' })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                if (typeof idClienteEditando !== 'undefined' && idClienteEditando === id) {
+                    limpiarFormularioClientes();
+                }
+                
+                alert("✅ Cliente archivado exitosamente. Tu contabilidad está a salvo.");
+                cargarClientes(); 
+            }
+        }
+    } catch (error) {
+        console.error("Error en eliminación inteligente:", error);
+        alert("❌ Hubo un error al procesar la solicitud: " + error.message);
     }
 }
 
@@ -659,11 +722,11 @@ function cambiarModulo(idModulo) {
     // 4. LÓGICA DE ACTIVACIÓN ESPECÍFICA POR MÓDULO
     
     // Si entramos a la pestaña de CRÉDITOS:
+    // Si entramos a la pestaña de CRÉDITOS:
     if (idModulo === 'creditos') {
-        setTimeout(() => { 
-            aplicarTasaAlAbrirModulo(); 
-            cargarClientesDropdown(); // 👥 DISPARADOR: Trae los clientes de Supabase al selector en vivo
-        }, 50);
+        aplicarTasaAlAbrirModulo(); 
+        cargarClientesDropdown();
+        cargarHistorialCreditos(); // Llamada directa
     }
 
     // Si entramos a la pestaña de CAPITAL:
@@ -1271,18 +1334,15 @@ async function procesarTransaccionCapital(tipoAccion) {
  */
 async function cargarHistorialCapital() {
     // BLOQUE PREVENTIVO: VERIFICACIÓN DEL CONTENEDOR HTML
-    // Confirmamos que la lista visual exista en la pestaña actual antes de meter los datos.
     const contenedorHistorial = document.getElementById('historial-capital-lista');
     if (!contenedorHistorial) return; 
 
     try {
         // BLOQUE 1: CÁLCULO DE RANGOS DINÁMICOS
-        // Definimos los límites de registros que se van a mostrar según la página en la que esté el usuario.
         const desde = (paginaActualHistorial - 1) * filasPorPaginaHistorial;
         const hasta = desde + filasPorPaginaHistorial - 1;
 
         // BLOQUE 2: CONSULTA A SUPABASE
-        // IMPORTANTE: Añadimos 'created_at' en el select para jalar la fecha y hora congelada desde la base de datos.
         const { data: movimientos, error, count } = await supabaseClient
             .from('historial_capital')
             .select(`
@@ -1298,54 +1358,48 @@ async function cargarHistorialCapital() {
         if (error) throw error;
 
         // BLOQUE 3: LIMPIEZA DE CONTENEDOR
-        // Vaciamos la lista vieja de la pantalla para que no se dupliquen los datos al recargar.
         contenedorHistorial.innerHTML = '';
 
-        // Si la tabla de la base de datos no arroja movimientos, mostramos un mensaje de control limpio.
         if (!movimientos || movimientos.length === 0) {
             contenedorHistorial.innerHTML = '<p class="text-muted text-center py-3">No existen movimientos registrados en la bóveda.</p>';
             renderizarPaginacionHistorial(0); 
             return;
         }
 
-        // BLOQUE 4: MAQUETACIÓN INLINE RIGUROSA (IZQUIERDA Y DERECHA EXTREMA)
-        // Recorremos fila por fila cada movimiento traído de Supabase para pintarlo en el HTML.
+        // BLOQUE 4: MAQUETACIÓN INLINE RIGUROSA (CON MEDIDA JUSTA A 12PX)
         movimientos.forEach(mov => {
             const numMonto = parseFloat(mov.monto);
             const esIngreso = numMonto >= 0;
             
-            // Formato de texto: $+100.00 o $-100.00
             const signo = esIngreso ? '+' : '-';
             const montoAbsoluto = Math.abs(numMonto).toFixed(2);
             const montoFormateado = `$${signo}${montoAbsoluto}`;
             
-            // 🎨 REGLA DE COLORES: Verde para ingresos, Rojo para egresos (Naranja reservado)
             const colorActual = esIngreso ? '#10b981' : '#ef4444'; 
 
-            // SOLUCIÓN DEL RELOJ: Cambiamos el Date vacío por 'mov.created_at' para congelar el tiempo real de la base de datos.
             const fechaObjeto = new Date(mov.created_at || new Date()); 
             const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
             const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-            // TEMPLATE CON ESTILOS INLINE INMUTABLES (Se mantiene intacto tu diseño visual original)
+            // TEMPLATE OPTIMIZADO: 12px estricto y espacio de protección para el scroll (padding-right: 15px)
             const itemHTML = `
-                <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 20px;">
+                <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 15px 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 15px;">
                     
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px !important; line-height: 1.3;">
                         
-                        <span style="height: 10px; width: 10px; background-color: ${colorActual}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${colorActual}; flex-shrink: 0;"></span>
+                        <span style="height: 8px; width: 8px; background-color: ${colorActual}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${colorActual}; flex-shrink: 0;"></span>
                         
-                        <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
-                        <span class="text-muted small">|</span>
-                        
-                        <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
+                        <span class="text-muted" style="font-size: 12px !important;">${fFormateada}, ${hFormateada} M.</span>
                         <span class="text-muted">|</span>
                         
-                        <span class="text-light">${mov.concepto}</span>
+                        <strong style="font-size: 12px !important; color: #ffffff; letter-spacing: 0.3px;">${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
+                        <span class="text-muted">|</span>
+                        
+                        <span class="text-light" style="font-size: 12px !important; opacity: 0.95;">${mov.concepto}</span>
                     </div>
 
-                    <div style="white-space: nowrap !important; flex-shrink: 0; text-align: right;">
+                    <div style="white-space: nowrap !important; flex-shrink: 0; text-align: right; padding-right: 5px;">
                         <span class="fw-bold" style="color: ${colorActual}; font-size: 1.05rem; letter-spacing: 0.5px;">${montoFormateado}</span>
                     </div>
                     
@@ -1355,11 +1409,9 @@ async function cargarHistorialCapital() {
         });
 
         // BLOQUE 5: PAGINACIÓN
-        // Actualiza los botones numéricos de abajo en base al conteo exacto de registros en Supabase.
         renderizarPaginacionHistorial(count);
 
     } catch (error) {
-        // BLOQUE DE CONTROL DE ERRORES VISUALES
         console.error('Error al pintar el log de auditoría:', error.message);
     }
 }
@@ -1566,26 +1618,7 @@ async function guardarCreditoEnSistema() {
         const seguro = confirm(`¿Está seguro de colocar este crédito por un total de $${totalPagar.toFixed(2)} (${cuotas} cuotas de $${valorCuota.toFixed(2)})?`);
         if (!seguro) return;
 
-        // 5. INSERCIÓN EN LA TABLA 'CREDITOS'
-        const { data: nuevoCredito, error: errorCredito } = await supabaseClient
-            .from('creditos')
-            .insert([{
-                cliente_id: clienteId,
-                caja_id: cajaId,
-                monto_capital: monto,
-                tasa_interes: tasa,
-                total_interes: totalInteres,
-                total_pagar: totalPagar,
-                saldo_pendiente: totalPagar, // Al iniciar, debe todo
-                num_cuotas: cuotas,
-                valor_cuota: valorCuota,
-                usuario_registro: 'Administrador' // Puedes dinamizarlo después
-            }])
-            .select()
-            .single();
-
-        if (errorCredito) throw errorCredito;
-
+        
         // 6. DESCUENTO DE FONDOS DE LA CAJA SELECCIONADA
         const nuevoSaldoCaja = parseFloat(caja.saldo_actual) - monto;
         const { error: errorUpdateCaja } = await supabaseClient
@@ -1646,9 +1679,11 @@ function calcularProyeccionCredito() {
 // =========================================================================
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
 // =========================================================================
+// =========================================================================
+// 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+// =========================================================================
 async function guardarNuevoCredito() {
     // BLOCK 1: CAPTURA DE DATOS DESDE LA INTERFAZ HTML
-    // Capturamos el componente select completo del cliente para extraer su ID y su texto visible
     const selectorCliente = document.getElementById('cred-cliente-id');
     const clienteId = selectorCliente.value;
     
@@ -1661,28 +1696,24 @@ async function guardarNuevoCredito() {
     const cajaId = document.getElementById('cred-forma-entrega').value; // Retorna "1" o "2"
 
     // BLOCK 2: VALIDACIÓN DE SEGURIDAD PREVENTIVA
-    // Nos aseguramos de que ningún campo importante esté vacío antes de operar
     if (!clienteId || !monto || isNaN(monto) || !cuotas || !cajaId) {
         alert("⚠️ Por favor, complete todos los campos obligatorios antes de aprobar.");
         return;
     }
 
     // BLOCK 2.5: CONTROL DE MONTOS EN NEGATIVO O CERO
-    // Filtro de seguridad: Bloquea intentos de registrar montos menores o iguales a cero
     if (monto <= 0) {
         alert("⚠️ Error: El monto del crédito debe ser un valor positivo mayor a cero.");
         return;
     }
 
     // BLOCK 3: CÁLCULOS MATEMÁTICOS DEL CRÉDITO
-    // Procesar valores finales para la base de datos
     const totalInteres = parseFloat(((monto * tasa) / 100).toFixed(2));
     const totalPagar = parseFloat((monto + totalInteres).toFixed(2));
     const valorCuota = parseFloat((totalPagar / cuotas).toFixed(2));
 
     try {
-        // BLOCK 4: CONSULTAR EL SALDO ACTUAL DE LA BÓVEDA/CAJA (SEGURIDAD ANTES DE REGISTRAR)
-        // Primero vamos a Supabase a traer cuánto dinero tiene la caja elegida para verificar fondos
+        // BLOCK 4: CONSULTAR EL SALDO ACTUAL DE LA BÓVEDA/CAJA
         const { data: caja, error: errorCaja } = await supabaseClient
             .from('cajas_capital')
             .select('saldo_actual, nombre_caja')
@@ -1692,68 +1723,69 @@ async function guardarNuevoCredito() {
         if (errorCaja) throw errorCaja;
 
         // BLOCK 4.5: VALIDACIÓN DE FONDOS INSUFICIENTES
-        // Si el monto a prestar es mayor que lo que hay en la caja, frena todo de inmediato
         if (monto > parseFloat(caja.saldo_actual)) {
             alert(`❌ Operación Cancelada: Fondos insuficientes en [${caja.nombre_caja}].\n\nSaldo disponible actual: $${parseFloat(caja.saldo_actual).toFixed(2)}\nMonto que intenta prestar: $${monto.toFixed(2)}`);
-            return; // Detiene la ejecución de la función por completo
+            return;
         }
 
-        // BLOCK 4.7: VALIDACIÓN DE LÍMITE DE CRÉDITOS ACTIVOS POR NIVEL DE CLIENTE
-        // Consultamos el nivel y el límite numérico configurado para este cliente específico
+        // BLOCK 4.7: OBTENER DATOS COMPLETOS DEL CLIENTE PARA EL CÓDIGO BANCARIO
         const { data: infoCliente, error: errorCliente } = await supabaseClient
             .from('clientes')
-            .select('nivel, limite_creditos')
+            .select('nivel, limite_creditos, whatsapp, nombres, apellidos, cedula') 
             .eq('id', parseInt(clienteId))
             .single();
 
         if (errorCliente) throw errorCliente;
 
-        // Consultamos cuántos créditos activos mantiene abiertos este cliente en este instante
-        const { data: creditosActivos, error: errorConteo } = await supabaseClient
+        const { data: creditosCliente, error: errorConteo } = await supabaseClient
             .from('creditos')
-            .select('id')
-            .eq('cliente_id', parseInt(clienteId))
-            .eq('estado', 'activo');
+            .select('id, estado')
+            .eq('cliente_id', parseInt(clienteId));
 
         if (errorConteo) throw errorConteo;
 
-        // Extraemos el límite de la base de datos; si está vacío, asignamos 2 por seguridad
+        const creditosActivos = creditosCliente.filter(c => c.estado === 'activo');
         const limiteMaximoPermitido = parseInt(infoCliente.limite_creditos) || 2;
 
-        // Control de bloqueo: Si ya alcanzó o superó el límite asignado a su nivel, cancela el flujo
         if (creditosActivos.length >= limiteMaximoPermitido) {
             alert(`❌ Operación Cancelada: El cliente ha alcanzado su límite de créditos permitidos.\n\nNivel Actual: ${infoCliente.nivel || 'Sin Nivel'}\nCréditos Activos: ${creditosActivos.length}\nLímite Máximo: ${limiteMaximoPermitido}`);
-            return; // Detiene el almacenamiento por completo para proteger la cartera
+            return;
         }
 
+        // === MAGIA CONTABLE: CÁLCULO DEL NÚMERO DE CRÉDITO ===
+        // Sumamos 1 al total de TODOS los créditos que ha tenido el cliente en la historia
+        const numeroCredito = creditosCliente.length + 1; 
+
         // BLOCK 5: REGISTRO DEL CRÉDITO EN SUPABASE
-        // Ya habiendo pasado todos los filtros de dinero, procedemos a insertar el registro de forma segura
-        const { data, error } = await supabaseClient
+        const { data: resultadoCredito, error } = await supabaseClient
             .from('creditos')
             .insert([
                 {
                     cliente_id: parseInt(clienteId),
-                    caja_id: parseInt(cajaId),
+                    caja_id: parseInt(document.getElementById('cred-forma-entrega').value),
                     monto_capital: monto,
                     tasa_interes: tasa,
                     total_interes: totalInteres,
                     total_pagar: totalPagar,
-                    saldo_pendiente: totalPagar, // Inicia debiendo el total
+                    saldo_pendiente: totalPagar,
                     num_cuotas: cuotas,
                     valor_cuota: valorCuota,
                     estado: 'activo',
-                    usuario_registro: 'Administrador'
+                    usuario_registro: 'Administrador',
+                    frecuencia_pago: document.getElementById('cred-modalidad').options[document.getElementById('cred-modalidad').selectedIndex].text,
+                    forma_entrega: document.getElementById('cred-forma-entrega').options[document.getElementById('cred-forma-entrega').selectedIndex].text
                 }
             ])
             .select();
 
         if (error) throw error;
 
+        // 🌟 EXTRAEMOS EL ID RECIÉN GENERADO POR SUPABASE
+        const nuevoCreditoId = resultadoCredito && resultadoCredito.length > 0 ? resultadoCredito[0].id : null;
+
         // BLOCK 6: DESCUENTO DE DINERO DE LA CAJA SELECCIONADA
-        // Restamos el dinero prestado al saldo actual que tenía la caja en la base de datos
         const nuevoSaldoCaja = parseFloat(caja.saldo_actual) - monto;
         
-        // Enviamos el nuevo saldo actualizado de la caja a Supabase
         const { error: errorUpdateCaja } = await supabaseClient
             .from('cajas_capital')
             .update({ saldo_actual: nuevoSaldoCaja })
@@ -1761,51 +1793,84 @@ async function guardarNuevoCredito() {
 
         if (errorUpdateCaja) throw errorUpdateCaja;
 
+        // === GENERACIÓN DEL CÓDIGO BANCARIO ÚNICO ===
+        const inicialN = infoCliente.nombres.charAt(0).toUpperCase();
+        const inicialA = infoCliente.apellidos.charAt(0).toUpperCase();
+        const ultimos4 = infoCliente.cedula.slice(-4);
+        const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`; // Ej: MA-5760
+        
+        // Unimos el código del cliente con el número de crédito actual
+        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito}`;
+
         // BLOCK 7: REGISTRO DE AUDITORÍA EN EL HISTORIAL DE CAPITAL
-        // Guardamos el concepto usando la variable 'nombreCliente' para que imprima el nombre real en vez del ID
+        const nombreCompletoHistorial = `${infoCliente.nombres.toUpperCase()} ${infoCliente.apellidos.toUpperCase()}`;
         const { error: errorHistorial } = await supabaseClient
             .from('historial_capital')
             .insert([{
                 caja_id: parseInt(cajaId),
+                credito_id: nuevoCreditoId,
                 monto: -monto, 
-                concepto: `DESEMBOLSO CRÉDITO A: ${nombreCliente}`
+                concepto: `DESEMBOLSO: ${codigoCreditoOficial} - ${nombreCompletoHistorial}`
             }]);
 
         if (errorHistorial) throw errorHistorial;
 
         // BLOCK 8: MENSAJE DE ÉXITO AL OPERADOR
-        alert("🚀 ¡Crédito aprobado, registrado y dinero descontado de caja con éxito!");
+        alert(`🚀 ¡${codigoCreditoOficial} aprobado, registrado y descontado con éxito!`);
+        
+        // =========================================================================
+        // 🟢 NUEVO: ¡DISPARO AUTOMÁTICO DE SMS VOUCHER (VÍA MACRODROID)!
+        // =========================================================================
+        if (infoCliente.whatsapp && typeof enviarSMSAutomatico === 'function') {
+            const nombreLimpio = nombreCompletoHistorial;
+            
+            const modalidadSelect = document.getElementById('cred-modalidad');
+            let modalidadNombre = modalidadSelect ? modalidadSelect.options[modalidadSelect.selectedIndex].text : "Fija";
+            modalidadNombre = modalidadNombre.replace(/.*Cobro\s+/i, "");
+
+            // GENERAR FECHA Y HORA EXACTA CON DÍA DE LA SEMANA
+            const ahora = new Date();
+            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+            const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+
+            // Diseño final con Fecha y Código Bancario
+            const mensajeVoucher = `=== SISTEMA ALPHA ===\n${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}\n\n🆔 Ref: ${codigoCreditoOficial}\n👤 Cliente: ${nombreLimpio}\n\n💰 Monto: $${monto.toFixed(2)}\n💵 Cuota: $${valorCuota.toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${totalPagar.toFixed(2)}\n🔢 Cuotas: ${cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+            
+            enviarSMSAutomatico(infoCliente.whatsapp, mensajeVoucher);
+        }
+        // =========================================================================
+        if (typeof cargarHistorialCreditos === 'function') {
+            cargarHistorialCreditos();
+        }
         
         // BLOCK 9: LIMPIEZA DE FORMULARIO DE INTERFAZ
-        // Limpiar el formulario para el siguiente registro
-        document.getElementById('cred-cliente-id').value = ''; // 🌟 LÍNEA AGREGADA: Regresa el selector al texto "-- Seleccione un cliente activo --"
+        document.getElementById('cred-cliente-id').value = '';
         document.getElementById('cred-monto').value = '';
         document.getElementById('cred-cuotas').value = '1';
         document.getElementById('cred-forma-entrega').value = '';
 
-        // Resetear los contadores visuales en la pantalla
         document.getElementById('lbl-cuota-valor').innerText = '$0.00';
         document.getElementById('lbl-interes-total').innerText = '$0.00';
         document.getElementById('lbl-pagar-total').innerText = '$0.00';
 
-        // BLOCK 10: ACTUALIZACIÓN EN VIVO DE LAS TARJETA DE CAPITAL Y SELECTORES
-        // Si el módulo de capital está cargado, refresca los saldos en la pantalla automáticamente
+        // BLOCK 10: ACTUALIZACIÓN EN VIVO
         if (typeof inicializarModuloCapital === 'function') {
             await inicializarModuloCapital();
         }
 
-        // CONTROL DE REFRESCO DE CRÉDITOS: Ejecuta la recarga de saldos entre paréntesis de forma segura
         if (typeof cargarSaldosEnSelectorCredito === 'function') {
             await cargarSaldosEnSelectorCredito();
         }
 
+        if (typeof cargarHistorialCapital === 'function') {
+            cargarHistorialCapital();
+        }
+
     } catch (error) {
-        // BLOCK 11: CONTROL DE ERRORES CRÍTICOS
         console.error("Error al registrar crédito:", error);
         alert("❌ Hubo un error al guardar en la base de datos: " + error.message);
     }
 }
-
 // =========================================================================
 // BLOCK 12: ESCUCHADOR EN TIEMPO REAL PARA RESTRINGIR LETRAS EN EL MONTO
 // =========================================================================
@@ -1992,7 +2057,7 @@ async function cargarSaldosEnSelectorCredito() {
 }
 
 // =========================================================================
-// BLOQUE: CONTROL TOTAL DEL HISTORIAL
+// BLOQUE: CONTROL TOTAL DEL HISTORIAL (CORREGIDO DE RAÍZ)
 // =========================================================================
 let filtroMemoria = "";
 
@@ -2008,27 +2073,847 @@ function limpiarFiltros() {
     aplicarFiltroAlHistorial();
 }
 
-// Función que aplica la lógica visual
+// Función que aplica la lógica visual sin romper las columnas de dinero
 function aplicarFiltroAlHistorial() {
     const contenedor = document.getElementById('historial-capital-lista');
     if (!contenedor) return;
 
-    const items = contenedor.querySelectorAll('div');
+    // 🛑 CORRECCIÓN CLAVE: Seleccionamos la fila entera (.movimiento-item), NO los sub-divs internos
+    const items = contenedor.querySelectorAll('.movimiento-item');
+    
     items.forEach(item => {
         const texto = item.innerText.toUpperCase();
-        // Si el filtro está vacío, mostramos todo (display: block)
-        // Si hay un término, filtramos
+        
+        // Si el filtro está vacío o la fila completa contiene la palabra (ej: MATRIZ o BANCO)
         if (filtroMemoria === "" || texto.includes(filtroMemoria.toUpperCase())) {
-            item.style.display = 'block';
+            // Guardamos el diseño original (Flex) para que el texto vaya a la izquierda y el dinero a la derecha
+            item.style.setProperty('display', 'flex', 'important');
         } else {
-            item.style.display = 'none';
+            // Si no coincide, ocultamos la fila completa con todo su contenido
+            item.style.setProperty('display', 'none', 'important');
         }
     });
 }
 
-// El "Guardia" para que no se mezcle al cambiar de página
+// ==========================================
+// VARIABLES DE CONTROL DE PAGINACIÓN Y BÚSQUEDA (CRÉDITOS)
+// ==========================================
+let paginaActualCreditos = 1;
+const itemsPorPaginaCreditos = 3;
+let filtroTextoCredito = ""; // 🔍 Guarda de forma segura lo que se escribe en el buscador
+
+// Función que se activa automáticamente al escribir en la barra de búsqueda
+function buscarCreditoEnVivo() {
+    const inputBuscador = document.getElementById('buscador-creditos');
+    if (inputBuscador) {
+        filtroTextoCredito = inputBuscador.value.trim();
+        paginaActualCreditos = 1; // Al buscar, forzamos regresar siempre a la página 1
+        cargarHistorialCreditos(); // Refrescamos la lista con el filtro puesto
+    }
+}
+
+// El "Guardia" para que no se mezcle al cambiar de página (TU GUARDIA INTACTO)
 const observador = new MutationObserver(() => aplicarFiltroAlHistorial());
 const contenedorHistorial = document.getElementById('historial-capital-lista');
 if (contenedorHistorial) {
     observador.observe(contenedorHistorial, { childList: true, subtree: true });
+}
+
+// ==========================================
+// 1. CARGAR EL HISTORIAL DE CRÉDITOS (CON BUSCADOR, PAGINACIÓN, BOTÓN DE ANULAR Y CÓDIGO BANCARIO)
+// ==========================================
+async function cargarHistorialCreditos() {
+    const contenedor = document.getElementById('lista-creditos-derecha');
+    if (!contenedor) return;
+    
+    // Cálculo de rangos dinámicos
+    const desde = (paginaActualCreditos - 1) * itemsPorPaginaCreditos;
+    const hasta = desde + itemsPorPaginaCreditos - 1;
+
+    // =====================================================================
+    // 🔒 1. EL DOBLE CANDADO MAESTRO: Filtramos cliente y crédito activos
+    // =====================================================================
+    let consulta = supabaseClient
+        .from('creditos') 
+        .select(`
+            id, cliente_id, monto_capital, total_pagar, tasa_interes, 
+            fecha_emision, frecuencia_pago, valor_cuota, forma_entrega,
+            clientes!inner(nombres, apellidos, cedula, estado)
+        `, { count: 'exact' })
+        .eq('clientes.estado', 'activo') // Candado 1: El cliente no está archivado
+        .eq('estado', 'activo');         // 🔒 Candado 2: El crédito NO está anulado
+
+    // 2. Si el buscador tiene texto, aplicamos el filtro avanzado
+    if (filtroTextoCredito !== "") {
+        consulta = consulta.or(
+            `nombres.ilike.%${filtroTextoCredito}%,apellidos.ilike.%${filtroTextoCredito}%,cedula.ilike.%${filtroTextoCredito}%`, 
+            { foreignTable: 'clientes' }
+        );
+    }
+
+    // 3. Ejecutamos el ordenamiento y el rango de paginación
+    const { data, error, count } = await consulta
+        .order('id', { ascending: false }) 
+        .range(desde, hasta); 
+
+    if (error) {
+        console.error("Error al cargar:", error);
+        return;
+    }
+
+    if (data && data.length > 0) {
+        
+        // =====================================================================
+        // 🌟 PROCESAMIENTO DEL CÓDIGO BANCARIO EN TIEMPO REAL
+        // =====================================================================
+        const creditosProcesados = await Promise.all(data.map(async (c) => {
+            // Extraer iniciales y cédula de forma segura
+            const inicialN = c.clientes?.nombres ? c.clientes.nombres.charAt(0).toUpperCase() : 'X';
+            const inicialA = c.clientes?.apellidos ? c.clientes.apellidos.charAt(0).toUpperCase() : 'X';
+            const ultimos4 = c.clientes?.cedula ? c.clientes.cedula.slice(-4) : '0000';
+            const codigoBancario = `${inicialN}${inicialA}-${ultimos4}`;
+
+            // Buscar qué número de crédito es en la historia exacta de este cliente
+            const { data: todosCreditos } = await supabaseClient
+                .from('creditos')
+                .select('id')
+                .eq('cliente_id', c.cliente_id)
+                .order('id', { ascending: true });
+            
+            let numeroCredito = 1;
+            if (todosCreditos) {
+                const index = todosCreditos.findIndex(tc => tc.id === c.id);
+                if (index !== -1) numeroCredito = index + 1;
+            }
+            
+            // Inyectamos el código oficial al objeto del crédito
+            c.codigoOficial = `${codigoBancario} | CRE #${numeroCredito}`;
+            return c;
+        }));
+        // =====================================================================
+
+        // Mapeamos tus tarjetas de crédito con el nuevo formato
+        const htmlCreditos = creditosProcesados.map(c => {
+            const fechaObj = new Date(c.fecha_emision);
+            const ahora = new Date().getTime();
+            
+            // Seguridad original: Solo permite editar/anular si tiene menos de 24 horas
+            const esEditable = (ahora - fechaObj.getTime()) < 86400000; 
+
+            const formatoFecha = fechaObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' });
+            const horaFormateada = fechaObj.toLocaleTimeString('es-ES', { hour12: false });
+            
+            // Convertimos el nombre a MAYÚSCULAS para mayor formalidad
+            const nombre = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}`.toUpperCase() : 'SIN NOMBRE';
+
+            return `
+            <div style="padding: 15px; border-bottom: 2px solid #e2e8f0; background: #fff; margin-bottom: 12px; border-radius: 8px; border-left: 6px solid #0284c7; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                
+                <div style="font-weight: 900; font-size: 13px; color: #1e293b; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                    
+                    <span>ID: ${c.id}</span> <span style="color: #cbd5e1;">|</span> 
+                    <span>${nombre}</span> <span style="color: #cbd5e1;">|</span> 
+                    
+                    <span style="color: #0284c7; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; border: 1px solid #bae6fd;">
+                        🆔 ${c.codigoOficial}
+                    </span> 
+                    
+                    <span style="color: #cbd5e1;">|</span> 
+                    <span style="color: #64748b; font-weight: normal; font-size: 11px;">${formatoFecha}, ${horaFormateada}</span>
+                    
+                    <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
+                        <button onclick="reenviarVoucher(${c.id})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Reenviar Soporte ($0.50)">📩</button>
+                        ${esEditable ? `
+                            <button onclick="abrirModalEdicion(${c.id})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Editar crédito">✏️</button>
+                            <button onclick="intentarAnularCredito(${c.id}, ${c.monto_capital})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Eliminar crédito">🚫</button>
+                        ` : ''}
+                    </div>
+
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-bottom: 10px;">
+                    <div>Capital: <b>$${c.monto_capital}</b></div>
+                    <div>Interés: <b>${c.tasa_interes || 0}%</b></div>
+                    <div>Cuota: <b>$${c.valor_cuota || 0}</b></div>
+                    <div style="color: #0284c7;">💰 Total a Pagar: <b>$${c.total_pagar}</b></div>
+                </div>
+
+                <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; font-size: 12px; color: #475569;">
+                    <div>🔄 Frecuencia de Pago: <b>${c.frecuencia_pago || 'No especificada'}</b></div>
+                    <div style="margin-top: 4px;">💳 Forma de Entrega / Origen: <b>${c.forma_entrega || 'No especificada'}</b></div>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Matemática original de páginas totales
+        const totalPaginas = Math.ceil(count / itemsPorPaginaCreditos);
+
+        // BOTONERA ULTRA COMPACTA ORIGINAL
+        const paginacionHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 12px; border-top: 2px dashed #e2e8f0; gap: 10px;">
+                <button onclick="cambiarPaginaCreditos(${paginaActualCreditos - 1})" ${paginaActualCreditos === 1 ? 'disabled' : ''} 
+                    style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: ${paginaActualCreditos === 1 ? '#f1f5f9' : 'white'}; color: ${paginaActualCreditos === 1 ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 6px; cursor: ${paginaActualCreditos === 1 ? 'not-allowed' : 'pointer'}; transition: 0.2s;">
+                    Anterior
+                </button>
+                
+                <span style="font-size: 12px; font-weight: bold; color: #475569; background: #f8fafc; padding: 4px 10px; border-radius: 20px; border: 1px solid #e2e8f0;">
+                    Pág. ${paginaActualCreditos} de ${totalPaginas}
+                </span>
+                
+                <button onclick="cambiarPaginaCreditos(${paginaActualCreditos + 1})" ${paginaActualCreditos >= totalPaginas ? 'disabled' : ''} 
+                    style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: ${paginaActualCreditos >= totalPaginas ? '#f1f5f9' : 'white'}; color: ${paginaActualCreditos >= totalPaginas ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 6px; cursor: ${paginaActualCreditos >= totalPaginas ? 'not-allowed' : 'pointer'}; transition: 0.2s;">
+                    Siguiente
+                </button>
+            </div>
+        `;
+
+        // Unimos las tarjetas con la paginación
+        contenedor.innerHTML = htmlCreditos + paginacionHTML;
+
+    } else {
+        // Mensaje inteligente
+        if (filtroTextoCredito !== "") {
+            contenedor.innerHTML = `<p style='text-align: center; color: #94a3b8; padding: 15px 0;'>No se encontraron créditos para "<b>${filtroTextoCredito}</b>".</p>`;
+        } else {
+            contenedor.innerHTML = "<p style='text-align: center; color: #94a3b8;'>No hay créditos registrados.</p>";
+        }
+    }
+}
+
+// Función original para cambiar de página y refrescar automáticamente
+function cambiarPaginaCreditos(nuevaPagina) {
+    paginaActualCreditos = nuevaPagina;
+    cargarHistorialCreditos();
+}
+// ==========================================
+// 2. ABRIR EL MODAL DE EDICIÓN
+// ==========================================
+async function abrirModalEdicion(idCredito) {
+    const { data, error } = await supabaseClient
+        .from('creditos')
+        .select('id, monto_capital, fecha_emision')
+        .eq('id', idCredito)
+        .single();
+
+    if (error) {
+        alert("Error al cargar datos: " + error.message);
+        return;
+    }
+
+    if ((new Date().getTime() - new Date(data.fecha_emision).getTime()) > 86400000) {
+        alert("❌ Este crédito ya superó las 24 horas. No es editable.");
+        return;
+    }
+
+    document.getElementById('edit-id-credito').value = idCredito;
+    document.getElementById('edit-monto').value = data.monto_capital;
+    document.getElementById('modal-editar-credito').style.display = 'flex';
+}
+
+// ==========================================
+// 3. GUARDAR LA EDICIÓN EN SUPABASE Y CAJA (PRODUCCIÓN BLINDADA)
+// ==========================================
+// ==========================================
+// 3. GUARDAR LA EDICIÓN EN SUPABASE Y CAJA (PRODUCCIÓN BLINDADA)
+// ==========================================
+async function guardarEdicion() {
+    const id = document.getElementById('edit-id-credito').value;
+    const nuevoMonto = parseFloat(document.getElementById('edit-monto').value);
+
+    if (isNaN(nuevoMonto) || nuevoMonto <= 0) {
+        alert("❌ Por favor, ingresa un monto válido.");
+        return;
+    }
+
+    // A. Obtener los datos originales completos (¡Inyectamos cliente_id!)
+    const { data: creditoOriginal, error: errFetch } = await supabaseClient
+        .from('creditos')
+        .select('tasa_interes, monto_capital, caja_id, valor_cuota, cliente_id') 
+        .eq('id', id)
+        .single();
+
+    if (errFetch || !creditoOriginal) {
+        alert("Error al recuperar el crédito: " + errFetch?.message);
+        return;
+    }
+
+    // --- ENTRADA DEL MOTOR DE CÓDIGO BANCARIO ---
+    // Traemos los datos de identidad del cliente inmediatamente para la auditoría y el SMS
+    const { data: cliInfo, error: errCli } = await supabaseClient
+        .from('clientes')
+        .select('nombres, apellidos, cedula, whatsapp')
+        .eq('id', creditoOriginal.cliente_id)
+        .single();
+
+    if (errCli || !cliInfo) {
+        alert("Error al recuperar datos del cliente: " + errCli?.message);
+        return;
+    }
+
+    const inicialN = cliInfo.nombres.charAt(0).toUpperCase();
+    const inicialA = cliInfo.apellidos.charAt(0).toUpperCase();
+    const ultimos4 = cliInfo.cedula.slice(-4);
+    const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`;
+
+    // Buscamos la posición cronológica de este crédito en el historial del cliente
+    const { data: todosCreditos } = await supabaseClient
+        .from('creditos')
+        .select('id')
+        .eq('cliente_id', creditoOriginal.cliente_id)
+        .order('id', { ascending: true });
+    
+    let numeroCredito = 1;
+    if (todosCreditos) {
+        const index = todosCreditos.findIndex(c => c.id === Number(id));
+        if (index !== -1) numeroCredito = index + 1;
+    }
+    
+    const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito}`;
+    const nombreCompleto = `${cliInfo.nombres.toUpperCase()} ${cliInfo.apellidos.toUpperCase()}`;
+    // --------------------------------------------
+
+    const tasa = parseFloat(creditoOriginal.tasa_interes || 0);
+    const capitalAnterior = parseFloat(creditoOriginal.monto_capital || 0);
+    const cuotaAnterior = parseFloat(creditoOriginal.valor_cuota || 0);
+    const cajaId = creditoOriginal.caja_id;
+
+    // 🛡️ CANDADO DE SEGURIDAD CONTABLE
+    const { data: cajaData, error: errCajaCheck } = await supabaseClient
+        .from('cajas_capital')
+        .select('nombre_caja, saldo_actual')
+        .eq('id', cajaId)
+        .single();
+
+    if (errCajaCheck || !cajaData) {
+        alert("Error al verificar los fondos en la caja: " + errCajaCheck?.message);
+        return;
+    }
+
+    const saldoDisponible = parseFloat(cajaData.saldo_actual || 0);
+
+    if (nuevoMonto > capitalAnterior) {
+        const dineroAdicionalRequerido = nuevoMonto - capitalAnterior;
+        if (saldoDisponible < dineroAdicionalRequerido) {
+            alert(`❌ Operación Cancelada: Fondos insuficientes en [${cajaData.nombre_caja}].`);
+            return;
+        }
+    }
+
+    const nuevoTotalPagar = nuevoMonto + (nuevoMonto * (tasa / 100));
+    const totalAnterior = capitalAnterior + (capitalAnterior * (tasa / 100));
+    const nuevoValorCuota = totalAnterior > 0 ? (nuevoTotalPagar * cuotaAnterior) / totalAnterior : 0;
+
+    // B. Actualizar tabla 'creditos'
+    const { error: errCredito } = await supabaseClient
+        .from('creditos')
+        .update({ 
+            monto_capital: nuevoMonto,
+            total_pagar: nuevoTotalPagar,
+            saldo_pendiente: nuevoTotalPagar,
+            valor_cuota: nuevoValorCuota 
+        })
+        .eq('id', id);
+
+    if (errCredito) {
+        alert("Error al actualizar el crédito: " + errCredito.message);
+        return;
+    }
+
+    // C. Corregir Historial con el nuevo concepto bancario unificado
+    let conceptoFinal = `DESEMBOLSO: ${codigoCreditoOficial} - ${nombreCompleto}`;
+    if (!conceptoFinal.includes('(CORREGIDO)')) { conceptoFinal += " | 🟡 (CORREGIDO)"; }
+
+    await supabaseClient
+        .from('historial_capital')
+        .update({ monto: -nuevoMonto, concepto: conceptoFinal })
+        .eq('credito_id', Number(id)); 
+
+    // D. Corregir saldo caja
+    const nuevoSaldoActual = saldoDisponible + (capitalAnterior - nuevoMonto);
+    await supabaseClient.from('cajas_capital').update({ saldo_actual: nuevoSaldoActual }).eq('id', cajaId);
+
+    // =========================================================================
+    // 🟢 ACTUALIZADO: SMS CON IDENTIFICACIÓN EXCLUSIVA Y FECHA SEPARADA
+    // =========================================================================
+    try {
+        const { data: credInfo } = await supabaseClient.from('creditos').select('*').eq('id', id).single();
+
+        if (credInfo && cliInfo.whatsapp && typeof enviarSMSAutomatico === 'function') {
+            let modalidadNombre = (credInfo.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
+            
+            // Fecha y hora del evento de modificación
+            const ahora = new Date();
+            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+            const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+            const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+
+            // Estructura limpia y corporativa con el código en su propia línea
+            const msjMod = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoOficial}\n👤 Cliente: ${nombreCompleto}\n\nHola, los datos de tu credito han sido MODIFICADOS con exito.\n\n💰 Nuevo Monto: $${nuevoMonto.toFixed(2)}\n💵 Nueva Cuota: $${nuevoValorCuota.toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${nuevoTotalPagar.toFixed(2)}\n🔢 Cuotas: ${credInfo.num_cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+            
+            await enviarSMSAutomatico(cliInfo.whatsapp, msjMod);
+        }
+    } catch (errSMS) {
+        console.error("⚠️ Error silencioso en SMS de modificación:", errSMS);
+    }
+
+    // E. Finalización de interfaz
+    document.getElementById('modal-editar-credito').style.display = 'none';
+    cargarHistorialCreditos(); 
+    if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+    if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+
+    alert(`✅ ¡Éxito! ${codigoCreditoOficial} corregido, historial actualizado y SMS enviado.`);
+}
+
+// =========================================================================
+// MÓDULO DE SEGURIDAD: ANULACIÓN DE CRÉDITOS (Fase 1 - Sin módulo de pagos)
+// =========================================================================
+// =========================================================================
+// =========================================================================
+// MÓDULO DE SEGURIDAD: ANULACIÓN CON ARCHIVADO CONTABLE Y SMS DE EVIDENCIA
+// =========================================================================
+async function intentarAnularCredito(idCredito, capitalPrestado) {
+    const confirmacion = confirm(`⚠️ ATENCIÓN ⚠️\n\n¿Estás seguro de anular el crédito #${idCredito}?\n\nEl sistema devolverá automáticamente los $${capitalPrestado} a su caja de origen y lo enviará al Centro de Depuración.`);
+    if (!confirmacion) return;
+
+    try {
+        // 1. OBTENER DATOS DEL CRÉDITO
+        const { data: credito, error: errorInfo } = await supabaseClient
+            .from('creditos')
+            .select('*')
+            .eq('id', idCredito)
+            .single();
+        
+        if (errorInfo) throw errorInfo;
+
+        // 2. OBTENER DATOS DEL CLIENTE
+        const { data: infoCliente, error: errorCliente } = await supabaseClient
+            .from('clientes')
+            .select('nombres, apellidos, cedula, whatsapp') 
+            .eq('id', credito.cliente_id)
+            .single();
+
+        if (errorCliente) throw errorCliente;
+
+        // =====================================================================
+        // MOTOR DE CÓDIGO BANCARIO Y NÚMERO DE CRÉDITO
+        // =====================================================================
+        const inicialN = infoCliente.nombres.charAt(0).toUpperCase();
+        const inicialA = infoCliente.apellidos.charAt(0).toUpperCase();
+        const ultimos4 = infoCliente.cedula.slice(-4);
+        const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`;
+
+        // Buscamos qué número de crédito exacto estamos anulando
+        const { data: todosCreditos } = await supabaseClient
+            .from('creditos')
+            .select('id')
+            .eq('cliente_id', credito.cliente_id)
+            .order('id', { ascending: true });
+        
+        let numeroCredito = 1;
+        if (todosCreditos) {
+            const index = todosCreditos.findIndex(c => c.id === idCredito);
+            if (index !== -1) numeroCredito = index + 1;
+        }
+        
+        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito}`;
+        const nombreCompleto = `${infoCliente.nombres.toUpperCase()} ${infoCliente.apellidos.toUpperCase()}`;
+
+        // 3. LÓGICA DE CAJA
+        const textoCaja = credito.forma_entrega ? credito.forma_entrega.toLowerCase() : '';
+        let idCajaDestino = textoCaja.includes('banco') ? 2 : 1;
+
+        const { data: cajaData, error: errorCaja } = await supabaseClient
+            .from('cajas_capital')
+            .select('saldo_actual')
+            .eq('id', idCajaDestino)
+            .single();
+        
+        if (errorCaja) throw errorCaja;
+
+        const nuevoSaldo = parseFloat(cajaData.saldo_actual) + parseFloat(capitalPrestado);
+
+        // 4. ACTUALIZAR CAJA Y AUDITORÍA UNIFICADA
+        await supabaseClient.from('cajas_capital').update({ saldo_actual: nuevoSaldo }).eq('id', idCajaDestino);
+        await supabaseClient.from('historial_capital').insert([{
+            caja_id: idCajaDestino,
+            monto: capitalPrestado,
+            concepto: `🟢 REVERSIÓN: Anulación - ${codigoCreditoOficial} - ${nombreCompleto} (Devolución de capital)`
+        }]);
+
+        // 5. DISPARAR SMS DE EVIDENCIA
+        if (infoCliente && infoCliente.whatsapp && typeof enviarSMSAutomatico === 'function') {
+            const modalidad = (credito.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
+            
+            const ahora = new Date();
+            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+            const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+            const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+
+            const msjAnulacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoOficial}\n👤 Cliente: ${nombreCompleto}\n\nHola, tu credito ha sido ANULADO con exito.\n\n💰 Monto devuelto: $${parseFloat(capitalPrestado).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n\nEste es tu soporte oficial. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+            
+            console.log("Enviando SMS de anulación...");
+            await enviarSMSAutomatico(infoCliente.whatsapp, msjAnulacion);
+            await new Promise(r => setTimeout(r, 800));
+        }
+
+        // =====================================================================
+        // 🌟 PASO 6 MODIFICADO: YA NO BORRAMOS, AHORA ARCHIVAMOS
+        // =====================================================================
+        await supabaseClient
+            .from('creditos')
+            .update({ estado: 'inactivo' })
+            .eq('id', idCredito);
+
+        alert(`✅ ${codigoCreditoOficial} enviado al Centro de Depuración de forma segura.`);
+        
+        // Recargar pantallas en vivo
+        cargarHistorialCreditos();
+        if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+
+    } catch (error) {
+        console.error("Error al anular:", error);
+        alert("Hubo un error al procesar la anulación. Verifica tu conexión.");
+    }
+}
+
+// ==========================================
+// 🚀 MOTOR DE ENVÍO SMS (Vía MacroDroid)
+// ==========================================
+async function enviarSMSAutomatico(numeroCliente, textoMensaje) {
+    // 1. Limpiamos el número (quitamos espacios o guiones)
+    let numeroLimpio = numeroCliente.replace(/\D/g, ''); 
+    
+    // 2. Preparamos el texto para que pueda viajar por internet sin romperse (tildes, espacios, etc)
+    let mensajeCodificado = encodeURIComponent(textoMensaje);
+
+    // 3. Tu enlace maestro de MacroDroid uniendo el número y el mensaje
+    const urlWebhook = `https://trigger.macrodroid.com/554f217c-000a-4581-896c-551d96459fb2/sms_credito?numero=${numeroLimpio}&mensaje=${mensajeCodificado}`;
+
+    try {
+        // 4. Disparamos la orden silenciosamente en segundo plano
+        await fetch(urlWebhook, { 
+            method: 'GET', 
+            mode: 'no-cors' // <-- El truco mágico para que Google Chrome no bloquee el envío
+        });
+        
+        console.log("✅ ¡Orden SMS enviada a MacroDroid!");
+    } catch (error) {
+        console.error("❌ Falló la orden SMS:", error);
+    }
+}
+
+// =========================================================================
+// =========================================================================
+// MÓDULO DE SERVICIO EXTRA: REENVÍO INTELIGENTE (COBRO O GRATIS)
+// =========================================================================
+async function reenviarVoucher(idCredito) {
+    try {
+        // 1. Buscar datos del crédito y cliente
+        const { data: credito, error: errCred } = await supabaseClient.from('creditos').select('*').eq('id', idCredito).single();
+        if (errCred) throw errCred;
+
+        const { data: cliente, error: errCli } = await supabaseClient.from('clientes').select('*').eq('id', credito.cliente_id).single();
+        if (errCli) throw errCli;
+
+        // === MAGIA CONTABLE: CÁLCULO DEL CÓDIGO BANCARIO Y NÚMERO DE CRÉDITO ===
+        const inicialN = cliente.nombres.charAt(0).toUpperCase();
+        const inicialA = cliente.apellidos.charAt(0).toUpperCase();
+        const ultimos4 = cliente.cedula.slice(-4);
+        const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`;
+
+        // Buscar qué número de crédito es este en la historia exacta del cliente
+        const { data: todosCreditos } = await supabaseClient
+            .from('creditos')
+            .select('id')
+            .eq('cliente_id', cliente.id)
+            .order('id', { ascending: true });
+        
+        let numeroCredito = 1;
+        if (todosCreditos) {
+            const index = todosCreditos.findIndex(c => c.id === idCredito);
+            if (index !== -1) numeroCredito = index + 1;
+        }
+        
+        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito}`;
+        const nombreCompleto = `${cliente.nombres.toUpperCase()} ${cliente.apellidos.toUpperCase()}`;
+        // =========================================================================
+
+        // 2. Confirmar número
+        let numeroGuardado = cliente.whatsapp || "";
+        let numeroEnvio = prompt(`📱 REENVÍO DE RESPALDO (${codigoCreditoOficial})\n\nTeléfono registrado:\nSi cambió de chip, pon el nuevo número aquí:`, numeroGuardado);
+        
+        if (!numeroEnvio || numeroEnvio.trim() === "") return; 
+
+        // 3. LA PREGUNTA DEL MILLÓN (Cobrar o No Cobrar)
+        let cobrar = confirm(`💰 TIPO DE REENVÍO\n\n¿Deseas cobrar los $0.50 de penalidad?\n\n🟢 ACEPTAR = Cobrar $0.50 (Perdió el chip)\n🔴 CANCELAR = Envío GRATIS (Fallo de internet)`);
+
+        let etiquetaMensaje = ""; 
+
+        if (cobrar) {
+            // LOGICA DE COBRO
+            const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+            const nuevoSaldoCaja = parseFloat(cajaData.saldo_actual) + 0.50;
+            await supabaseClient.from('cajas_capital').update({ saldo_actual: nuevoSaldoCaja }).eq('id', 1);
+            
+            await supabaseClient.from('historial_capital').insert([{
+                caja_id: 1,
+                monto: 0.50,
+                concepto: `🟢 INGRESO: Penalidad por reenvío de voucher - ${codigoCreditoOficial} - ${nombreCompleto}`
+            }]);
+            
+            if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+            if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+
+            // Sello de copia cobrada
+            etiquetaMensaje = "[COPIA DE RESPALDO] val 0.50ctv\n";
+        }
+
+        // 4. Armar el mensaje con el diseño bancario oficial
+        const modalidad = (credito.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
+        
+        const ahora = new Date();
+        const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+        const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+        const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+
+        const msjReenvio = `=== SISTEMA ALPHA ===\n${etiquetaMensaje}${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoOficial}\n👤 Cliente: ${nombreCompleto}\n\nHola, aqui tienes el respaldo de tu credito.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Nro Cuotas: ${credito.num_cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+        
+        // 5. Disparar el mensaje
+        console.log("Reenviando voucher...");
+        await enviarSMSAutomatico(numeroEnvio.trim(), msjReenvio);
+
+        if (cobrar) {
+            alert(`✅ Copia cobrada ($0.50) y enviada a: ${numeroEnvio}`);
+        } else {
+            alert(`✅ Mensaje enviado de cortesía (Gratis) a: ${numeroEnvio}`);
+        }
+
+    } catch (error) {
+        console.error("Error al reenviar voucher:", error);
+        alert("Hubo un error al intentar reenviar el mensaje.");
+    }
+}
+
+
+/* ==========================================================================
+   MÓDULO DE DEPURACIÓN (PAPELERA GLOBAL)
+   ========================================================================== */
+
+/**
+ * Carga los registros inactivos según la categoría seleccionada (Clientes / Créditos)
+ */
+async function cargarPapelera(categoria) {
+    const contenedor = document.getElementById('contenedor-papelera');
+    
+    // =====================================================================
+    // SECCIÓN A: CLIENTES ARCHIVADOS
+    // =====================================================================
+    if (categoria === 'clientes') {
+        contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Buscando clientes en el archivo...</p>';
+        try {
+            const { data: archivados, error } = await supabaseClient
+                .from('clientes')
+                .select('*')
+                .eq('estado', 'inactivo')
+                .order('id', { ascending: false });
+
+            if (error) throw error;
+
+            if (archivados.length === 0) {
+                contenedor.innerHTML = `<p style="color: #10b981; font-weight: bold;">✨ El archivo de clientes está limpio.</p>`;
+                return;
+            }
+
+            contenedor.innerHTML = archivados.map(c => {
+                const nombreCompleto = `${c.nombres} ${c.apellidos}`.toUpperCase();
+                return `
+                <div style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #64748b; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <span style="background: #f1f5f9; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">ID CLI: ${c.id}</span>
+                            <h3 style="margin: 8px 0 4px 0; font-size: 14px; color: #1e293b;">${nombreCompleto}</h3>
+                            <p style="margin: 0; font-size: 12px; color: #64748b;">🆔 Cédula: ${c.cedula}</p>
+                        </div>
+                        <span style="font-size: 20px;">👥</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
+                        <button onclick="reactivarClienteDesdePapelera(${c.id}, '${nombreCompleto}')" style="flex: 1; padding: 8px; background: #10b981; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">♻️ Restaurar</button>
+                        <button onclick="forzarEliminacionCliente(${c.id}, '${nombreCompleto}')" style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">💥</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (error) {
+            contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`;
+        }
+    } 
+    // =====================================================================
+    // 🌟 SECCIÓN B: NUEVO - CRÉDITOS ANULADOS
+    // =====================================================================
+    else if (categoria === 'creditos') {
+        contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda de auditoría de créditos...</p>';
+        try {
+            // Traemos los créditos inactivos cruzando los datos del cliente dueño
+            const { data: anulados, error } = await supabaseClient
+                .from('creditos')
+                .select(`
+                    id, monto_capital, total_pagar, forma_entrega, fecha_emision,
+                    clientes!inner(nombres, apellidos, cedula)
+                `)
+                .eq('estado', 'inactivo')
+                .order('id', { ascending: false });
+
+            if (error) throw error;
+
+            if (anulados.length === 0) {
+                contenedor.innerHTML = `<p style="color: #0284c7; font-weight: bold;">✨ No hay alertas ni créditos anulados en la bitácora.</p>`;
+                return;
+            }
+
+            contenedor.innerHTML = anulados.map(cre => {
+                const nombreCliente = `${cre.clientes.nombres} ${cre.clientes.apellidos}`.toUpperCase();
+                return `
+                <div style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <span style="background: #ffe4e6; color: #e11d48; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">CRÉDITO ANULADO #${cre.id}</span>
+                            <h3 style="margin: 8px 0 4px 0; font-size: 14px; color: #1e293b;">${nombreCliente}</h3>
+                            <p style="margin: 0; font-size: 12px; color: #475569;">Capital Original: <b>$${cre.monto_capital}</b></p>
+                            <p style="margin: 3px 0 0 0; font-size: 12px; color: #0284c7;">Total Proyectado: <b>$${cre.total_pagar}</b></p>
+                        </div>
+                        <span style="font-size: 20px;" title="Caja origen: ${cre.forma_entrega}">💸</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
+                        <button onclick="reactivarCreditoDesdePapelera(${cre.id}, ${cre.monto_capital}, '${cre.forma_entrega}', '${nombreCliente}')" style="flex: 1; padding: 8px; background: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">♻️ Re-Activar Crédito</button>
+                        <button onclick="forzarEliminacionCredito(${cre.id})" style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;" title="Borrar historial permanentemente">💥</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (error) {
+            contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`;
+        }
+    }
+}
+
+/**
+ * Función para revivir a un cliente archivado
+ */
+async function reactivarClienteDesdePapelera(id, nombre) {
+    if (confirm(`♻️ ¿Estás seguro de que deseas RESTAURAR al cliente [${nombre}]?\n\nVolverá a aparecer en tu lista principal con todo su historial intacto.`)) {
+        try {
+            const { error } = await supabaseClient
+                .from('clientes')
+                .update({ estado: 'activo' })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            alert(`✅ ¡El cliente ${nombre} ha vuelto a la vida con éxito!`);
+            
+            // Recargamos la papelera para que desaparezca de esta pantalla
+            cargarPapelera('clientes'); 
+            
+            // Si tienes la función cargarClientes() global, la llamamos para actualizar el fondo
+            if (typeof cargarClientes === 'function') cargarClientes();
+
+        } catch (error) {
+            alert("❌ Error al restaurar: " + error.message);
+        }
+    }
+}
+
+/**
+ * Función PELIGROSA: Nuke total (Borrado definitivo saltándose la seguridad contable)
+ */
+async function forzarEliminacionCliente(id, nombre) {
+    let confirmacionNivel1 = confirm(`⚠️ ALERTA CRÍTICA ⚠️\n\nEstás a punto de DESTRUIR permanentemente el registro de [${nombre}].\n\nSi este cliente tiene créditos asociados, causará un descuadre irremediable en tu base de datos.\n\n¿Deseas continuar bajo tu propio riesgo?`);
+    
+    if (confirmacionNivel1) {
+        let confirmacionNivel2 = prompt(`Escribe la palabra ELIMINAR para confirmar la destrucción de ${nombre}:`);
+        
+        if (confirmacionNivel2 === 'ELIMINAR') {
+            try {
+                // Aquí usamos el borrado fuerte (Hard Delete)
+                const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
+                if (error) throw error;
+
+                alert(`💥 Registro destruido permanentemente.`);
+                cargarPapelera('clientes');
+
+            } catch (error) {
+                alert("❌ Fallo en la destrucción: " + error.message);
+            }
+        } else {
+            alert("Operación de destrucción cancelada. La palabra clave no coincide.");
+        }
+    }
+}
+
+/**
+ * RE-ACTIVACIÓN FINANCIERA: Devuelve el crédito a la vida y vuelve a restar el capital de la caja correspondiente.
+ */
+async function reactivarCreditoDesdePapelera(idCredito, capital, formaEntrega, nombreCliente) {
+    if (!confirm(`♻️ ¿Deseas RE-ACTIVAR el crédito #${idCredito} de [${nombreCliente}]?\n\nAl hacerlo, se volverá a descontar los $${capital} de la caja fuerte correspondiente.`)) return;
+
+    try {
+        // 1. Validar la caja de origen
+        const textoCaja = formaEntrega ? formaEntrega.toLowerCase() : '';
+        let idCaja = textoCaja.includes('banco') ? 2 : 1;
+
+        // 2. Verificar si hay fondos suficientes para re-emitir
+        const { data: caja, error: errCaja } = await supabaseClient
+            .from('cajas_capital')
+            .select('saldo_actual')
+            .eq('id', idCaja)
+            .single();
+
+        if (errCaja) throw errCaja;
+
+        if (parseFloat(caja.saldo_actual) < parseFloat(capital)) {
+            alert(`❌ Fondos insuficientes en la caja para restaurar este crédito. Saldo disponible: $${caja.saldo_actual}`);
+            return;
+        }
+
+        // 3. Modificar saldos de caja matriz
+        const nuevoSaldo = parseFloat(caja.saldo_actual) - parseFloat(capital);
+        await supabaseClient.from('cajas_capital').update({ saldo_actual: nuevoSaldo }).eq('id', idCaja);
+
+        // 4. Registrar auditoría de restauración
+        await supabaseClient.from('historial_capital').insert([{
+            caja_id: idCaja,
+            monto: capital,
+            concepto: `🔴 RESTAURACIÓN: Re-activación - CRE #${idCredito} - ${nombreCliente} (Re-desembolso de capital)`
+        }]);
+
+        // 5. Volver a activar el crédito en la base de datos
+        await supabaseClient.from('creditos').update({ estado: 'activo' }).eq('id', idCredito);
+
+        alert("✅ Crédito reactivado exitosamente. Volvió a la cartera activa.");
+        cargarPapelera('creditos');
+        cargarHistorialCreditos();
+
+    } catch (error) {
+        alert("❌ Error al restaurar crédito: " + error.message);
+    }
+}
+
+/**
+ * ELIMINACIÓN DE REGISTRO DE AUDITORÍA (Nuke total de un crédito anulado)
+ */
+async function forzarEliminacionCredito(idCredito) {
+    if (!confirm(`⚠️ ALERTA DE AUDITORÍA ⚠️\n\n¿Estás seguro de destruir el registro histórico del crédito #${idCredito}?\n\nEsta acción borrará el comprobante anulado de la base de datos permanentemente.`)) return;
+
+    let token = prompt("🔒 Ingrese la palabra ELIMINAR para purgar el registro:");
+    if (token !== 'ELIMINAR') {
+        alert("Operación cancelada.");
+        return;
+    }
+
+    try {
+        await supabaseClient.from('creditos').delete().eq('id', idCredito);
+        alert("💥 Registro de auditoría eliminado para siempre.");
+        cargarPapelera('creditos');
+    } catch (error) {
+        alert("❌ Error al eliminar registro: " + error.message);
+    }
 }
