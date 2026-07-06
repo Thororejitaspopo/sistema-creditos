@@ -3147,8 +3147,10 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// 🔎 BUSCADOR INTELIGENTE POR MENÚ DESPLEGABLE
+// 🔎 BUSCADOR INTELIGENTE POR MENÚ DESPLEGABLE (ALPHA V5 - MULTICRÉDITO)
 // =========================================================================
+let listaCreditosActivosCliente = [];
+
 async function buscarCreditoParaCobro() {
     const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
     
@@ -3158,72 +3160,121 @@ async function buscarCreditoParaCobro() {
     }
 
     try {
+        // 🔥 AHORA SÍ: Usamos tu columna REAL "fecha_emision" que vimos en la imagen
         const { data: creditos, error } = await supabaseClient
             .from('creditos')
-            .select(`id, monto_capital, total_pagar, valor_cuota, frecuencia_pago, estado, clientes (nombres, apellidos, cedula)`)
+            .select(`id, monto_capital, total_pagar, valor_cuota, frecuencia_pago, estado, fecha_emision, clientes (nombres, apellidos, cedula)`)
             .eq('estado', 'activo');
 
         if (error) throw error;
 
-        const encontrado = creditos.find(c => {
+        // Filtramos para quedarnos solo con los créditos del cliente seleccionado
+        const creditosDelCliente = creditos.filter(c => {
             const cli = c.clientes || {};
             return (cli.cedula || '').trim() === busqueda;
         });
 
-        if (!encontrado) {
+        if (creditosDelCliente.length === 0) {
             alert("🔍 No se encontró ningún crédito ACTIVO para este cliente.");
             return;
         }
 
-        creditoSeleccionadoCobro = encontrado;
-        let totalPagadoHastaHoy = 0;
-        interesYaPagado = 0;
+        listaCreditosActivosCliente = creditosDelCliente;
 
-        try {
-            const { data: pagosPrevios, errorPagos } = await supabaseClient
-                .from('historial_pagos')
-                .select('monto_interes, monto_capital, abono_total')
-                .eq('id_credito', encontrado.id);
+        // EVALUACIÓN DE RUTAS: 1 crédito vs Múltiples créditos
+        if (creditosDelCliente.length === 1) {
+            // Ruta rápida: Tiene solo un crédito, lo cargamos directo
+            await cargarEstadoCuentaCredito(creditosDelCliente[0].id);
+        } else {
+            // Ruta múltiple: Mostramos el selector con la fecha de emisión real
+            const selectMulti = document.getElementById('selector-multicredito');
+            selectMulti.innerHTML = '<option value="">-- Seleccione el crédito --</option>';
+            
+            creditosDelCliente.forEach(c => {
+                // Formateamos la fecha usando tu columna fecha_emision
+                const f = new Date(c.fecha_emision);
+                const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                const fechaTxt = `${dias[f.getDay()]} ${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()}`;
+                
+                const cli = c.clientes || {};
+                const prestamo = parseFloat(c.total_pagar).toFixed(0);
+                
+                const textoOpcion = `CRÉDITO #${c.id} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}`;
+                selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
+            });
 
-            if (!errorPagos && pagosPrevios) {
-                pagosPrevios.forEach(p => {
-                    totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
-                    interesYaPagado += parseFloat(p.monto_interes || 0);
-                });
-            }
-        } catch (e) {
-            console.log("Historial vacío o por inicializar.");
+            document.getElementById('recaudacion-espera-msg').style.display = 'none';
+            document.getElementById('panel-recaudacion-activo').style.display = 'none';
+            document.getElementById('contenedor-multicredito').style.display = 'block';
         }
 
-        interesTotalPactado = parseFloat(encontrado.total_pagar) - parseFloat(encontrado.monto_capital);
-        const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
-        creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto;
-
-        const cli = encontrado.clientes || {};
-        const iN = (cli.nombres || '').trim().charAt(0);
-        const iA = (cli.apellidos || '').trim().charAt(0);
-        const u4 = (cli.cedula || '').trim().slice(-4);
-        const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
-
-        document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal}`;
-        document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
-        document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
-        document.getElementById('lbl-recaudacion-cuota').innerText = `$${parseFloat(encontrado.valor_cuota).toFixed(2)}`;
-        document.getElementById('lbl-recaudacion-frecuencia').innerText = (encontrado.frecuencia_pago || 'DIARIO').replace('📅', '').trim().toUpperCase();
-        document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
-        document.getElementById('lbl-recaudacion-saldo').innerText = `$${saldoRestanteNeto.toFixed(2)}`;
-
-        document.getElementById('monto-cobro-input').value = encontrado.valor_cuota;
-        simularEnrutamientoFlujo(encontrado.valor_cuota);
-
-        document.getElementById('recaudacion-espera-msg').style.display = 'none';
-        document.getElementById('panel-recaudacion-activo').style.display = 'block';
-
     } catch (err) {
-        alert("Error al recuperar datos: " + err.message);
+        alert("Error al buscar créditos: " + err.message);
     }
 }
 
+// =========================================================================
+// 🎯 CARGADOR DE ESTADO DE CUENTA ESPECÍFICO (TU LÓGICA INTACTA)
+// =========================================================================
+async function cargarEstadoCuentaCredito(idCredito) {
+    if (!idCredito) return;
+    
+    // Ocultamos el selector múltiple al elegir uno
+    document.getElementById('contenedor-multicredito').style.display = 'none';
+    
+    const encontrado = listaCreditosActivosCliente.find(c => c.id == idCredito);
+    if (!encontrado) return;
+
+    creditoSeleccionadoCobro = encontrado;
+    let totalPagadoHastaHoy = 0;
+    interesYaPagado = 0;
+
+    try {
+        const { data: pagosPrevios, errorPagos } = await supabaseClient
+            .from('historial_pagos')
+            .select('monto_interes, monto_capital, abono_total')
+            .eq('id_credito', encontrado.id);
+
+        if (!errorPagos && pagosPrevios) {
+            pagosPrevios.forEach(p => {
+                totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
+                interesYaPagado += parseFloat(p.monto_interes || 0);
+            });
+        }
+    } catch (e) {
+        console.log("Historial vacío o por inicializar.");
+    }
+
+    // TU CÁLCULO ORIGINAL
+    interesTotalPactado = parseFloat(encontrado.total_pagar) - parseFloat(encontrado.monto_capital);
+    const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
+    creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto;
+
+    const cli = encontrado.clientes || {};
+    const iN = (cli.nombres || '').trim().charAt(0);
+    const iA = (cli.apellidos || '').trim().charAt(0);
+    const u4 = (cli.cedula || '').trim().slice(-4);
+    const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
+
+    // IMPRESIÓN EN LA TARJETA
+    document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal}`;
+    document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+    document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
+    document.getElementById('lbl-recaudacion-cuota').innerText = `$${parseFloat(encontrado.valor_cuota).toFixed(2)}`;
+    document.getElementById('lbl-recaudacion-frecuencia').innerText = (encontrado.frecuencia_pago || 'DIARIO').replace('📅', '').trim().toUpperCase();
+    document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+    document.getElementById('lbl-recaudacion-saldo').innerText = `$${saldoRestanteNeto.toFixed(2)}`;
+
+    document.getElementById('monto-cobro-input').value = encontrado.valor_cuota;
+    simularEnrutamientoFlujo(encontrado.valor_cuota);
+
+    document.getElementById('recaudacion-espera-msg').style.display = 'none';
+    document.getElementById('panel-recaudacion-activo').style.display = 'block';
+}
+
+// Conector vital para que el HTML reconozca el clic en el menú desplegable
+window.seleccionarCreditoEspecifico = cargarEstadoCuentaCredito;
 // =========================================================================
 // ⚡ SIMULADOR DE ENRUTAMIENTO EN VIVO (REGLA DE ORO ALPHA)
 // =========================================================================
@@ -3337,11 +3388,20 @@ async function procesarCobroOficial() {
                 .eq('id', creditoSeleccionadoCobro.id);
         }
 
-        // 🔥 GENERACIÓN DEL TICKET DIGITAL (SORPRESA PREMIUM)
+// 🔥 GENERACIÓN DEL TICKET DIGITAL (SORPRESA PREMIUM)
         const ticketDiv = document.createElement('div');
         ticketDiv.style.cssText = "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:2px solid #10b981; text-align:center;";
+        
+        // 🕒 Motor de Fecha y Hora Exacta (Regla de Oro)
+        const f = new Date();
+        const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const fechaHoraExacta = `${dias[f.getDay()]} ${String(f.getDate()).padStart(2, '0')}/${meses[f.getMonth()]}/${f.getFullYear()} hora ${f.getHours()}:${String(f.getMinutes()).padStart(2, '0')}`;
+
         ticketDiv.innerHTML = `
-            <h2 style="color:#10b981; margin-bottom:10px;">✅ ¡Cobro Exitoso!</h2>
+            <h2 style="color:#10b981; margin-bottom:5px;">✅ ¡Cobro Exitoso!</h2>
+            <p style="font-size:14px; color:#475569; margin-top:0; margin-bottom:15px; font-weight:bold; text-transform: capitalize;">📅 ${fechaHoraExacta}</p>
+            
             <div style="text-align:left; font-family:monospace; background:#f8fafc; padding:15px; border-radius:8px;">
                 <p><strong>Cliente:</strong> ${creditoSeleccionadoCobro.clientes.nombres} ${creditoSeleccionadoCobro.clientes.apellidos}</p>
                 <p><strong>Total Abono:</strong> $${montoInput.toFixed(2)}</p>
@@ -3355,7 +3415,6 @@ async function procesarCobroOficial() {
             <button onclick="this.parentElement.remove()" style="margin-top:20px; padding:10px 20px; background:#0f172a; color:white; border:none; border-radius:6px; cursor:pointer;">Cerrar Ticket</button>
         `;
         document.body.appendChild(ticketDiv);
-
         // Limpieza de interfaz
         document.getElementById('selector-cliente-recaudacion').value = "";
         document.getElementById('panel-recaudacion-activo').style.display = 'none';

@@ -651,3 +651,139 @@ main {
     box-shadow: 0 0 8px rgba(255, 77, 77, 0.5);
     transition: all 0.3s ease;
 }
+
+
+/* ========================================================================= */
+/* 💳 ESTILOS DEL MÓDULO DE RECAUDACIÓN V5 (LIMPIEZA ALPHA)                  */
+/* ========================================================================= */
+
+.rec-wrapper {
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.rec-header {
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 15px;
+}
+
+.rec-title {
+    color: #0f172a;
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rec-subtitle {
+    color: #64748b;
+    margin: 5px 0 0 0;
+    font-size: 14px;
+}
+
+.rec-box {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.rec-label {
+    display: block;
+    color: #334155;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.rec-flex-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rec-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    background: white;
+    cursor: pointer;
+}
+
+.rec-btn-buscar {
+    padding: 12px 25px;
+    background: #0284c7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.3s;
+}
+
+.rec-btn-buscar:hover {
+    background: #0369a1;
+}
+
+.rec-tarjeta {
+    flex: 1;
+    min-width: 300px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    box-sizing: border-box;
+}
+
+.rec-btn-confirmar {
+    width: 100%;
+    padding: 14px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);
+}
+
+.rec-btn-confirmar:hover {
+    background: #059669;
+}
+
+.boveda-box-interes {
+    flex: 1;
+    background: #fffdf5;
+    border: 1px solid #fef08a;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.boveda-box-capital {
+    flex: 1;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+}
