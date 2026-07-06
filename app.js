@@ -2917,3 +2917,454 @@ async function forzarEliminacionCredito(idCredito) {
         alert("❌ Error al eliminar registro: " + error.message);
     }
 }
+
+// =========================================================================
+// MÓDULO DE REPORTES: EXCEL Y PDF DE CRÉDITOS ACTIVOS
+// =========================================================================
+
+async function descargarExcelCreditos() {
+    try {
+        alert("Generando Excel de Créditos... Por favor espera.");
+        
+        const { data: creditos, error } = await supabaseClient
+            .from('creditos')
+            .select(`
+                id, monto_capital, total_pagar, valor_cuota, frecuencia_pago, fecha_emision,
+                clientes (nombres, apellidos, cedula)
+            `)
+            .eq('estado', 'activo')
+            .order('id', { ascending: false });
+
+        if (error) throw error;
+        if (!creditos || creditos.length === 0) {
+            alert("No hay créditos activos para exportar.");
+            return;
+        }
+
+        const datosLimpios = creditos.map(c => {
+            const cliente = c.clientes || {};
+            const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.toUpperCase();
+            const fechaFormateada = new Date(c.fecha_emision).toLocaleDateString('es-EC');
+            
+            // 🔥 Limpiamos el emoji para que Excel también quede pulcro
+            const modalidadLimpia = (c.frecuencia_pago || 'N/A').replace(/📅/g, '').trim();
+
+            return {
+                "N° Crédito": c.id,
+                "Cliente": nombreCompleto,
+                "Cédula": cliente.cedula || 'N/A',
+                "Fecha Emisión": fechaFormateada,
+                "Capital Prestado ($)": parseFloat(c.monto_capital || 0),
+                "Total a Pagar ($)": parseFloat(c.total_pagar || 0),
+                "Valor Cuota ($)": parseFloat(c.valor_cuota || 0),
+                "Modalidad": modalidadLimpia
+            };
+        });
+
+        const hoja = XLSX.utils.json_to_sheet(datosLimpios);
+        const libro = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libro, hoja, "Créditos Activos");
+
+        XLSX.writeFile(libro, `Reporte_Creditos_Alpha_${new Date().getTime()}.xlsx`);
+
+    } catch (error) {
+        console.error("Error al exportar Excel:", error);
+        alert("Error al generar el archivo Excel: " + error.message);
+    }
+}
+
+async function generarPDFCreditos() {
+    try {
+        alert("Generando PDF de Créditos... Por favor espera.");
+
+        const { data: creditos, error } = await supabaseClient
+            .from('creditos')
+            .select(`
+                id, monto_capital, total_pagar, valor_cuota, frecuencia_pago, fecha_emision,
+                clientes (nombres, apellidos, cedula)
+            `)
+            .eq('estado', 'activo')
+            .order('id', { ascending: false });
+
+        if (error) throw error;
+        if (!creditos || creditos.length === 0) {
+            alert("No hay créditos activos para exportar.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+
+        doc.setFontSize(18);
+        doc.setTextColor(15, 23, 42);
+        doc.text("SISTEMA ALPHA V5 - REPORTE DE CARTERA", 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        const fechaActual = new Date().toLocaleString('es-EC');
+        doc.text(`Fecha de Auditoría: ${fechaActual}`, 14, 28);
+        doc.text("Estado: CRÉDITOS ACTIVOS", 14, 33);
+
+        const columnas = ["N° CRE", "CLIENTE", "CÉDULA", "FECHA", "CAPITAL", "TOTAL", "CUOTA", "MODALIDAD"];
+        
+        let sumaCapital = 0;
+        let sumaTotal = 0;
+
+        const filas = creditos.map(c => {
+            const cliente = c.clientes || {};
+            const nombreCompleto = `${cliente.nombres || ''} ${cliente.apellidos || ''}`.toUpperCase();
+            const fechaFormateada = new Date(c.fecha_emision).toLocaleDateString('es-EC');
+            
+            const capital = parseFloat(c.monto_capital || 0);
+            const total = parseFloat(c.total_pagar || 0);
+            
+            sumaCapital += capital;
+            sumaTotal += total;
+
+            // 🔥 LIMPIEZA EXTREMA: Solo permite letras, números, espacios y paréntesis. Destruye cualquier emoji o símbolo raro.
+            let modalidadOriginal = c.frecuencia_pago || 'N/A';
+            let modalidadLimpia = modalidadOriginal.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ( )\.]/g, '').trim();
+
+            return [
+                c.id,
+                nombreCompleto,
+                cliente.cedula || 'N/A',
+                fechaFormateada,
+                `$${capital.toFixed(2)}`,
+                `$${total.toFixed(2)}`,
+                `$${parseFloat(c.valor_cuota || 0).toFixed(2)}`,
+                modalidadLimpia
+            ];
+        });
+
+        doc.autoTable({
+            startY: 40,
+            head: [columnas],
+            body: filas,
+            theme: 'grid',
+            headStyles: { fillColor: [15, 23, 42], fontSize: 9 },
+            
+            // 🔥 AJUSTE ESTRICTO DE TEXTO
+            styles: { 
+                fontSize: 8, 
+                cellPadding: 3, 
+                overflow: 'linebreak' // Obliga al texto a saltar de línea
+            },
+            columnStyles: {
+                1: { cellWidth: 55 }, // Le da un ancho máximo al nombre del cliente
+                7: { cellWidth: 50 }  // Le da un ancho máximo a la modalidad para que no se salga de la hoja
+            },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            margin: { left: 14, right: 14 } // Respeta los márgenes de la página
+        });
+
+        const yFinal = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`Total Capital Prestado: $${sumaCapital.toFixed(2)}`, 14, yFinal);
+        doc.text(`Total Dinero Proyectado (a cobrar): $${sumaTotal.toFixed(2)}`, 14, yFinal + 7);
+
+        doc.save(`Auditoria_Creditos_${new Date().getTime()}.pdf`);
+
+    } catch (error) {
+        console.error("Error al generar PDF:", error);
+        alert("Error al generar el documento PDF: " + error.message);
+    }
+}
+// aqui empieza el modulo registrar pago 
+
+// aqui termina el modulo registrar pago
+
+
+// =========================================================================
+// 🌐 RECAUDACIÓN AVANZADA: VARIABLES DE CONTROL GLOBAL
+// =========================================================================
+let creditoSeleccionadoCobro = null;
+let interesYaPagado = 0;
+let interesTotalPactado = 0;
+
+// =========================================================================
+// 📍 MOTOR DE FILTRADO DE CLIENTES POR SECTOR
+// =========================================================================
+async function cargarDropdownClientes() {
+    const sectorSeleccionado = document.getElementById('filtro-sector-recaudacion').value;
+    const dropdown = document.getElementById('selector-cliente-recaudacion');
+    
+    dropdown.innerHTML = '<option value="">⏳ Buscando clientes en ruta...</option>';
+
+    try {
+        const { data: creditos, error } = await supabaseClient
+            .from('creditos')
+            .select(`id, clientes (nombres, apellidos, cedula, sector)`)
+            .eq('estado', 'activo');
+
+        if (error) throw error;
+
+        let clientesUnicos = new Map();
+
+        creditos.forEach(c => {
+            const cli = c.clientes || {};
+            const sectorCliente = cli.sector || ''; 
+
+            if (!sectorSeleccionado || sectorCliente.includes(sectorSeleccionado)) {
+                const nombreCompleto = `${cli.nombres || ''} ${cli.apellidos || ''}`.trim().toUpperCase();
+                const cedula = cli.cedula || 'S/N';
+                
+                if (!clientesUnicos.has(cedula)) {
+                    clientesUnicos.set(cedula, { nombre: nombreCompleto, cedula: cedula });
+                }
+            }
+        });
+
+        dropdown.innerHTML = '<option value="">-- Seleccione un cliente --</option>';
+        
+        if (clientesUnicos.size === 0) {
+            dropdown.innerHTML = '<option value="">🚫 No hay clientes activos en este sector</option>';
+            return;
+        }
+
+        const clientesArray = Array.from(clientesUnicos.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        clientesArray.forEach(cli => {
+            const option = document.createElement('option');
+            option.value = cli.cedula; 
+            option.text = `${cli.nombre} (${cli.cedula})`;
+            dropdown.appendChild(option);
+        });
+
+    } catch (err) {
+        console.error("Error al cargar clientes:", err);
+        dropdown.innerHTML = '<option value="">⚠️ Error al cargar datos</option>';
+    }
+}
+
+// Carga automática inicial del Dropdown al abrir la página
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const dropSector = document.getElementById('filtro-sector-recaudacion');
+        if(dropSector) cargarDropdownClientes();
+    }, 1000);
+});
+
+// =========================================================================
+// 🔎 BUSCADOR INTELIGENTE POR MENÚ DESPLEGABLE
+// =========================================================================
+async function buscarCreditoParaCobro() {
+    const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
+    
+    if (!busqueda) {
+        alert("Por favor, selecciona un cliente de la lista.");
+        return;
+    }
+
+    try {
+        const { data: creditos, error } = await supabaseClient
+            .from('creditos')
+            .select(`id, monto_capital, total_pagar, valor_cuota, frecuencia_pago, estado, clientes (nombres, apellidos, cedula)`)
+            .eq('estado', 'activo');
+
+        if (error) throw error;
+
+        const encontrado = creditos.find(c => {
+            const cli = c.clientes || {};
+            return (cli.cedula || '').trim() === busqueda;
+        });
+
+        if (!encontrado) {
+            alert("🔍 No se encontró ningún crédito ACTIVO para este cliente.");
+            return;
+        }
+
+        creditoSeleccionadoCobro = encontrado;
+        let totalPagadoHastaHoy = 0;
+        interesYaPagado = 0;
+
+        try {
+            const { data: pagosPrevios, errorPagos } = await supabaseClient
+                .from('historial_pagos')
+                .select('monto_interes, monto_capital, abono_total')
+                .eq('id_credito', encontrado.id);
+
+            if (!errorPagos && pagosPrevios) {
+                pagosPrevios.forEach(p => {
+                    totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
+                    interesYaPagado += parseFloat(p.monto_interes || 0);
+                });
+            }
+        } catch (e) {
+            console.log("Historial vacío o por inicializar.");
+        }
+
+        interesTotalPactado = parseFloat(encontrado.total_pagar) - parseFloat(encontrado.monto_capital);
+        const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
+        creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto;
+
+        const cli = encontrado.clientes || {};
+        const iN = (cli.nombres || '').trim().charAt(0);
+        const iA = (cli.apellidos || '').trim().charAt(0);
+        const u4 = (cli.cedula || '').trim().slice(-4);
+        const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
+
+        document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal}`;
+        document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+        document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
+        document.getElementById('lbl-recaudacion-cuota').innerText = `$${parseFloat(encontrado.valor_cuota).toFixed(2)}`;
+        document.getElementById('lbl-recaudacion-frecuencia').innerText = (encontrado.frecuencia_pago || 'DIARIO').replace('📅', '').trim().toUpperCase();
+        document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+        document.getElementById('lbl-recaudacion-saldo').innerText = `$${saldoRestanteNeto.toFixed(2)}`;
+
+        document.getElementById('monto-cobro-input').value = encontrado.valor_cuota;
+        simularEnrutamientoFlujo(encontrado.valor_cuota);
+
+        document.getElementById('recaudacion-espera-msg').style.display = 'none';
+        document.getElementById('panel-recaudacion-activo').style.display = 'block';
+
+    } catch (err) {
+        alert("Error al recuperar datos: " + err.message);
+    }
+}
+
+// =========================================================================
+// ⚡ SIMULADOR DE ENRUTAMIENTO EN VIVO (REGLA DE ORO ALPHA)
+// =========================================================================
+function simularEnrutamientoFlujo(valor) {
+    const monto = parseFloat(valor);
+    if (isNaN(monto) || monto <= 0 || !creditoSeleccionadoCobro) return;
+
+    const interesFaltantePorAsegurar = interesTotalPactado - interesYaPagado;
+    let destinoInteres = 0; let destinoCapital = 0;
+
+    if (interesFaltantePorAsegurar > 0) {
+        if (monto <= interesFaltantePorAsegurar) {
+            destinoInteres = monto; destinoCapital = 0;
+            document.getElementById('sim-leyenda-fase').innerHTML = `👑 FASE 1: Asegurando Utilidades ($${(interesFaltantePorAsegurar - monto).toFixed(2)} restantes)`;
+            document.getElementById('sim-leyenda-fase').style.color = "#ca8a04";
+        } else {
+            destinoInteres = interesFaltantePorAsegurar;
+            destinoCapital = monto - interesFaltantePorAsegurar;
+            document.getElementById('sim-leyenda-fase').innerHTML = `🚀 FRONTERA CRUZADA! Excedente ($${destinoCapital.toFixed(2)}) repone Capital.`;
+            document.getElementById('sim-leyenda-fase').style.color = "#0284c7";
+        }
+    } else {
+        destinoInteres = 0; destinoCapital = monto;
+        document.getElementById('sim-leyenda-fase').innerText = "🛡️ FASE 2: Interés blindado. Todo repone tu Capital.";
+        document.getElementById('sim-leyenda-fase').style.color = "#10b981";
+    }
+
+    document.getElementById('sim-boveda-interes').innerText = `$${destinoInteres.toFixed(2)}`;
+    document.getElementById('sim-boveda-capital').innerText = `$${destinoCapital.toFixed(2)}`;
+}
+
+// =========================================================================
+// 🔄 UI: INTERRUPTOR DE EFECTIVO / TRANSFERENCIA
+// =========================================================================
+function cambiarMetodoPago(metodo) {
+    const btnEfectivo = document.getElementById('btn-metodo-efectivo');
+    const btnTransf = document.getElementById('btn-metodo-transf');
+    const cajaDetalles = document.getElementById('caja-detalles-transferencia');
+    const inputMetodo = document.getElementById('metodo-pago-seleccionado');
+
+    if (metodo === 'efectivo') {
+        btnEfectivo.style.background = '#4f46e5'; btnEfectivo.style.color = 'white';
+        btnTransf.style.background = '#f1f5f9'; btnTransf.style.color = '#64748b';
+        cajaDetalles.style.display = 'none'; inputMetodo.value = 'efectivo';
+    } else {
+        btnTransf.style.background = '#4f46e5'; btnTransf.style.color = 'white';
+        btnEfectivo.style.background = '#f1f5f9'; btnEfectivo.style.color = '#64748b';
+        cajaDetalles.style.display = 'block'; inputMetodo.value = 'transferencia';
+    }
+}
+
+// =========================================================================
+// 🚀 INYECCIÓN OFICIAL DE COBRO A LA BASE DE DATOS Y TICKET DIGITAL
+// =========================================================================
+async function procesarCobroOficial() {
+    const montoInput = parseFloat(document.getElementById('monto-cobro-input').value);
+    const metodoPago = document.getElementById('metodo-pago-seleccionado').value;
+    const detallesBanco = document.getElementById('input-detalles-banco').value.trim();
+    
+    if (isNaN(montoInput) || montoInput <= 0 || !creditoSeleccionadoCobro) {
+        alert("⚠️ Por favor introduce un monto de abono válido.");
+        return;
+    }
+
+    if (metodoPago === 'transferencia' && detallesBanco === '') {
+        alert("⚠️ Seleccionaste Transferencia. Por favor ingresa los datos del banco o comprobante.");
+        return;
+    }
+
+    if (montoInput > creditoSeleccionadoCobro.saldoNeto) {
+        alert(`⚠️ Alerta: El abono no puede ser mayor al saldo pendiente actual ($${creditoSeleccionadoCobro.saldoNeto.toFixed(2)}).`);
+        return;
+    }
+
+    const confirmar = confirm(`¿Estás seguro de registrar un cobro de $${montoInput.toFixed(2)} en ${metodoPago.toUpperCase()}?`);
+    if (!confirmar) return;
+
+    try {
+        const interesFaltantePorAsegurar = interesTotalPactado - interesYaPagado;
+        let finalInteres = 0; let finalCapital = 0;
+
+        if (interesFaltantePorAsegurar > 0) {
+            if (montoInput <= interesFaltantePorAsegurar) {
+                finalInteres = montoInput;
+            } else {
+                finalInteres = interesFaltantePorAsegurar;
+                finalCapital = montoInput - interesFaltantePorAsegurar;
+            }
+        } else {
+            finalCapital = montoInput;
+        }
+
+        const { error: errorHistorial } = await supabaseClient
+            .from('historial_pagos')
+            .insert([{
+                id_credito: creditoSeleccionadoCobro.id,
+                abono_total: montoInput,
+                monto_interes: finalInteres,
+                monto_capital: finalCapital,
+                forma_pago: metodoPago,
+                detalles_banco: detallesBanco,
+                fecha_pago: new Date().toISOString()
+            }]);
+
+        if (errorHistorial) throw errorHistorial;
+
+        if (montoInput === creditoSeleccionadoCobro.saldoNeto) {
+            await supabaseClient
+                .from('creditos')
+                .update({ estado: 'finalizado' })
+                .eq('id', creditoSeleccionadoCobro.id);
+        }
+
+        // 🔥 GENERACIÓN DEL TICKET DIGITAL (SORPRESA PREMIUM)
+        const ticketDiv = document.createElement('div');
+        ticketDiv.style.cssText = "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:2px solid #10b981; text-align:center;";
+        ticketDiv.innerHTML = `
+            <h2 style="color:#10b981; margin-bottom:10px;">✅ ¡Cobro Exitoso!</h2>
+            <div style="text-align:left; font-family:monospace; background:#f8fafc; padding:15px; border-radius:8px;">
+                <p><strong>Cliente:</strong> ${creditoSeleccionadoCobro.clientes.nombres} ${creditoSeleccionadoCobro.clientes.apellidos}</p>
+                <p><strong>Total Abono:</strong> $${montoInput.toFixed(2)}</p>
+                <hr>
+                <p style="color:#ca8a04;">💼 Bóveda Interés: $${finalInteres.toFixed(2)}</p>
+                <p style="color:#0284c7;">🏦 Bóveda Capital: $${finalCapital.toFixed(2)}</p>
+                <hr>
+                <p><strong>Método:</strong> ${metodoPago.toUpperCase()}</p>
+                ${metodoPago === 'transferencia' ? `<p style="font-size:12px;">Detalle: ${detallesBanco}</p>` : ''}
+            </div>
+            <button onclick="this.parentElement.remove()" style="margin-top:20px; padding:10px 20px; background:#0f172a; color:white; border:none; border-radius:6px; cursor:pointer;">Cerrar Ticket</button>
+        `;
+        document.body.appendChild(ticketDiv);
+
+        // Limpieza de interfaz
+        document.getElementById('selector-cliente-recaudacion').value = "";
+        document.getElementById('panel-recaudacion-activo').style.display = 'none';
+        document.getElementById('recaudacion-espera-msg').style.display = 'block';
+        document.getElementById('input-detalles-banco').value = "";
+        cambiarMetodoPago('efectivo'); 
+        creditoSeleccionadoCobro = null;
+
+    } catch (err) {
+        alert("Error crítico al registrar abono: " + err.message);
+    }
+}

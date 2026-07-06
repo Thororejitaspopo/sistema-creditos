@@ -327,9 +327,139 @@
 
 </div>
 
-        <div id="mod-pagos" class="modulo-contenido"><h3>📝 Recaudación de Abonos</h3></div>
-        <div id="mod-gastos" class="modulo-contenido"><h3>💸 Control de Egresos y Gastos Varios</h3></div>
+<!-- ========================================================================= -->
+<!-- 💳 MÓDULO DE RECAUDACIÓN AVANZADA V5 (COMPLETO Y CORREGIDO)               -->
+<!-- ========================================================================= -->
+<div id="mod-pagos" class="modulo-contenido">
+    <div style="padding: 20px; background: #f8fafc; border-radius: 12px; width: 100%; max-width: 100%; box-sizing: border-box;">
         
+        <!-- ENCABEZADO GERENCIAL -->
+        <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
+            <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                💰 Módulo de Recaudación de Abonos
+            </h2>
+            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+                Ingreso rápido de cobros diarios con enrutamiento inteligente de capital y utilidades.
+            </p>
+        </div>
+
+        <!-- BUSCADOR Y FILTRO DE SECTORES EN UN SOLO PISO -->
+        <div style="background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box;">
+            <label style="display: block; color: #334155; font-weight: bold; font-size: 14px; margin-bottom: 8px;">📍 Buscar y Filtrar Cartera:</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                
+                <select id="filtro-sector-recaudacion" onchange="cargarDropdownClientes()" style="padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #f8fafc; cursor: pointer; min-width: 250px;">
+                    <option value="">🌎 TODOS LOS SECTORES</option>
+                    <option value="Sector 1">📍 Sector 1 (San Camilo)</option>
+                    <option value="Sector 2">📍 Sector 2 (San Cristóbal)</option>
+                    <option value="Sector 3">📍 Sector 3 (Venus del Río Quevedo)</option>
+                    <option value="Sector 4">📍 Sector 4 (Nicolás Infante Díaz)</option>
+                    <option value="Sector 5">📍 Sector 5 (Guayacán)</option>
+                    <option value="Sector 6">📍 Sector 6 (Siete de Octubre)</option>
+                    <option value="Sector 7">📍 Sector 7 (24 de Mayo)</option>
+                    <option value="Sector 8">📍 Sector 8 (Viva Alfaro)</option>
+                    <option value="Sector 9">📍 Sector 9 (Ruta del Río)</option>
+                    <option value="Sector 10">📍 Sector 10 (Zona Periférica)</option>
+                </select>
+
+                <select id="selector-cliente-recaudacion" style="flex: 1; min-width: 200px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; box-sizing: border-box; background: white; cursor: pointer;">
+                    <option value="">-- Seleccione un cliente --</option>
+                </select>
+                
+                <button onclick="buscarCreditoParaCobro()" style="padding: 12px 25px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; white-space: nowrap;">Consultar 🔍</button>
+            </div>
+            
+            <!-- CONTENEDOR MULTI-CRÉDITO -->
+            <div id="contenedor-multicredito" style="display: none; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+                <label style="display: block; color: #b91c1c; font-weight: bold; font-size: 13px; margin-bottom: 8px;">⚠️ El cliente tiene múltiples créditos. Seleccione uno:</label>
+                <select id="selector-multicredito" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; background: #eff6ff; cursor: pointer;" onchange="seleccionarCreditoEspecifico(this.value)">
+                </select>
+            </div>
+        </div>
+
+        <!-- ÁREA INTERACTIVA DINÁMICA -->
+        <div id="panel-recaudacion-activo" style="display: none; margin-top: 20px;">
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+                
+                <!-- COLUMNA IZQUIERDA: ESTADO DE CUENTA -->
+                <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
+                    <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;" id="lbl-recaudacion-ref">REF: MA-XXXX</span>
+                    <h3 style="margin: 10px 0 5px 0; font-size: 18px; color: #0f172a; word-wrap: break-word;" id="lbl-recaudacion-cliente">CLIENTE</h3>
+                    <p style="margin: 0 0 15px 0; font-size: 13px; color: #64748b;" id="lbl-recaudacion-cedula">Cédula: ---</p>
+                    
+                    <div style="border-top: 1px dashed #e2e8f0; padding-top: 15px;">
+                        <p style="margin: 6px 0; font-size: 13px; color: #475569;">💵 Cuota Diaria Fija: <strong style="color: #0f172a; float: right;" id="lbl-recaudacion-cuota">$0.00</strong></p>
+                        <p style="margin: 6px 0; font-size: 13px; color: #475569;">🔄 Modalidad de Pago: <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; float: right;" id="lbl-recaudacion-frecuencia">DIARIO</span></p>
+                        <p style="margin: 6px 0; font-size: 13px; color: #475569;">📊 Total del Crédito original: <strong style="color: #475569; float: right;" id="lbl-recaudacion-total">$0.00</strong></p>
+                        <p style="margin: 6px 0; font-size: 14px; color: #475569; font-weight: bold; border-top: 1px solid #f1f5f9; padding-top: 8px;">📉 Saldo Neto Pendiente: <strong style="color: #ef4444; font-size: 16px; float: right;" id="lbl-recaudacion-saldo">$0.00</strong></p>
+                    </div>
+                </div>
+
+                <!-- COLUMNA DERECHA: MOTOR DE ENRUTAMIENTO -->
+                <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
+                    <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 15px; font-weight: 700;">📥 Registro de Cobro Efectivo</h4>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 12px; color: #475569; font-weight: bold; margin-bottom: 5px;">Monto Recaudado Hoy ($):</label>
+                        <input type="number" id="monto-cobro-input" step="0.01" placeholder="Ej: 4.00" style="width: 100%; padding: 12px; border: 2px solid #0284c7; border-radius: 6px; font-size: 16px; font-weight: bold; outline: none; box-sizing: border-box;" oninput="simularEnrutamientoFlujo(this.value)">
+                    </div>
+
+                    <!-- 🔥 SWITCH DE FORMA DE PAGO -->
+                    <div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #f8fafc;">
+                        <label style="display: block; font-size: 11px; color: #475569; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">Forma de Pago:</label>
+                        <div style="display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
+                            <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 10px; background: #4f46e5; color: white; border: none; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.3s;">
+                                💵 EFECTIVO
+                            </button>
+                            <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 10px; background: #f1f5f9; color: #64748b; border: none; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.3s;">
+                                🏦 DEPÓSITO / TRANSF.
+                            </button>
+                        </div>
+                        
+                        <div id="caja-detalles-transferencia" style="display: none; margin-top: 10px;">
+                            <textarea id="input-detalles-banco" placeholder="Ej: BANCO PICHINCHA, RUC: 123..., REF: 545454..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; resize: none; box-sizing: border-box; outline: none;" rows="2"></textarea>
+                        </div>
+                        <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
+                    </div>
+
+                    <!-- SIMULADOR DE BÓVEDAS ALPHA -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                        <span style="font-size: 11px; font-weight: bold; color: #64748b; display: block; margin-bottom: 8px; text-transform: uppercase;">⚡ Destino de los Fondos (Regla de Oro Alpha):</span>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                            <div style="flex: 1; background: #fffdf5; border: 1px solid #fef08a; padding: 8px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 11px; color: #a16207; font-weight: bold;">💼 Bóveda Interés</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #ca8a04; margin-top: 2px;" id="sim-boveda-interes">$0.00</div>
+                            </div>
+                            <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 11px; color: #0369a1; font-weight: bold;">🏦 Bóveda Capital</div>
+                                <div style="font-size: 16px; font-weight: 800; color: #0284c7; margin-top: 2px;" id="sim-boveda-capital">$0.00</div>
+                            </div>
+                        </div>
+                        <p id="sim-leyenda-fase" style="margin: 5px 0 0 0; font-size: 11px; font-style: italic; color: #10b981; text-align: center; font-weight: bold;">Introduce un valor para calcular el impacto contable.</p>
+                    </div>
+
+                    <!-- AQUÍ ESTÁ EL BOTÓN QUE SE HABÍA PERDIDO ✅ -->
+                    <button onclick="procesarCobroOficial()" style="width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);">
+                        ✅ Confirmar e Inyectar Abono
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+
+        <div id="recaudacion-espera-msg" style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+            <span style="font-size: 40px; display: block; margin-bottom: 10px;">💳</span>
+            <p style="margin: 0; font-size: 14px;">Selecciona una ruta o busca un cliente arriba para cargar el estado de cuenta.</p>
+        </div>
+
+    </div>
+</div>
+        
+        
+        
+        <div id="mod-gastos" class="modulo-contenido"><h3>💸 Control de Egresos y Gastos Varios</h3></div>
         <div id="mod-capital" class="modulo-contenido">
             <h2>💰 Control y Gestión de Capital</h2>
             <p class="subtitulo">Inyección de fondos, distribución de cajas y saldos en vivo.</p>
@@ -411,68 +541,130 @@
         <div id="mod-cobradores" class="modulo-contenido"><h3>🏍️ Control de Rutas de Cobradores</h3></div>
         
         <div id="mod-reportes" class="modulo-contenido">
-            <div id="modulo-reportes" class="modulo-seccion" style="padding: 20px;">
-                <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
-                    <h2 style="color: var(--azul-premium); margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                        📋 Centro de Reportes e Inteligencia de Negocio
-                    </h2>
-                    <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
-                        Exporte y audite la base de datos de la cartera de clientes activa en tiempo real.
-                    </p>
-                </div>
-                
-                <div class="tarjetas-reporte-contenedor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; width: 100%; box-sizing: border-box;">
-                    <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                                <span style="font-size: 24px;">📊</span>
-                                <h3 style="margin: 0; color: #16a34a; font-size: 18px; font-weight: 600;">Microsoft Excel (.xlsx)</h3>
-                            </div>
-                            <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
-                                Ideal para el departamento contable. Genera una sábana de datos optimizada para tablas dinámicas, filtros avanzados y macros. Limpia de manera automática caracteres especiales y emojis para evitar errors en las fórmulas.
-                            </p>
-                        </div>
-                        <button onclick="exportarExcelClientes()" style="background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            📊 Descargar Base Contable
-                        </button>
-                    </div>
-
-                    <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                                <span style="font-size: 24px;">📄</span>
-                                <h3 style="margin: 0; color: #dc2626; font-size: 18px; font-weight: 600;">Documento PDF (.pdf)</h3>
-                            </div>
-                            <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
-                                Formato corporativo formal configurado en orientación horizontal (Landscape) para auditorías internas inmediatas. Incluye membrete dinámico automatizado, marcas de tiempo oficiales e indicadores clave (KPIs) del estado actual de tu cartera.
-                            </p>
-                        </div>
-                        <button onclick="generarPdfClientes()" style="background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            📄 Generar PDF de Auditoría
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <div id="modulo-reportes" class="modulo-seccion" style="padding: 20px;">
+        
+        <!-- CABECERA DEL MÓDULO -->
+        <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
+            <h2 style="color: var(--azul-premium); margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                📋 Centro de Reportes e Inteligencia de Negocio
+            </h2>
+            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+                Exporte y audite la base de datos de clientes y la cartera de créditos en tiempo real.
+            </p>
         </div>
         
-        <div id="mod-eliminar" class="modulo-contenido">
-            <div style="padding: 20px; background: #f8fafc; border-radius: 10px;">
-                <div style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-                    <h2 style="color: #0f172a; margin: 0; font-size: 22px;">🗑️ Centro de Depuración y Restauración</h2>
-                    <p style="color: #64748b; font-size: 13px; margin-top: 5px;">Administra los registros inactivos o archivados del Sistema Alpha.</p>
+        <!-- ========================================== -->
+        <!-- PISO 1: REPORTES DE CLIENTES               -->
+        <!-- ========================================== -->
+        <h3 style="color: #0f172a; margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            👥 Base de Datos de Clientes
+        </h3>
+        
+        <div class="tarjetas-reporte-contenedor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; width: 100%; box-sizing: border-box; margin-bottom: 35px;">
+            
+            <!-- Excel Clientes (Verde) -->
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📊</span>
+                        <h3 style="margin: 0; color: #16a34a; font-size: 18px; font-weight: 600;">Microsoft Excel (.xlsx)</h3>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+                        Ideal para el departamento contable. Genera una sábana de datos optimizada para tablas dinámicas. Limpia de manera automática caracteres especiales y emojis.
+                    </p>
                 </div>
+                <button onclick="exportarExcelClientes()" style="background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;">
+                    📊 Descargar Clientes (Excel)
+                </button>
+            </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button onclick="cargarPapelera('clientes')" style="padding: 10px 20px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">👥 Clientes Archivados</button>
-                    <button onclick="cargarPapelera('creditos')" style="padding: 10px 20px; background: #cbd5e1; color: #334155; border: none; border-radius: 6px; font-weight: bold; cursor: not-allowed;" title="Próximamente">💸 Créditos Anulados</button>
-                    <button onclick="cargarPapelera('personal')" style="padding: 10px 20px; background: #cbd5e1; color: #334155; border: none; border-radius: 6px; font-weight: bold; cursor: not-allowed;" title="Próximamente">👔 Personal Inactivo</button>
+            <!-- PDF Clientes (Rojo) -->
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📄</span>
+                        <h3 style="margin: 0; color: #dc2626; font-size: 18px; font-weight: 600;">Documento PDF (.pdf)</h3>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+                        Formato corporativo formal configurado en orientación horizontal (Landscape) para auditorías internas. Incluye membrete dinámico y marcas de tiempo oficiales.
+                    </p>
                 </div>
-
-                <div id="contenedor-papelera" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
-                    <p style="color: #94a3b8; font-size: 14px;">Selecciona una categoría arriba para visualizar los registros.</p>
-                </div>
+                <button onclick="generarPdfClientes()" style="background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;">
+                    📄 Generar Clientes (PDF)
+                </button>
             </div>
         </div>
+
+        <!-- Línea divisoria -->
+        <div style="border-top: 2px dashed #cbd5e1; margin-bottom: 25px;"></div>
+
+        <!-- ========================================== -->
+        <!-- PISO 2: REPORTES DE CRÉDITOS               -->
+        <!-- ========================================== -->
+        <h3 style="color: #0f172a; margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            💰 Auditoría de Cartera (Créditos)
+        </h3>
+        
+        <div class="tarjetas-reporte-contenedor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; width: 100%; box-sizing: border-box;">
+            
+            <!-- Excel Créditos (Azul) -->
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📈</span>
+                        <h3 style="margin: 0; color: #0284c7; font-size: 18px; font-weight: 600;">Microsoft Excel (.xlsx)</h3>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+                        Descarga la lista completa de préstamos activos. Incluye detalles de capital prestado, intereses, cuotas y modalidades de pago, ideal para cruzar saldos en caja.
+                    </p>
+                </div>
+                <button onclick="descargarExcelCreditos()" style="background: #0284c7; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;">
+                    📈 Descargar Créditos (Excel)
+                </button>
+            </div>
+
+            <!-- PDF Créditos (Naranja) -->
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📑</span>
+                        <h3 style="margin: 0; color: #ea580c; font-size: 18px; font-weight: 600;">Documento PDF (.pdf)</h3>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px;">
+                        Genera un reporte financiero corporativo. Contiene el estado de cuenta global y las sumatorias totales del capital en la calle vs. el dinero proyectado a recuperar.
+                    </p>
+                </div>
+                <button onclick="generarPDFCreditos()" style="background: #ea580c; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;">
+                    📑 Generar Créditos (PDF)
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+        
+       <div id="mod-eliminar" class="modulo-contenido">
+    <div style="padding: 20px; background: #f8fafc; border-radius: 10px;">
+        
+        <div style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+            <h2 style="color: #0f172a; margin: 0; font-size: 22px;">🗑️ Centro de Depuración y Restauración</h2>
+            <p style="color: #64748b; font-size: 13px; margin-top: 5px;">Administra los registros inactivos o archivados del Sistema Alpha.</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button onclick="cargarPapelera('clientes')" style="padding: 10px 20px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">👥 Clientes Archivados</button>
+            
+            <button onclick="cargarPapelera('creditos')" style="padding: 10px 20px; background: #059669; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💸 Créditos Anulados</button>
+            
+            <button onclick="cargarPapelera('personal')" style="padding: 10px 20px; background: #475569; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">👔 Personal Inactivo</button>
+        </div>
+
+        <div id="contenedor-papelera" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            <p style="color: #94a3b8; font-size: 14px;">Selecciona una categoría arriba para visualizar los registros.</p>
+        </div>
+        
+    </div>
+</div>
     </main>
 
     <div id="modal-ver-cliente" class="modal-overlay">
@@ -484,9 +676,11 @@
             <div id="modal-cuerpo-detalles"></div>
         </div>
     </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <script src="app.js"></script>
 </body>
