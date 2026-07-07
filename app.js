@@ -3212,15 +3212,12 @@ async function buscarCreditoParaCobro() {
     } catch (err) {
         alert("Error al buscar créditos: " + err.message);
     }
-}
-
-// =========================================================================
-// 🎯 CARGADOR DE ESTADO DE CUENTA ESPECÍFICO (TU LÓGICA INTACTA)
+}// =========================================================================
+// 🎯 CARGADOR DE ESTADO DE CUENTA Y GENERADOR DE HISTORIAL (ALPHA V5)
 // =========================================================================
 async function cargarEstadoCuentaCredito(idCredito) {
     if (!idCredito) return;
     
-    // Ocultamos el selector múltiple al elegir uno
     document.getElementById('contenedor-multicredito').style.display = 'none';
     
     const encontrado = listaCreditosActivosCliente.find(c => c.id == idCredito);
@@ -3229,24 +3226,56 @@ async function cargarEstadoCuentaCredito(idCredito) {
     creditoSeleccionadoCobro = encontrado;
     let totalPagadoHastaHoy = 0;
     interesYaPagado = 0;
+    
+    let htmlHistorial = '';
 
     try {
         const { data: pagosPrevios, errorPagos } = await supabaseClient
             .from('historial_pagos')
-            .select('monto_interes, monto_capital, abono_total')
-            .eq('id_credito', encontrado.id);
+            .select('*')
+            .eq('id_credito', encontrado.id)
+            .order('fecha_pago', { ascending: false });
 
-        if (!errorPagos && pagosPrevios) {
+        if (!errorPagos && pagosPrevios && pagosPrevios.length > 0) {
             pagosPrevios.forEach(p => {
                 totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
                 interesYaPagado += parseFloat(p.monto_interes || 0);
+
+                const fPago = new Date(p.fecha_pago);
+                const fechaStr = `${String(fPago.getDate()).padStart(2, '0')}/${String(fPago.getMonth()+1).padStart(2, '0')}/${fPago.getFullYear()} ${fPago.getHours()}:${String(fPago.getMinutes()).padStart(2, '0')}`;
+                const metodoTxt = p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO';
+                
+                htmlHistorial += `
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 11px; font-weight: bold; color: #64748b;">📅 ${fechaStr}</span>
+                            <span style="font-size: 10px; font-weight: 800; background: #e0f2fe; color: #0284c7; padding: 3px 6px; border-radius: 4px;">${metodoTxt}</span>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 900; color: #10b981; margin-bottom: 8px;">
+                            +$${parseFloat(p.abono_total).toFixed(2)}
+                        </div>
+                        <div style="display: flex; gap: 15px; font-size: 12px; font-weight: 600;">
+                            <span style="color: #ca8a04;">💼 Int: $${parseFloat(p.monto_interes || 0).toFixed(2)}</span>
+                            <span style="color: #0369a1;">🏦 Cap: $${parseFloat(p.monto_capital || 0).toFixed(2)}</span>
+                        </div>
+                        ${p.detalles_banco ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">Ref: ${p.detalles_banco}</div>` : ''}
+                    </div>
+                `;
             });
+        } else {
+            htmlHistorial = `
+                <div style="text-align: center; color: #94a3b8; padding: 30px 10px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                    <span style="font-size: 30px; display: block; margin-bottom: 10px;">📉</span>
+                    <p style="margin: 0; font-size: 13px;">No hay abonos registrados en este crédito aún.</p>
+                </div>`;
         }
     } catch (e) {
         console.log("Historial vacío o por inicializar.");
+        htmlHistorial = `<div style="text-align: center; color: #ef4444; font-size: 13px;">Error cargando el historial.</div>`;
     }
 
-    // TU CÁLCULO ORIGINAL
+    document.getElementById('lista-historial-abonos').innerHTML = htmlHistorial;
+
     interesTotalPactado = parseFloat(encontrado.total_pagar) - parseFloat(encontrado.monto_capital);
     const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
     creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto;
@@ -3257,8 +3286,44 @@ async function cargarEstadoCuentaCredito(idCredito) {
     const u4 = (cli.cedula || '').trim().slice(-4);
     const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
 
-    // IMPRESIÓN EN LA TARJETA
-    document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal}`;
+    let fechaEmisionStr = 'N/A';
+    if(encontrado.fecha_emision) {
+        const fEmi = new Date(encontrado.fecha_emision);
+        const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        fechaEmisionStr = `${dias[fEmi.getDay()]} ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()}`;
+    }
+
+    // 🔥 LA MAGIA DEL "CRE" DEFINITIVA (A PRUEBA DE FALLOS)
+    let numCre = '?';
+    try {
+        const { data: credFull } = await supabaseClient
+            .from('creditos')
+            .select('*')
+            .eq('id', encontrado.id)
+            .single();
+            
+        if (credFull && credFull.numero_credito) {
+            numCre = credFull.numero_credito;
+        } else if (credFull && credFull.cliente_id) {
+            const { data: historialCli } = await supabaseClient
+                .from('creditos')
+                .select('id')
+                .eq('cliente_id', credFull.cliente_id)
+                .order('id', { ascending: true });
+                
+            if (historialCli) {
+                const pos = historialCli.findIndex(c => c.id == encontrado.id);
+                if (pos !== -1) numCre = pos + 1;
+            }
+        }
+    } catch (errorCRE) {
+        console.log("Error buscando el CRE:", errorCRE);
+    }
+
+    // IMPRESIÓN EN LA TARJETA IZQUIERDA
+    document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | CRE #${numCre} | 📅 ${fechaEmisionStr}`;
+    
     document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
     document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
     document.getElementById('lbl-recaudacion-cuota').innerText = `$${parseFloat(encontrado.valor_cuota).toFixed(2)}`;
@@ -3273,8 +3338,9 @@ async function cargarEstadoCuentaCredito(idCredito) {
     document.getElementById('panel-recaudacion-activo').style.display = 'block';
 }
 
-// Conector vital para que el HTML reconozca el clic en el menú desplegable
 window.seleccionarCreditoEspecifico = cargarEstadoCuentaCredito;
+
+
 // =========================================================================
 // ⚡ SIMULADOR DE ENRUTAMIENTO EN VIVO (REGLA DE ORO ALPHA)
 // =========================================================================

@@ -327,13 +327,9 @@
 
 </div>
 
-<!-- ========================================================================= -->
-<!-- 💳 MÓDULO DE RECAUDACIÓN AVANZADA V5 (COMPLETO Y CORREGIDO)               -->
-<!-- ========================================================================= -->
 <div id="mod-pagos" class="modulo-contenido">
     <div style="padding: 20px; background: #f8fafc; border-radius: 12px; width: 100%; max-width: 100%; box-sizing: border-box;">
         
-        <!-- ENCABEZADO GERENCIAL -->
         <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
             <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
                 💰 Módulo de Recaudación de Abonos
@@ -343,7 +339,6 @@
             </p>
         </div>
 
-        <!-- BUSCADOR Y FILTRO DE SECTORES EN UN SOLO PISO -->
         <div style="background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; box-sizing: border-box;">
             <label style="display: block; color: #334155; font-weight: bold; font-size: 14px; margin-bottom: 8px;">📍 Buscar y Filtrar Cartera:</label>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -369,7 +364,6 @@
                 <button onclick="buscarCreditoParaCobro()" style="padding: 12px 25px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; white-space: nowrap;">Consultar 🔍</button>
             </div>
             
-            <!-- CONTENEDOR MULTI-CRÉDITO -->
             <div id="contenedor-multicredito" style="display: none; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
                 <label style="display: block; color: #b91c1c; font-weight: bold; font-size: 13px; margin-bottom: 8px;">⚠️ El cliente tiene múltiples créditos. Seleccione uno:</label>
                 <select id="selector-multicredito" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; background: #eff6ff; cursor: pointer;" onchange="seleccionarCreditoEspecifico(this.value)">
@@ -377,75 +371,82 @@
             </div>
         </div>
 
-        <!-- ÁREA INTERACTIVA DINÁMICA -->
         <div id="panel-recaudacion-activo" style="display: none; margin-top: 20px;">
             
-            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
                 
-                <!-- COLUMNA IZQUIERDA: ESTADO DE CUENTA -->
-                <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
-                    <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;" id="lbl-recaudacion-ref">REF: MA-XXXX</span>
-                    <h3 style="margin: 10px 0 5px 0; font-size: 18px; color: #0f172a; word-wrap: break-word;" id="lbl-recaudacion-cliente">CLIENTE</h3>
-                    <p style="margin: 0 0 15px 0; font-size: 13px; color: #64748b;" id="lbl-recaudacion-cedula">Cédula: ---</p>
+                <div style="flex: 1.2; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
                     
-                    <div style="border-top: 1px dashed #e2e8f0; padding-top: 15px;">
-                        <p style="margin: 6px 0; font-size: 13px; color: #475569;">💵 Cuota Diaria Fija: <strong style="color: #0f172a; float: right;" id="lbl-recaudacion-cuota">$0.00</strong></p>
-                        <p style="margin: 6px 0; font-size: 13px; color: #475569;">🔄 Modalidad de Pago: <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; float: right;" id="lbl-recaudacion-frecuencia">DIARIO</span></p>
-                        <p style="margin: 6px 0; font-size: 13px; color: #475569;">📊 Total del Crédito original: <strong style="color: #475569; float: right;" id="lbl-recaudacion-total">$0.00</strong></p>
-                        <p style="margin: 6px 0; font-size: 14px; color: #475569; font-weight: bold; border-top: 1px solid #f1f5f9; padding-top: 8px;">📉 Saldo Neto Pendiente: <strong style="color: #ef4444; font-size: 16px; float: right;" id="lbl-recaudacion-saldo">$0.00</strong></p>
+                    <div style="width: 100%; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
+                        <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;" id="lbl-recaudacion-ref">REF: MA-XXXX</span>
+                        <h3 style="margin: 10px 0 5px 0; font-size: 18px; color: #0f172a; word-wrap: break-word;" id="lbl-recaudacion-cliente">CLIENTE</h3>
+                        <p style="margin: 0 0 15px 0; font-size: 13px; color: #64748b;" id="lbl-recaudacion-cedula">Cédula: ---</p>
+                        
+                        <div style="border-top: 1px dashed #e2e8f0; padding-top: 15px;">
+                            <p style="margin: 6px 0; font-size: 13px; color: #475569;">💵 Cuota Diaria Fija: <strong style="color: #0f172a; float: right;" id="lbl-recaudacion-cuota">$0.00</strong></p>
+                            <p style="margin: 6px 0; font-size: 13px; color: #475569;">🔄 Modalidad de Pago: <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; float: right;" id="lbl-recaudacion-frecuencia">DIARIO</span></p>
+                            <p style="margin: 6px 0; font-size: 13px; color: #475569;">📊 Total del Crédito original: <strong style="color: #475569; float: right;" id="lbl-recaudacion-total">$0.00</strong></p>
+                            <p style="margin: 6px 0; font-size: 14px; color: #475569; font-weight: bold; border-top: 1px solid #f1f5f9; padding-top: 8px;">📉 Saldo Neto Pendiente: <strong style="color: #ef4444; font-size: 16px; float: right;" id="lbl-recaudacion-saldo">$0.00</strong></p>
+                        </div>
+                    </div>
+
+                    <div style="width: 100%; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
+                        <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 15px; font-weight: 700;">📥 Registro de Cobro Efectivo</h4>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; font-size: 12px; color: #475569; font-weight: bold; margin-bottom: 5px;">Monto Recaudado Hoy ($):</label>
+                            <input type="number" id="monto-cobro-input" step="0.01" placeholder="Ej: 4.00" style="width: 100%; padding: 12px; border: 2px solid #0284c7; border-radius: 6px; font-size: 16px; font-weight: bold; outline: none; box-sizing: border-box;" oninput="simularEnrutamientoFlujo(this.value)">
+                        </div>
+
+                        <div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #f8fafc;">
+                            <label style="display: block; font-size: 11px; color: #475569; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">Forma de Pago:</label>
+                            <div style="display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
+                                <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 10px; background: #4f46e5; color: white; border: none; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.3s;">
+                                    💵 EFECTIVO
+                                </button>
+                                <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 10px; background: #f1f5f9; color: #64748b; border: none; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.3s;">
+                                    🏦 DEPÓSITO / TRANSF.
+                                </button>
+                            </div>
+                            
+                            <div id="caja-detalles-transferencia" style="display: none; margin-top: 10px;">
+                                <textarea id="input-detalles-banco" placeholder="Ej: BANCO PICHINCHA, RUC: 123..., REF: 545454..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; resize: none; box-sizing: border-box; outline: none;" rows="2"></textarea>
+                            </div>
+                            <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
+                        </div>
+
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                            <span style="font-size: 11px; font-weight: bold; color: #64748b; display: block; margin-bottom: 8px; text-transform: uppercase;">⚡ Destino de los Fondos (Regla de Oro Alpha):</span>
+                            
+                            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                                <div style="flex: 1; background: #fffdf5; border: 1px solid #fef08a; padding: 8px; border-radius: 6px; text-align: center;">
+                                    <div style="font-size: 11px; color: #a16207; font-weight: bold;">💼 Bóveda Interés</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #ca8a04; margin-top: 2px;" id="sim-boveda-interes">$0.00</div>
+                                </div>
+                                <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px; border-radius: 6px; text-align: center;">
+                                    <div style="font-size: 11px; color: #0369a1; font-weight: bold;">🏦 Bóveda Capital</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #0284c7; margin-top: 2px;" id="sim-boveda-capital">$0.00</div>
+                                </div>
+                            </div>
+                            <p id="sim-leyenda-fase" style="margin: 5px 0 0 0; font-size: 11px; font-style: italic; color: #10b981; text-align: center; font-weight: bold;">Introduce un valor para calcular el impacto contable.</p>
+                        </div>
+
+                        <button onclick="procesarCobroOficial()" style="width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);">
+                            ✅ Confirmar e Inyectar Abono
+                        </button>
                     </div>
                 </div>
 
-                <!-- COLUMNA DERECHA: MOTOR DE ENRUTAMIENTO -->
-                <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
-                    <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 15px; font-weight: 700;">📥 Registro de Cobro Efectivo</h4>
+                <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; max-height: 700px; box-sizing: border-box;">
+                    <h3 style="font-size: 15px; color: #0f172a; margin: 0 0 15px 0; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
+                        🧾 Abonos Registrados
+                    </h3>
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 12px; color: #475569; font-weight: bold; margin-bottom: 5px;">Monto Recaudado Hoy ($):</label>
-                        <input type="number" id="monto-cobro-input" step="0.01" placeholder="Ej: 4.00" style="width: 100%; padding: 12px; border: 2px solid #0284c7; border-radius: 6px; font-size: 16px; font-weight: bold; outline: none; box-sizing: border-box;" oninput="simularEnrutamientoFlujo(this.value)">
+                    <div id="lista-historial-abonos" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 5px;">
+                        <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 13px;">Cargando historial de pagos...</div>
                     </div>
-
-                    <!-- 🔥 SWITCH DE FORMA DE PAGO -->
-                    <div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #f8fafc;">
-                        <label style="display: block; font-size: 11px; color: #475569; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">Forma de Pago:</label>
-                        <div style="display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
-                            <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 10px; background: #4f46e5; color: white; border: none; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.3s;">
-                                💵 EFECTIVO
-                            </button>
-                            <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 10px; background: #f1f5f9; color: #64748b; border: none; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.3s;">
-                                🏦 DEPÓSITO / TRANSF.
-                            </button>
-                        </div>
-                        
-                        <div id="caja-detalles-transferencia" style="display: none; margin-top: 10px;">
-                            <textarea id="input-detalles-banco" placeholder="Ej: BANCO PICHINCHA, RUC: 123..., REF: 545454..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; resize: none; box-sizing: border-box; outline: none;" rows="2"></textarea>
-                        </div>
-                        <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
-                    </div>
-
-                    <!-- SIMULADOR DE BÓVEDAS ALPHA -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                        <span style="font-size: 11px; font-weight: bold; color: #64748b; display: block; margin-bottom: 8px; text-transform: uppercase;">⚡ Destino de los Fondos (Regla de Oro Alpha):</span>
-                        
-                        <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                            <div style="flex: 1; background: #fffdf5; border: 1px solid #fef08a; padding: 8px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 11px; color: #a16207; font-weight: bold;">💼 Bóveda Interés</div>
-                                <div style="font-size: 16px; font-weight: 800; color: #ca8a04; margin-top: 2px;" id="sim-boveda-interes">$0.00</div>
-                            </div>
-                            <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 11px; color: #0369a1; font-weight: bold;">🏦 Bóveda Capital</div>
-                                <div style="font-size: 16px; font-weight: 800; color: #0284c7; margin-top: 2px;" id="sim-boveda-capital">$0.00</div>
-                            </div>
-                        </div>
-                        <p id="sim-leyenda-fase" style="margin: 5px 0 0 0; font-size: 11px; font-style: italic; color: #10b981; text-align: center; font-weight: bold;">Introduce un valor para calcular el impacto contable.</p>
-                    </div>
-
-                    <!-- AQUÍ ESTÁ EL BOTÓN QUE SE HABÍA PERDIDO ✅ -->
-                    <button onclick="procesarCobroOficial()" style="width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);">
-                        ✅ Confirmar e Inyectar Abono
-                    </button>
                 </div>
-                
+
             </div>
         </div>
 
