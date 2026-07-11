@@ -366,8 +366,10 @@
             
             <div id="contenedor-multicredito" style="display: none; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
                 <label style="display: block; color: #b91c1c; font-weight: bold; font-size: 13px; margin-bottom: 8px;">⚠️ El cliente tiene múltiples créditos. Seleccione uno:</label>
-                <select id="selector-multicredito" style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; background: #eff6ff; cursor: pointer;" onchange="seleccionarCreditoEspecifico(this.value)">
-                </select>
+                <select id="selector-multicredito" 
+    style="width: 100%; padding: 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: bold; outline: none; background: #eff6ff; cursor: pointer;" 
+    onchange="cargarEstadoCuentaCredito(this.value)">
+</select>
             </div>
         </div>
 
@@ -378,17 +380,18 @@
                 <div style="flex: 1.2; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
                     
                     <div style="width: 100%; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
-                        <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;" id="lbl-recaudacion-ref">REF: MA-XXXX</span>
-                        <h3 style="margin: 10px 0 5px 0; font-size: 18px; color: #0f172a; word-wrap: break-word;" id="lbl-recaudacion-cliente">CLIENTE</h3>
-                        <p style="margin: 0 0 15px 0; font-size: 13px; color: #64748b;" id="lbl-recaudacion-cedula">Cédula: ---</p>
-                        
-                        <div style="border-top: 1px dashed #e2e8f0; padding-top: 15px;">
-                            <p style="margin: 6px 0; font-size: 13px; color: #475569;">💵 Cuota Diaria Fija: <strong style="color: #0f172a; float: right;" id="lbl-recaudacion-cuota">$0.00</strong></p>
-                            <p style="margin: 6px 0; font-size: 13px; color: #475569;">🔄 Modalidad de Pago: <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; float: right;" id="lbl-recaudacion-frecuencia">DIARIO</span></p>
-                            <p style="margin: 6px 0; font-size: 13px; color: #475569;">📊 Total del Crédito original: <strong style="color: #475569; float: right;" id="lbl-recaudacion-total">$0.00</strong></p>
-                            <p style="margin: 6px 0; font-size: 14px; color: #475569; font-weight: bold; border-top: 1px solid #f1f5f9; padding-top: 8px;">📉 Saldo Neto Pendiente: <strong style="color: #ef4444; font-size: 16px; float: right;" id="lbl-recaudacion-saldo">$0.00</strong></p>
-                        </div>
-                    </div>
+    <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;" id="lbl-recaudacion-ref">REF: MA-XXXX</span>
+    <h3 style="margin: 10px 0 5px 0; font-size: 18px; color: #0f172a; word-wrap: break-word;" id="lbl-recaudacion-cliente">CLIENTE</h3>
+    <p style="margin: 0 0 15px 0; font-size: 13px; color: #64748b;" id="lbl-recaudacion-cedula">Cédula: ---</p>
+    
+    <div style="border-top: 1px dashed #e2e8f0; padding-top: 15px;">
+        <p style="margin: 6px 0; font-size: 13px; color: #475569;">💵 Cuota Diaria Fija: <strong style="color: #0f172a; float: right;" id="lbl-recaudacion-cuota">$0.00</strong></p>
+        <p style="margin: 6px 0; font-size: 13px; color: #475569;">🔄 Modalidad de Pago: <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; float: right;" id="lbl-recaudacion-frecuencia">DIARIO</span></p>
+        <p style="margin: 6px 0; font-size: 13px; color: #475569;">📊 Total del Crédito original: <strong style="color: #475569; float: right;" id="lbl-recaudacion-total">$0.00</strong></p>
+        <p style="margin: 6px 0; font-size: 13px; color: #475569;">🔢 N° de Cuotas: <strong style="color: #0f172a; float: right;" id="lbl-recaudacion-num-cuotas">--</strong></p>
+        <p style="margin: 6px 0; font-size: 14px; color: #475569; font-weight: bold; border-top: 1px solid #f1f5f9; padding-top: 8px;">📉 Saldo Neto Pendiente: <strong style="color: #ef4444; font-size: 16px; float: right;" id="lbl-recaudacion-saldo">$0.00</strong></p>
+    </div>
+</div>
 
                     <div style="width: 100%; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); box-sizing: border-box;">
                         <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 15px; font-weight: 700;">📥 Registro de Cobro Efectivo</h4>
