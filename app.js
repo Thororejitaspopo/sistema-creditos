@@ -2726,13 +2726,13 @@ async function reenviarVoucher(idCredito) {
 /* ==========================================================================
    MÓDULO DE DEPURACIÓN (PAPELERA GLOBAL)
    ========================================================================== */
-
-/**
- * Carga los registros inactivos según la categoría seleccionada (Clientes / Créditos)
- */
 async function cargarPapelera(categoria) {
     const contenedor = document.getElementById('contenedor-papelera');
     
+    // 🧹 Limpiamos el buscador global cada vez que cambias de pestaña
+    const buscadorGlobal = document.getElementById('input-buscador-global-papelera');
+    if (buscadorGlobal) buscadorGlobal.value = '';
+
     // =====================================================================
     // SECCIÓN A: CLIENTES ARCHIVADOS
     // =====================================================================
@@ -2746,7 +2746,6 @@ async function cargarPapelera(categoria) {
                 .order('id', { ascending: false });
 
             if (error) throw error;
-
             if (archivados.length === 0) {
                 contenedor.innerHTML = `<p style="color: #10b981; font-weight: bold;">✨ El archivo de clientes está limpio.</p>`;
                 return;
@@ -2754,8 +2753,10 @@ async function cargarPapelera(categoria) {
 
             contenedor.innerHTML = archivados.map(c => {
                 const nombreCompleto = `${c.nombres} ${c.apellidos}`.toUpperCase();
+                const textoBusqueda = `${nombreCompleto} ${c.cedula} ${c.id}`.toLowerCase(); // 🔑 DATO INVISIBLE
+
                 return `
-                <div style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #64748b; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <div class="item-papelera-global" data-busqueda="${textoBusqueda}" style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #64748b; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <span style="background: #f1f5f9; color: #475569; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">ID CLI: ${c.id}</span>
@@ -2770,28 +2771,21 @@ async function cargarPapelera(categoria) {
                     </div>
                 </div>`;
             }).join('');
-        } catch (error) {
-            contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`;
-        }
+        } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`; }
     } 
     // =====================================================================
-    // 🌟 SECCIÓN B: NUEVO - CRÉDITOS ANULADOS
+    // 🌟 SECCIÓN B: CRÉDITOS ANULADOS
     // =====================================================================
     else if (categoria === 'creditos') {
         contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda de auditoría de créditos...</p>';
         try {
-            // Traemos los créditos inactivos cruzando los datos del cliente dueño
             const { data: anulados, error } = await supabaseClient
                 .from('creditos')
-                .select(`
-                    id, monto_capital, total_pagar, forma_entrega, fecha_emision,
-                    clientes!inner(nombres, apellidos, cedula)
-                `)
+                .select(`id, monto_capital, total_pagar, forma_entrega, fecha_emision, clientes!inner(nombres, apellidos, cedula)`)
                 .eq('estado', 'inactivo')
                 .order('id', { ascending: false });
 
             if (error) throw error;
-
             if (anulados.length === 0) {
                 contenedor.innerHTML = `<p style="color: #0284c7; font-weight: bold;">✨ No hay alertas ni créditos anulados en la bitácora.</p>`;
                 return;
@@ -2799,28 +2793,357 @@ async function cargarPapelera(categoria) {
 
             contenedor.innerHTML = anulados.map(cre => {
                 const nombreCliente = `${cre.clientes.nombres} ${cre.clientes.apellidos}`.toUpperCase();
+                const textoBusqueda = `${nombreCliente} ${cre.clientes.cedula} ${cre.id} ${cre.monto_capital}`.toLowerCase(); // 🔑 DATO INVISIBLE
+
                 return `
-                <div style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <div class="item-papelera-global" data-busqueda="${textoBusqueda}" style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <span style="background: #ffe4e6; color: #e11d48; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">CRÉDITO ANULADO #${cre.id}</span>
                             <h3 style="margin: 8px 0 4px 0; font-size: 14px; color: #1e293b;">${nombreCliente}</h3>
                             <p style="margin: 0; font-size: 12px; color: #475569;">Capital Original: <b>$${cre.monto_capital}</b></p>
-                            <p style="margin: 3px 0 0 0; font-size: 12px; color: #0284c7;">Total Proyectado: <b>$${cre.total_pagar}</b></p>
                         </div>
                         <span style="font-size: 20px;" title="Caja origen: ${cre.forma_entrega}">💸</span>
                     </div>
                     <div style="margin-top: 15px; display: flex; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
-                        <button onclick="reactivarCreditoDesdePapelera(${cre.id}, ${cre.monto_capital}, '${cre.forma_entrega}', '${nombreCliente}')" style="flex: 1; padding: 8px; background: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">♻️ Re-Activar Crédito</button>
-                        <button onclick="forzarEliminacionCredito(${cre.id})" style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;" title="Borrar historial permanentemente">💥</button>
+                        <button onclick="reactivarCreditoDesdePapelera(${cre.id}, ${cre.monto_capital}, '${cre.forma_entrega}', '${nombreCliente}')" style="flex: 1; padding: 8px; background: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">♻️ Re-Activar</button>
+                        <button onclick="forzarEliminacionCredito(${cre.id})" style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">💥</button>
                     </div>
                 </div>`;
             }).join('');
-        } catch (error) {
-            contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`;
+        } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`; }
+    }
+    // =====================================================================
+    // 🛡️ SECCIÓN C: BÓVEDA DE PAGOS ELIMINADOS (AUDITORÍA COMPLETA)
+    // =====================================================================
+    else if (categoria === 'pagos_eliminados') {
+        contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda y cruzando datos de clientes...</p>';
+        try {
+            const { data: pagosBorrados, error } = await supabaseClient
+                .from('auditoria_pagos_eliminados')
+                .select('*')
+                .order('fecha_eliminacion', { ascending: false });
+
+            if (error) throw error;
+            if (pagosBorrados.length === 0) {
+                contenedor.innerHTML = `<p style="color: #f59e0b; font-weight: bold;">✨ La bóveda está limpia. No hay abonos anulados.</p>`;
+                return;
+            }
+
+            const idsCreditos = [...new Set(pagosBorrados.map(p => p.id_credito))];
+            let diccionarioClientes = {};
+            if (idsCreditos.length > 0) {
+                const { data: creditosData } = await supabaseClient.from('creditos').select('id, clientes(nombres, apellidos, cedula)').in('id', idsCreditos);
+                if (creditosData) { creditosData.forEach(c => { diccionarioClientes[c.id] = c.clientes; }); }
+            }
+
+            contenedor.innerHTML = pagosBorrados.map(pago => {
+                // 1. Fecha de Eliminación
+                const fEli = new Date(pago.fecha_eliminacion);
+                const fechaEliminacionTxt = `${fEli.toLocaleDateString('es-EC')} | H:${fEli.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
+                
+                // 2. Fecha Original del Pago (NUEVO)
+                let fechaOriginalTxt = 'Fecha original no registrada';
+                if (pago.fecha_pago_original) {
+                    const fOri = new Date(pago.fecha_pago_original);
+                    const diaOri = fOri.toLocaleDateString('es-EC', { weekday: 'long' });
+                    fechaOriginalTxt = `📅 ${diaOri.charAt(0).toUpperCase() + diaOri.slice(1)} ${fOri.toLocaleDateString('es-EC')} | H:${fOri.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
+                }
+
+                // 3. Datos Extraídos (NUEVO)
+                const metodoPago = pago.forma_pago ? pago.forma_pago.toUpperCase() : 'EFECTIVO';
+                const creCifrado = pago.codigo_cre || 'CRE #?';
+                
+                // 4. Cliente
+                const cli = diccionarioClientes[pago.id_credito] || {};
+                const nombreCliente = cli.nombres ? `${cli.nombres} ${cli.apellidos}`.toUpperCase() : 'CLIENTE DESCONOCIDO';
+                
+                const iN = (cli.nombres || 'X').trim().charAt(0).toUpperCase();
+                const iA = (cli.apellidos || 'X').trim().charAt(0).toUpperCase();
+                const refFinal = `REF: ${iN}${iA}-${(cli.cedula || '0000').trim().slice(-4)}`;
+
+                const textoBusqueda = `${nombreCliente} ${cli.cedula} ${refFinal} ${pago.id_credito} ${creCifrado} ${metodoPago}`.toLowerCase();
+
+                return `
+                <div class="item-papelera-global" data-busqueda="${textoBusqueda}" style="background: #fff; border: 1px solid #cbd5e1; border-left: 6px solid #ef4444; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                        <span style="background: #f1f5f9; color: #334155; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #cbd5e1;">${refFinal}</span>
+                        <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #bae6fd;">${creCifrado}</span>
+                        <span style="background: #fef3c7; color: #b45309; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #fde68a;">CRÉDITO #${pago.id_credito}</span>
+                        <span style="background: #fee2e2; color: #b91c1c; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #fecaca;">PAGO #${pago.numero_pago}</span>
+                        <span style="background: #dcfce7; color: #15803d; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #bbf7d0;">${metodoPago}</span>
+                        <span style="margin-left: auto; font-size: 18px;">🔒</span>
+                    </div>
+                    
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #0f172a; font-weight: 900;">👤 ${nombreCliente}</h3>
+                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; font-weight: 600;">Pago original: ${fechaOriginalTxt}</p>
+                    
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #94a3b8; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <p style="margin: 0; font-size: 12px; color: #475569; font-weight: bold;">Monto Reversado:</p>
+                            <p style="margin: 0; font-size: 22px; color: #ef4444; font-weight: 900;">$${parseFloat(pago.abono_total).toFixed(2)}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p style="margin: 0 0 5px 0; font-size: 11px; color: #64748b; font-weight: 600;">🗑️ Anulado: ${fechaEliminacionTxt}</p>
+                            <p style="margin: 0; font-size: 11px; color: #475569; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; display: inline-block; font-weight: bold;">📝 ${pago.motivo_eliminacion || 'Auditoría Interna'}</p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error de Bóveda: ${error.message}</p>`; }
+    }
+    // =====================================================================
+    // 🏆 SECCIÓN D: CRÉDITOS FINALIZADOS (CON BOTÓN DE HISTORIAL)
+    // =====================================================================
+    else if (categoria === 'finalizados') {
+        contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda histórica y calculando últimos pagos...</p>';
+        try {
+            const { data: finalizados, error } = await supabaseClient
+                .from('creditos')
+                .select(`id, monto_capital, total_pagar, fecha_emision, frecuencia_pago, num_cuotas, valor_cuota, clientes!inner(nombres, apellidos, cedula)`)
+                .eq('estado', 'finalizado')
+                .order('id', { ascending: false });
+
+            if (error) throw error;
+            if (finalizados.length === 0) {
+                contenedor.innerHTML = `<p style="color: #8b5cf6; font-weight: bold;">✨ Aún no hay créditos finalizados en el historial.</p>`;
+                return;
+            }
+
+            const idsCreditos = finalizados.map(c => c.id);
+            let ultimosPagos = {};
+            if (idsCreditos.length > 0) {
+                const { data: pagos } = await supabaseClient
+                    .from('historial_pagos')
+                    .select('id_credito, fecha_pago')
+                    .in('id_credito', idsCreditos)
+                    .order('fecha_pago', { ascending: false });
+                
+                if (pagos) {
+                    pagos.forEach(p => {
+                        if (!ultimosPagos[p.id_credito]) ultimosPagos[p.id_credito] = p.fecha_pago;
+                    });
+                }
+            }
+
+            const formatearFechaAlpha = (fechaISO) => {
+                if (!fechaISO) return 'N/A';
+                const f = new Date(fechaISO);
+                const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                let hora = f.getHours();
+                const ampm = hora >= 12 ? 'pm' : 'am';
+                hora = hora % 12 || 12; 
+                const min = f.getMinutes().toString().padStart(2, '0');
+                return `${dias[f.getDay()]} ${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()} | h ${hora}:${min} ${ampm}`;
+            };
+
+            contenedor.innerHTML = finalizados.map(cre => {
+                const cli = cre.clientes || {};
+                const nombreCliente = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+                const iN = (cli.nombres || 'X').trim().charAt(0).toUpperCase();
+                const iA = (cli.apellidos || 'X').trim().charAt(0).toUpperCase();
+                const u4 = (cli.cedula || '0000').trim().slice(-4);
+                const refFinal = `REF: ${iN}${iA}-${u4}`;
+                
+                let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(cre.id).toUpperCase() : '';
+                let etiquetaCRE = creCifrado ? `CRE [${creCifrado}]` : `CRE`;
+
+                const capital = parseFloat(cre.monto_capital) || 1;
+                const total = parseFloat(cre.total_pagar) || 1;
+                const calcInteresPorcentaje = Math.round(((total - capital) / capital) * 100);
+
+                let fechaEmisionTxt = formatearFechaAlpha(cre.fecha_emision);
+                let fechaUltimoPagoTxt = ultimosPagos[cre.id] ? formatearFechaAlpha(ultimosPagos[cre.id]) : 'Sin pagos registrados';
+
+                const textoBusqueda = `${nombreCliente} ${cli.cedula} ${refFinal} ${cre.id}`.toLowerCase();
+
+                return `
+                <div class="item-papelera-global" data-busqueda="${textoBusqueda}" style="background: #fff; border: 1px solid #cbd5e1; border-left: 6px solid #8b5cf6; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                        <span style="background: #f1f5f9; color: #334155; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #cbd5e1;">${refFinal}</span>
+                        <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #bae6fd;">${etiquetaCRE}</span>
+                        <span style="background: #ede9fe; color: #5b21b6; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #ddd6fe;">CRÉDITO #${cre.id}</span>
+                        <span style="background: #dcfce7; color: #166534; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #bbf7d0;">✅ PAGADO AL 100%</span>
+                        <span style="margin-left: auto; font-size: 18px;">🏆</span>
+                    </div>
+                    
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #0f172a; font-weight: 900;">👤 ${nombreCliente}</h3>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #64748b;">🆔 Cédula: ${cli.cedula}</p>
+                    
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #94a3b8; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 13px; color: #334155;"><strong>Capital:</strong> $${capital.toFixed(2)}</span>
+                            <span style="font-size: 13px; color: #334155;"><strong>Interés:</strong> ${calcInteresPorcentaje}%</span>
+                            <span style="font-size: 13px; color: #334155;"><strong>Cuota:</strong> $${parseFloat(cre.valor_cuota || 0).toFixed(2)}</span>
+                            <span style="font-size: 14px; color: #166534; font-weight: 900;">💰 Total a Pagar: $${total.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                            <span style="font-size: 12px; color: #475569;">🔄 <strong>Frecuencia de Pago:</strong> ${cre.frecuencia_pago || 'Cobro Diario'}</span>
+                            <span style="font-size: 12px; color: #475569;">🔢 <strong>N° de Cuotas:</strong> ${cre.num_cuotas || '0'}</span>
+                        </div>
+                    </div>
+
+                    <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 14px;">🗓️</span>
+                            <p style="margin: 0; font-size: 12px; color: #64748b; font-weight: 600;">Inicio de crédito: <span style="color: #0f172a; font-weight: bold;">${fechaEmisionTxt}</span></p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 14px;">🏆</span>
+                            <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 900;">Último pago (Cancelación): <span style="color: #166534;">${fechaUltimoPagoTxt}</span></p>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <button onclick="verHistorialPagosFinalizado(${cre.id}, '${nombreCliente.replace(/'/g, "\\'")}')" style="width: 100%; padding: 10px; background: #0f172a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">📑 Ver Historial de Pagos</button>
+                    </div>
+
+                </div>`;
+            }).join('');
+
+        } catch (error) { 
+            contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error histórico: ${error.message}</p>`; 
         }
     }
 }
+
+
+// =========================================================================
+// 📄 VISOR FLOTANTE DE HISTORIAL DE PAGOS (CON FECHAS ALPHA Y CRE)
+// =========================================================================
+async function verHistorialPagosFinalizado(idCredito, nombreCliente) {
+    try {
+        // 1. Buscamos TODOS los pagos de ese crédito en Supabase
+        const { data: pagos, error } = await supabaseClient
+            .from('historial_pagos')
+            .select('*')
+            .eq('id_credito', idCredito)
+            .order('numero_pago', { ascending: true });
+
+        if (error) throw error;
+
+        if (!pagos || pagos.length === 0) {
+            alert(`⚠️ No se encontraron pagos registrados para el crédito #${idCredito}.`);
+            return;
+        }
+
+        // 2. ⏱️ FORMATEADOR EXACTO ALPHA PARA LA TABLA (ej. lunes 11/julio/2026 - 10:14 a. m.)
+        const formatearFechaTabla = (fechaISO) => {
+            if (!fechaISO) return 'N/A';
+            const f = new Date(fechaISO);
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            let hora = f.getHours();
+            const ampm = hora >= 12 ? 'p. m.' : 'a. m.';
+            hora = hora % 12 || 12; // Formato 12 horas
+            const min = f.getMinutes().toString().padStart(2, '0');
+            return `${dias[f.getDay()]} ${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()} - ${hora}:${min} ${ampm}`;
+        };
+
+        // 3. Generamos la etiqueta CRE cifrada para el encabezado
+        let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(idCredito).toUpperCase() : '';
+        let etiquetaCRE = creCifrado ? `CRE #${idCredito} [${creCifrado}]` : `CRE #${idCredito}`;
+
+        // 4. Armamos las filas de la tabla con los pagos extraídos y la fecha pulida
+        let filasHTML = pagos.map(p => `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; text-align: center; color: #475569; font-weight: bold;">#${p.numero_pago}</td>
+                <td style="padding: 10px; color: #0f172a;">${formatearFechaTabla(p.fecha_pago)}</td>
+                <td style="padding: 10px; text-align: center;">
+                    <span style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                        ${(p.forma_pago || 'EFECTIVO').toUpperCase()}
+                    </span>
+                </td>
+                <td style="padding: 10px; text-align: right; color: #166534; font-weight: 900;">$${parseFloat(p.abono_total).toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.abono_total || 0), 0);
+        const modalId = 'modal-historial-pagos-alpha';
+
+        // Borramos si quedó uno abierto antes
+        const modalPrevio = document.getElementById(modalId);
+        if (modalPrevio) modalPrevio.remove();
+
+        // 5. Diseñamos la Ventana Flotante (Pop-up)
+        const modalHTML = `
+        <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px);">
+            <div style="background: white; border-radius: 12px; width: 100%; max-width: 550px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+                
+                <div style="background: #0f172a; padding: 15px 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; color: white; font-size: 16px;">📑 Auditoría de Pagos</h3>
+                        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 12px; display: flex; align-items: center;">
+                            <span style="background: #334155; padding: 2px 6px; border-radius: 4px; color: #e2e8f0; font-weight: bold; margin-right: 6px;">${etiquetaCRE}</span> 
+                            CRÉDITO #${idCredito} - ${nombreCliente}
+                        </p>
+                    </div>
+                    <button onclick="document.getElementById('${modalId}').remove()" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">X</button>
+                </div>
+
+                <div style="padding: 20px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f8fafc; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0;">
+                                <th style="padding: 10px; text-align: center;">N°</th>
+                                <th style="padding: 10px;">Fecha y Hora</th>
+                                <th style="padding: 10px; text-align: center;">Método</th>
+                                <th style="padding: 10px; text-align: right;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filasHTML}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="padding: 15px 20px; background: #f8fafc; border-top: 2px solid #e2e8f0; border-radius: 0 0 12px 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <button onclick="document.getElementById('${modalId}').remove()" style="padding: 8px 16px; border: 1px solid #cbd5e1; background: white; border-radius: 6px; cursor: pointer; font-weight: bold; color: #475569;">Cerrar Vista</button>
+                    <div style="text-align: right;">
+                        <span style="font-size: 12px; color: #64748b; font-weight: bold;">TOTAL RECAUDADO</span><br>
+                        <span style="font-size: 18px; color: #166534; font-weight: 900;">$${totalPagado.toFixed(2)}</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>`;
+
+        // Lo inyectamos en la pantalla
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    } catch (err) {
+        alert("❌ Error crítico al cargar el historial: " + err.message);
+    }
+}
+window.verHistorialPagosFinalizado = verHistorialPagosFinalizado;
+
+
+// =========================================================================
+// 🔍 MOTOR UNIVERSAL DE BÚSQUEDA PARA LA DEPURACIÓN
+// =========================================================================
+function filtrarPapeleraGlobal() {
+    const textoInput = document.getElementById('input-buscador-global-papelera').value.toLowerCase();
+    // Busca todas las tarjetas, sin importar en qué pestaña estemos
+    const tarjetas = document.querySelectorAll('.item-papelera-global');
+
+    tarjetas.forEach(tarjeta => {
+        const datosTarjeta = tarjeta.getAttribute('data-busqueda') || '';
+        
+        if (datosTarjeta.includes(textoInput)) {
+            tarjeta.style.display = 'block';
+        } else {
+            tarjeta.style.display = 'none';
+        }
+    });
+}
+window.filtrarPapeleraGlobal = filtrarPapeleraGlobal;
+
+
+
+
+
 
 /**
  * Función para revivir a un cliente archivado
@@ -3786,7 +4109,7 @@ async function editarAbono(idAbono) {
 }
 
 // -------------------------------------------------------------------------
-// 🚫 2. ELIMINAR ABONO (Auditoría + SMS de Anulación Legal)
+// 🚫 2. ELIMINAR ABONO (Bóveda de Auditoría Avanzada + SMS)
 // -------------------------------------------------------------------------
 async function eliminarAbono(idAbono) {
     const idNum = parseInt(idAbono);
@@ -3795,41 +4118,66 @@ async function eliminarAbono(idAbono) {
 
     if (!confirm("⚠️ ALERTA DE AUDITORÍA GERENCIAL ⚠️\n\n¿Estás absolutamente seguro de ELIMINAR este abono de la historia?\nEl saldo de la deuda del cliente volverá a subir inmediatamente.")) return;
 
-    // 🔥 LA PREGUNTA DE BLINDAJE LEGAL
-    const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de ANULACIÓN OFICIAL por SMS al cliente?\n(Recomendado para evitar reclamos futuros)");
+    const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de ANULACIÓN OFICIAL por SMS al cliente?");
 
     try {
-        // Eliminamos y recuperamos los datos del abono borrado EXACTAMENTE en ese instante
-        const { data: deletedRows, error } = await supabaseClient
-            .from('historial_pagos')
-            .delete()
-            .eq('id', idNum)
-            .select();
+        // 🔥 EXTRAER EL 'CRE' DESDE LA PANTALLA ANTES DE BORRAR
+        let creText = "CRE # ?";
+        const lblRef = document.getElementById('lbl-recaudacion-ref');
+        if (lblRef && lblRef.innerText) {
+            const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+            if (match) {
+                const textoCrudo = match[0].trim(); 
+                const matchLetra = textoCrudo.match(/\[.*?\]/); 
+                creText = matchLetra ? `CRE #${matchLetra[0]}` : textoCrudo;
+            }
+        }
 
-        if (error) throw error;
-        
-        if (!deletedRows || deletedRows.length === 0) {
-             alert("⚠️ BLOQUEO DE BASE DE DATOS: Supabase no permitió eliminar. Verifica tener habilitado el permiso 'DELETE' en la tabla 'historial_pagos'.");
+        // 1. PRIMERO: Recuperamos los datos del abono original
+        const { data: abonoABorrar, error: errLectura } = await supabaseClient
+            .from('historial_pagos')
+            .select('*')
+            .eq('id', idNum)
+            .single();
+
+        if (errLectura || !abonoABorrar) {
+             alert("⚠️ Error: No se pudo leer el abono para su auditoría.");
              return;
         }
 
-        const abonoBorrado = deletedRows[0];
+        // 2. SEGUNDO: Guardamos TODO en la Bóveda (incluyendo los datos nuevos)
+        const { error: errAuditoria } = await supabaseClient
+            .from('auditoria_pagos_eliminados')
+            .insert([{
+                id_credito: abonoABorrar.id_credito,
+                abono_total: abonoABorrar.abono_total,
+                numero_pago: abonoABorrar.numero_pago,
+                motivo_eliminacion: 'Corrección interna por gerente',
+                forma_pago: abonoABorrar.forma_pago || 'EFECTIVO', // Nuevo
+                fecha_pago_original: abonoABorrar.fecha_pago,      // Nuevo
+                codigo_cre: creText                                // Nuevo
+            }]);
+
+        if (errAuditoria) {
+            alert("⚠️ Error: No se pudo guardar el respaldo. Anulación cancelada.");
+            return;
+        }
+
+        // 3. TERCERO: Eliminamos de la tabla activa
+        const { error: errBorrado } = await supabaseClient.from('historial_pagos').delete().eq('id', idNum);
+        if (errBorrado) throw errBorrado;
 
         // =================================================================
-        // 🚀 LÓGICA DE SMS DE ANULACIÓN (TRANSPARENCIA TOTAL)
+        // 🚀 SMS DE ANULACIÓN
         // =================================================================
         if (enviarSMS) {
-            const { data: creditoAct } = await supabaseClient.from('creditos').select('*').eq('id', abonoBorrado.id_credito).single();
-            
+            const { data: creditoAct } = await supabaseClient.from('creditos').select('*').eq('id', abonoABorrar.id_credito).single();
             const cli = creditoSeleccionadoCobro.clientes || {};
             let numeroCliente = cli.whatsapp; 
 
-            if (!numeroCliente) {
-                const idBuscado = creditoAct ? creditoAct.cliente_id : cli.id;
-                if (idBuscado) {
-                    const { data: infoDB } = await supabaseClient.from('clientes').select('whatsapp').eq('id', idBuscado).single();
-                    if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
-                }
+            if (!numeroCliente && creditoAct) {
+                const { data: infoDB } = await supabaseClient.from('clientes').select('whatsapp').eq('id', creditoAct.cliente_id).single();
+                if (infoDB) numeroCliente = infoDB.whatsapp;
             }
 
             if (numeroCliente && typeof enviarSMSAutomatico === 'function' && creditoAct) {
@@ -3839,60 +4187,29 @@ async function eliminarAbono(idAbono) {
                 const u4 = (cli.cedula || '').trim().slice(-4);
                 const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
                 
-                // 🔥 FILTRO INTELIGENTE: Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ])
-                let creText = "CRE # ?";
-                const lblRef = document.getElementById('lbl-recaudacion-ref');
-                if (lblRef && lblRef.innerText) {
-                    const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
-                    if (match) {
-                        const textoCrudo = match[0].trim(); // Trae "CRE #9 [Ñ]"
-                        const matchLetra = textoCrudo.match(/\[.*?\]/); // Busca solo lo que está entre corchetes "[Ñ]"
-                        if (matchLetra) {
-                            creText = `CRE #${matchLetra[0]}`; // Lo convierte a "CRE #[Ñ]"
-                        } else {
-                            creText = textoCrudo;
-                        }
-                    }
-                }
-
                 const ahora = new Date();
-                const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-                const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-                const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+                const fechaHoraSMS = `${ahora.toLocaleDateString('es-EC', { weekday: 'long' })} | ${ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
 
-                // 🧮 MATEMÁTICA INVERSA
-                const nuevoSaldoFinal = parseFloat(creditoSeleccionadoCobro.saldoNeto) + parseFloat(abonoBorrado.abono_total);
-
+                const nuevoSaldoFinal = parseFloat(creditoSeleccionadoCobro.saldoNeto) + parseFloat(abonoABorrar.abono_total);
                 const cuotasTotales = parseInt(creditoAct.num_cuotas) || 1;
-                const valorDeCuota = parseFloat(creditoAct.valor_cuota) || 1;
-                let cuotasPendientes = Math.ceil(nuevoSaldoFinal / valorDeCuota);
-                if (cuotasPendientes > cuotasTotales) cuotasPendientes = cuotasTotales; // Límite de seguridad
+                let cuotasPendientes = Math.ceil(nuevoSaldoFinal / (parseFloat(creditoAct.valor_cuota) || 1));
+                if (cuotasPendientes > cuotasTotales) cuotasPendientes = cuotasTotales;
 
-                const numPago = abonoBorrado.numero_pago || '?';
-                const montoBorrado = parseFloat(abonoBorrado.abono_total).toFixed(2);
-
-                // 📝 EL MENSAJE ESTRATÉGICO Y LEGAL (Ahora con CRE #[Ñ])
-                const msjAnulacion = `=== SISTEMA ALPHA (Anulación Oficial) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nPor transparencia y control de auditoría, te notificamos que el siguiente abono ha sido ELIMINADO del sistema por una corrección interna.\n\n❌ Pago Anulado: #${numPago}\n💰 Monto Reversado: $${montoBorrado}\n📈 Saldo Restablecido: $${nuevoSaldoFinal.toFixed(2)}\n🔢 Cuotas Pendientes: ${cuotasPendientes}/${cuotasTotales}\n\nTu cuenta está protegida. Conserva este msj como comprobante legal.\n🚫 NO RESPONDER A ESTE MENSAJE.`;
+                const msjAnulacion = `=== SISTEMA ALPHA (Anulación Oficial) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nPor transparencia y control de auditoría, te notificamos que el siguiente abono ha sido ELIMINADO del sistema por una corrección interna.\n\n❌ Pago Anulado: #${abonoABorrar.numero_pago}\n💰 Monto Reversado: $${parseFloat(abonoABorrar.abono_total).toFixed(2)}\n📈 Saldo Restablecido: $${nuevoSaldoFinal.toFixed(2)}\n🔢 Cuotas Pendientes: ${cuotasPendientes}/${cuotasTotales}\n\nTu cuenta está protegida. Conserva este msj.\n🚫 NO RESPONDER A ESTE MENSAJE.`;
 
                 enviarSMSAutomatico(numeroCliente, msjAnulacion);
-            } else {
-                if (!numeroCliente) alert("⚠️ El cliente no tiene WhatsApp. Asegúrate de notificarle verbalmente sobre esta anulación.");
             }
         }
 
-        // 🔥 PROTECCIÓN GERENCIAL EXTRA
         if (creditoSeleccionadoCobro.estado === 'finalizado') {
              await supabaseClient.from('creditos').update({ estado: 'activo' }).eq('id', creditoSeleccionadoCobro.id);
         }
 
-        alert("✅ Abono borrado del sistema correctamente. La deuda ha sido restablecida.");
-        
-        if (creditoSeleccionadoCobro) {
-            await cargarEstadoCuentaCredito(creditoSeleccionadoCobro.id);
-        }
+        alert("✅ Abono borrado y respaldado con todos los detalles en la bóveda.");
+        if (creditoSeleccionadoCobro) await cargarEstadoCuentaCredito(creditoSeleccionadoCobro.id);
         
     } catch (error) {
-        alert("❌ Error al eliminar el abono: " + error.message);
+        alert("❌ Error al procesar la anulación: " + error.message);
     }
 }
 
@@ -4106,6 +4423,7 @@ async function procesarCobroOficial() {
             finalCapital = montoInput;
         }
 
+        // 1. REGISTRAR EL PAGO EN EL HISTORIAL
         const { error: errorHistorial } = await supabaseClient
             .from('historial_pagos')
             .insert([{
@@ -4120,6 +4438,12 @@ async function procesarCobroOficial() {
             }]);
 
         if (errorHistorial) throw errorHistorial;
+
+        // =================================================================
+        // 🧮 CÁLCULO DE SALDO RESIDUAL Y VALIDACIÓN DE LIQUIDACIÓN
+        // =================================================================
+        const nuevoSaldo = parseFloat((creditoSeleccionadoCobro.saldoNeto - montoInput).toFixed(2));
+        const esCancelacionTotal = nuevoSaldo <= 0;
 
         // =================================================================
         // 🔥 EXTRACCIÓN DIRECTA DEL WHATSAPP
@@ -4140,7 +4464,7 @@ async function procesarCobroOficial() {
         }
 
         // =================================================================
-        // 🚀 LÓGICA DE ENVÍO DE SMS (CON FILTRO DE PRIVACIDAD)
+        // 🚀 LÓGICA INTELIGENTE DE ENVÍO DE SMS (NORMAL O DE FELICITACIÓN)
         // =================================================================
         if (enviarSMS) {
             if (!numeroCliente) {
@@ -4155,7 +4479,7 @@ async function procesarCobroOficial() {
                     const u4 = (cli.cedula || '').trim().slice(-4);
                     const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
                     
-                    // 🔥 FILTRO INTELIGENTE: Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ])
+                    // Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ])
                     let creText = "CRE # ?";
                     const lblRef = document.getElementById('lbl-recaudacion-ref');
                     if (lblRef && lblRef.innerText) {
@@ -4163,11 +4487,7 @@ async function procesarCobroOficial() {
                         if (match) {
                             const textoCrudo = match[0].trim();
                             const matchLetra = textoCrudo.match(/\[.*?\]/);
-                            if (matchLetra) {
-                                creText = `CRE #${matchLetra[0]}`;
-                            } else {
-                                creText = textoCrudo;
-                            }
+                            creText = matchLetra ? `CRE #${matchLetra[0]}` : textoCrudo;
                         }
                     }
 
@@ -4176,15 +4496,22 @@ async function procesarCobroOficial() {
                     const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
                     const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
 
-                    const nuevoSaldo = creditoSeleccionadoCobro.saldoNeto - montoInput;
-                    const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
-                    const valorDeCuota = parseFloat(creditoSeleccionadoCobro.valor_cuota) || 1;
-                    let cuotasPendientes = Math.ceil(nuevoSaldo / valorDeCuota);
-                    if (cuotasPendientes < 0) cuotasPendientes = 0;
+                    let msjSalida = "";
 
-                    const msjAbono = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoPago.toUpperCase()}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                    if (esCancelacionTotal) {
+                        // 🏆 SMS PREMIUM DE FELICITACIONES
+                        msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\n🎉 ¡CONTRATO CANCELADO AL 100%! 🎉\n\nTe notificamos de manera oficial que tu crédito ha sido liquidado exitosamente en nuestra base de datos.\n\n✅ Pago de Cierre: #${numeroNuevoPago}\n💰 Monto Recibido: $${montoInput.toFixed(2)}\n📉 Saldo Pendiente: $0.00\n📊 Récord Crediticio: EXCELENTE / IMPECABLE\n\nQueremos agradecer enormemente tu compromiso y puntualidad. ¡Tienes las puertas totalmente abiertas para tu siguiente solicitud cuando la requieras! 🚀\n\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                    } else {
+                        // 💳 SMS DE ABONO NORMAL
+                        const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
+                        const valorDeCuota = parseFloat(creditoSeleccionadoCobro.valor_cuota) || 1;
+                        let cuotasPendientes = Math.ceil(nuevoSaldo / valorDeCuota);
+                        if (cuotasPendientes < 0) cuotasPendientes = 0;
+
+                        msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoPago.toUpperCase()}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                    }
                     
-                    await enviarSMSAutomatico(numeroCliente.toString(), msjAbono);
+                    await enviarSMSAutomatico(numeroCliente.toString(), msjSalida);
                     console.log("✅ SMS enviado con éxito al número: " + numeroCliente);
                 } catch (errorSMS) {
                     alert(`❌ Falló el envío del SMS: ${errorSMS.message}`);
@@ -4192,7 +4519,8 @@ async function procesarCobroOficial() {
             }
         }
 
-        if (montoInput === creditoSeleccionadoCobro.saldoNeto) {
+        // 2. ACTUALIZAR ESTADO DEL CRÉDITO SI QUEDÓ LIQUIDADO
+        if (esCancelacionTotal) {
             await supabaseClient
                 .from('creditos')
                 .update({ estado: 'finalizado' })
@@ -4200,10 +4528,14 @@ async function procesarCobroOficial() {
         }
 
         // =================================================================
-        // 🔥 TICKET DIGITAL (CON WHATSAPP ASEGURADO)
+        // 🔥 TICKET DIGITAL DINÁMICO (ESTILO WALL STREET)
         // =================================================================
         const ticketDiv = document.createElement('div');
-        ticketDiv.style.cssText = "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:2px solid #10b981; text-align:center;";
+        
+        // Si el crédito se liquidó, le ponemos un borde morado de gala
+        ticketDiv.style.cssText = esCancelacionTotal
+            ? "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:3px solid #8b5cf6; text-align:center;"
+            : "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:2px solid #10b981; text-align:center;";
         
         const f = new Date();
         const fechaHoraExacta = `${f.toLocaleDateString()} ${f.getHours()}:${String(f.getMinutes()).padStart(2, '0')}`;
@@ -4213,23 +4545,36 @@ async function procesarCobroOficial() {
             let numeroWA = numeroCliente.toString().trim();
             if (numeroWA.startsWith('0')) numeroWA = numeroWA.substring(1);
             
-            const msjWP = `Hola ${cli.nombres}, confirmamos tu PAGO #${numeroNuevoPago} de $${montoInput.toFixed(2)}. ¡Gracias por tu puntualidad!`;
+            const msjWP = esCancelacionTotal
+                ? `¡Felicidades ${cli.nombres}! Confirmamos tu pago final de $${montoInput.toFixed(2)}. Tu crédito ha sido CANCELADO AL 100% con récord impecable. ¡Gracias por tu puntualidad! 🚀`
+                : `Hola ${cli.nombres}, confirmamos tu PAGO #${numeroNuevoPago} de $${montoInput.toFixed(2)}. ¡Gracias por tu puntualidad!`;
+                
             const url = `https://wa.me/593${numeroWA}?text=${encodeURIComponent(msjWP)}`;
             btnWhatsApp = `<a href="${url}" target="_blank" style="padding:10px 20px; background:#25d366; color:white; text-decoration:none; border-radius:6px; font-weight:bold;">Enviar WhatsApp 📲</a>`;
         }
 
+        // Título del ticket según el estado
+        const cabeceraTicket = esCancelacionTotal 
+            ? `<h2 style="color:#8b5cf6; margin-bottom:5px;">🏆 ¡CRÉDITO LIQUIDADO! 🏆</h2>
+               <p style="font-size:14px; color:#6d28d9; font-weight:900; margin:0 0 10px 0;">Felicite al cliente por su récord impecable</p>`
+            : `<h2 style="color:#10b981; margin-bottom:5px;">✅ ¡Cobro Exitoso!</h2>`;
+
         ticketDiv.innerHTML = `
-            <h2 style="color:#10b981; margin-bottom:5px;">✅ ¡Cobro Exitoso!</h2>
-            <p style="font-size:18px; font-weight:bold; color:#0f172a; margin:5px 0;">Pago #${numeroNuevoPago}</p>
+            ${cabeceraTicket}
+            <p style="font-size:18px; font-weight:bold; color:#0f172a; margin:5px 0;">Pago #${numeroNuevoPago} ${esCancelacionTotal ? '(CIERRE)' : ''}</p>
             <p style="font-size:14px; color:#475569; margin-bottom:15px;">📅 ${fechaHoraExacta}</p>
             <div style="text-align:left; font-family:monospace; background:#f8fafc; padding:15px; border-radius:8px;">
                 <p><strong>Cliente:</strong> ${cli.nombres} ${cli.apellidos}</p>
                 <p><strong>Total Abono:</strong> $${montoInput.toFixed(2)}</p>
-                <hr>
+                <hr style="border: 1px dashed #cbd5e1;">
                 <p style="color:#ca8a04;">💼 Interés: $${finalInteres.toFixed(2)}</p>
                 <p style="color:#0284c7;">🏦 Capital: $${finalCapital.toFixed(2)}</p>
-                <hr>
+                <hr style="border: 1px dashed #cbd5e1;">
                 <p><strong>Método:</strong> ${metodoPago.toUpperCase()}</p>
+                ${esCancelacionTotal 
+                    ? `<p style="color:#166534; font-weight:900; text-align:center; margin-top:10px; font-size:14px;">🎉 SALDO PENDIENTE: $0.00 🎉</p>` 
+                    : `<p><strong>Saldo Restante:</strong> $${nuevoSaldo.toFixed(2)}</p>`
+                }
             </div>
             <div style="margin-top:20px; display: flex; gap: 10px; justify-content: center;">
                 <button id="btn-cerrar-ticket" style="padding:10px 20px; background:#0f172a; color:white; border:none; border-radius:6px; cursor:pointer;">Cerrar Ticket</button>
