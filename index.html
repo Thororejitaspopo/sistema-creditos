@@ -441,9 +441,18 @@
                 </div>
 
                 <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; max-height: 700px; box-sizing: border-box;">
-                    <h3 style="font-size: 15px; color: #0f172a; margin: 0 0 15px 0; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
-                        🧾 Abonos Registrados
-                    </h3>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 15px;">
+                        <h3 style="font-size: 15px; color: #0f172a; margin: 0; text-transform: uppercase;">
+                            🧾 Abonos Registrados
+                        </h3>
+                        <button onclick="generarEstadoCuentaPDF()" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(220,38,38,0.2); transition: 0.2s;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                            📄 PDF Historial
+                        </button>
+                        <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer;">
+                             📲 Enviar Resumen SMS
+                        </button>
+                    </div>
                     
                     <div id="lista-historial-abonos" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 5px;">
                         <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 13px;">Cargando historial de pagos...</div>

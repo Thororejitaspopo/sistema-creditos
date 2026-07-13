@@ -4253,3 +4253,270 @@ async function procesarCobroOficial() {
         alert("Error crítico al registrar abono: " + err.message);
     }
 }
+// =========================================================================
+// 📄 GENERADOR DE ESTADO DE CUENTA CORPORATIVO (PDF) BLINDADO V2
+// =========================================================================
+async function generarEstadoCuentaPDF() {
+    if (!creditoSeleccionadoCobro || !abonosClienteActual) {
+        alert("⚠️ Por favor, selecciona un cliente y un crédito primero.");
+        return;
+    }
+
+    try {
+        const cli = creditoSeleccionadoCobro.clientes;
+        const nombreCompleto = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+        
+        // 1. EXTRAER EL CRE CIFRADO DE LA PANTALLA (Ej: CRE #[Ñ])
+        let creText = "CRE # ?";
+        const lblRef = document.getElementById('lbl-recaudacion-ref');
+        if (lblRef && lblRef.innerText) {
+            const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+            if (match) {
+                const textoCrudo = match[0].trim();
+                const matchLetra = textoCrudo.match(/\[.*?\]/);
+                if (matchLetra) {
+                    creText = `CRE #${matchLetra[0]}`;
+                } else {
+                    creText = textoCrudo;
+                }
+            }
+        }
+
+        // 2. FORMATEAR LA FECHA ORIGINAL DEL CRÉDITO
+        let fechaEmisionCredito = "Fecha no disponible";
+        if (creditoSeleccionadoCobro.fecha_emision) {
+            const fObj = new Date(creditoSeleccionadoCobro.fecha_emision);
+            const fLarga = fObj.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+            fechaEmisionCredito = fLarga.charAt(0).toUpperCase() + fLarga.slice(1);
+        }
+
+        // Inicializar jsPDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // --- ENCABEZADO CORPORATIVO ---
+        doc.setFontSize(22);
+        doc.setTextColor(16, 185, 129); // Verde Alpha
+        doc.text("SISTEMA ALPHA V5", 14, 20);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text("ESTADO DE CUENTA OFICIAL", 14, 28);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        const hoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        doc.text(`Impreso: ${hoy}`, 14, 34);
+
+        // --- DATOS DEL CLIENTE Y CRÉDITO ---
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, 38, 196, 38); // Línea separadora
+
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        
+        // Columna Izquierda (4 líneas)
+        doc.text(`Cliente: ${nombreCompleto}`, 14, 46);
+        doc.text(`Cédula: ${cli.cedula}`, 14, 52);
+        doc.text(`Referencia: ${creText}`, 14, 58); 
+        doc.text(`Fecha de Crédito: ${fechaEmisionCredito}`, 14, 64); 
+        
+        // Columna Derecha (4 líneas)
+        const totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar).toFixed(2);
+        const saldoActual = parseFloat(creditoSeleccionadoCobro.saldoNeto).toFixed(2);
+        const cuotaFija = parseFloat(creditoSeleccionadoCobro.valor_cuota).toFixed(2);
+        
+        // 🧮 Matemática de Cuotas Pendientes
+        const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
+        let cuotasPendientes = Math.ceil(parseFloat(saldoActual) / parseFloat(cuotaFija));
+        if (cuotasPendientes < 0) cuotasPendientes = 0;
+
+        doc.text(`Total del Crédito: $${totalPagar}`, 120, 46);
+        doc.text(`Valor de Cuota: $${cuotaFija}`, 120, 52);
+        doc.text(`N° de Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)`, 120, 58); // 🔥 El toque del gerente
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, 64);
+        doc.setFont(undefined, 'normal');
+
+        // --- MATEMÁTICA PARA LA TABLA HISTÓRICA ---
+        let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
+        
+        let saldoEnTransito = parseFloat(creditoSeleccionadoCobro.total_pagar);
+        const filasTabla = [];
+
+        abonosOrdenados.forEach((abono) => {
+            const fPago = new Date(abono.fecha_pago);
+            const diaNombre = fPago.toLocaleDateString('es-EC', { weekday: 'short' }); 
+            const diaNum = fPago.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }); 
+            const horaExacta = fPago.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }); 
+            
+            const fechaTabla = `${diaNombre}. ${diaNum} - ${horaExacta}`;
+            const montoPagado = parseFloat(abono.abono_total);
+            
+            saldoEnTransito = saldoEnTransito - montoPagado;
+            if (saldoEnTransito < 0) saldoEnTransito = 0;
+
+            filasTabla.push([
+                abono.numero_pago,
+                fechaTabla,
+                abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO',
+                `$${montoPagado.toFixed(2)}`,
+                `$${saldoEnTransito.toFixed(2)}`
+            ]);
+        });
+
+        // --- DIBUJAR LA TABLA ---
+        doc.autoTable({
+            startY: 78, // Bajamos el inicio de la tabla para que respiren las 4 líneas de arriba
+            head: [['N° Pago', 'Fecha y Hora Exacta', 'Método', 'Abono', 'Saldo Restante']],
+            body: filasTabla,
+            theme: 'striped',
+            headStyles: { fillColor: [15, 23, 42] }, 
+            styles: { fontSize: 9, cellPadding: 3 }, 
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 15 },
+                1: { cellWidth: 55 },
+                3: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129] }, 
+                4: { halign: 'right', fontStyle: 'bold' } 
+            }
+        });
+
+        // --- PIE DE PÁGINA LEGAL ---
+        const finalY = doc.lastAutoTable.finalY || 78;
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Este documento es un comprobante de auditoría emitido por Sistema Alpha V5.", 14, finalY + 15);
+        doc.text("Las fechas y horas exactas garantizan la validez e inmutabilidad de cada abono.", 14, finalY + 20);
+
+        // --- DESCARGAR EL PDF ---
+        doc.save(`Estado_Cuenta_${cli.cedula}.pdf`);
+        
+    } catch (error) {
+        alert("❌ Error al generar el PDF: " + error.message);
+        console.error(error);
+    }
+}
+// =========================================================================
+// 📲 ENVÍO DE ESTADO DE CUENTA POR SMS (EQUILIBRIO PERFECTO: RÁPIDO Y DETALLADO)
+// =========================================================================
+async function enviarResumenSMS() {
+    if (!creditoSeleccionadoCobro) {
+        alert("⚠️ Selecciona un cliente primero.");
+        return;
+    }
+
+    // 🛡️ BLINDAJE DE DATOS
+    let cli = creditoSeleccionadoCobro.clientes || {};
+    let numeroCliente = cli.whatsapp;
+
+    if (!numeroCliente || numeroCliente.trim() === "") {
+        const { data: infoDB } = await supabaseClient
+            .from('clientes')
+            .select('whatsapp')
+            .eq('id', creditoSeleccionadoCobro.cliente_id)
+            .single();
+        if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
+    }
+
+    if (!numeroCliente || numeroCliente.trim() === "") {
+        alert("❌ Error: Este cliente NO tiene un número de WhatsApp registrado.");
+        return;
+    }
+
+    const cobrar = confirm("💰 SERVICIO DE AUDITORÍA SMS\n\n¿Deseas cobrar $1.00 por el envío de este estado de cuenta detallado?\n\n🟢 ACEPTAR = Cobrar $1.00\n🔴 CANCELAR = Envío GRATIS (Cortesía)");
+
+    if (cobrar) {
+        try {
+            const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+            await supabaseClient.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData.saldo_actual) + 1.00 }).eq('id', 1);
+            await supabaseClient.from('historial_capital').insert([{
+                caja_id: 1,
+                monto: 1.00,
+                concepto: `🟢 INGRESO: Servicio Estado de Cuenta SMS - ${cli.nombres} ${cli.apellidos}`
+            }]);
+            if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+        } catch (e) { console.error("Error al cobrar:", e); }
+    }
+
+    // 1. Extraer CRE cifrado
+    let creText = "CRE # ?";
+    const lblRef = document.getElementById('lbl-recaudacion-ref');
+    if (lblRef && lblRef.innerText) {
+        const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+        if (match) {
+            const matchLetra = match[0].match(/\[.*?\]/);
+            creText = matchLetra ? `CRE #${matchLetra[0]}` : match[0].trim();
+        }
+    }
+
+    // 2. Formatear Fecha "Impreso" (Ej: domingo 12 de julio de 2026)
+    const ahora = new Date();
+    // Añadimos 'weekday: long' para forzar el día de la semana y quitamos comas
+    let fechaImpreso = ahora.toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).replace(',', '');
+    const horaImpreso = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+
+    // 3. Formatear Fecha Original (Ej: Sábado 11/julio/2026)
+    let fechaEmisionCredito = "N/A";
+    if (creditoSeleccionadoCobro.fecha_emision) {
+        const fObj = new Date(creditoSeleccionadoCobro.fecha_emision);
+        
+        const diaSemana = fObj.toLocaleDateString('es-EC', { weekday: 'long' });
+        const diaSemanaCap = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1); // "Sábado"
+        
+        const mesNombre = fObj.toLocaleDateString('es-EC', { month: 'long' }); // "julio"
+        const diaNum = fObj.toLocaleDateString('es-EC', { day: '2-digit' }); // "11"
+        const anioNum = fObj.toLocaleDateString('es-EC', { year: 'numeric' }); // "2026"
+        
+        fechaEmisionCredito = `${diaSemanaCap} ${diaNum}/${mesNombre}/${anioNum}`;
+    }
+
+    // 4. Montos y Cuotas
+    const totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar);
+    const saldo = parseFloat(creditoSeleccionadoCobro.saldoNeto);
+    const cuotaFija = parseFloat(creditoSeleccionadoCobro.valor_cuota);
+    const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
+    let cuotasPendientes = Math.ceil(saldo / cuotaFija);
+    if (cuotasPendientes < 0) cuotasPendientes = 0;
+
+    // 5. Historial (MÁXIMO LOS ÚLTIMOS 3 PAGOS)
+    let historialTxt = "";
+    if (abonosClienteActual && abonosClienteActual.length > 0) {
+        let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
+        
+        let saldoEnTransito = totalPagar;
+        let abonosConSaldo = abonosOrdenados.map(abono => {
+            saldoEnTransito -= parseFloat(abono.abono_total);
+            if (saldoEnTransito < 0) saldoEnTransito = 0;
+            return { ...abono, saldoRestante: saldoEnTransito };
+        });
+
+        let ultimos3 = abonosConSaldo.slice(-3);
+        
+        historialTxt += `\n🧾 ÚLTIMOS MOVIMIENTOS:\n`;
+        ultimos3.forEach((abono) => {
+            const fPago = new Date(abono.fecha_pago);
+            const diaFormato = fPago.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }); 
+            const horaFormato = fPago.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+            const montoPagado = parseFloat(abono.abono_total);
+            let met = abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO';
+            if (met === 'TRANSFERENCIA') met = 'TRANSF.';
+            
+            historialTxt += `• N°${abono.numero_pago} | ${diaFormato} - ${horaFormato}\n  Abono: $${montoPagado.toFixed(2)} | Saldo: $${abono.saldoRestante.toFixed(2)} | ${met}\n`;
+        });
+        
+        if (abonosConSaldo.length > 3) {
+            historialTxt += `(Y ${abonosConSaldo.length - 3} pagos anteriores)\n`;
+        }
+    } else {
+        historialTxt += `\n🧾 MOVIMIENTOS:\nSin abonos registrados.\n`;
+    }
+
+    // 6. Ensamblar Mensaje Final
+    const etiqueta = cobrar ? "[ESTADO DE CTA] val $1.00\n" : "";
+    const msj = `=== SISTEMA ALPHA ===\n${etiqueta}Impreso: ${fechaImpreso} a las ${horaImpreso}\n\n🆔 ${creText}\n👤 Cliente: ${cli.nombres.toUpperCase()} ${cli.apellidos.toUpperCase()}\n💳 Cédula: ${cli.cedula || 'N/A'}\n📅 Fecha Crédito: ${fechaEmisionCredito}\n\n📊 Total Crédito: $${totalPagar.toFixed(2)}\n💵 Valor Cuota: $${cuotaFija.toFixed(2)}\n📉 Saldo Pendiente: $${saldo.toFixed(2)}\n🔢 N° Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)\n${historialTxt}\n¡Gracias por tu confianza!\n🚫 NO RESPONDER AL MENSAJE.`;
+
+    // 🚀 DISPARO A MACRODROID (Viajará instantáneo)
+    enviarSMSAutomatico(numeroCliente, msj);
+    alert("✅ Resumen enviado exitosamente a: " + numeroCliente);
+}
