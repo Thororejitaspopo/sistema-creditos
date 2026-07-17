@@ -685,21 +685,25 @@ function filtrarClientes() {
  * Altera la visibilidad de los paneles del software según el botón seleccionado del menú.
  */
 /**
- * Altera la visibilidad de los paneles del software según el botón seleccionado del menú.
- */
+ /* =========================================================================
+ * Altera la visibilidad de los paneles del software según el botón seleccionado.
+ * ========================================================================= */
 function cambiarModulo(idModulo) {
     // 1. CONTROL DE INTERFAZ: Remueve la clase activa de todos los bloques y botones
     document.querySelectorAll('.modulo-contenido').forEach(mod => mod.classList.remove('active'));
     document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
     
-    // 2. ACTIVACIÓN VISUAL: Añade la clase activa al div del módulo solicitado en el HTML
-    document.getElementById(`mod-${idModulo}`).classList.add('active');
+    // 2. ACTIVACIÓN VISUAL: Añade la clase activa al div del módulo solicitado
+    const moduloDestino = document.getElementById(`mod-${idModulo}`);
+    if (moduloDestino) {
+        moduloDestino.classList.add('active');
+    }
     
     if(window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add('active');
     }
 
-    // 3. DICCIONARIO DE TÍTULOS: Cambia dinámicamente el H1 y Subtítulo del Header principal
+    // 3. DICCIONARIO DE TÍTULOS: Cambia dinámicamente el H1 y Subtítulo
     const titulos = {
         'inicio': ['Bienvenido, Administrator', 'Resumen general del estado de tu negocio.'],
         'consultar': ['Matriz de Consulta Rápida', 'Búsqueda instantánea de clientes y saldos.'],
@@ -713,28 +717,37 @@ function cambiarModulo(idModulo) {
         'supervisores': ['Panel de Supervisión', 'Asignación y revisión de cuentas asignadas.'],
         'cobradores': ['Rutas de Cobranza', 'Rendimiento y dinero en posesión de los cobradores.'],
         'reportes': ['Reportes Ejecutivos', 'Métricas avanzadas de crecimiento financiero.'],
-        'eliminar': ['Auditoría Estricta', 'Eliminación controlada de transacciones erróneas.']
+        'eliminar': ['Auditoría Estricta', 'Eliminación controlada de transacciones erróneas.'],
+        
+        // 🔥 AQUÍ AGREGAMOS NUESTRO NUEVO MÓDULO PARA QUE NO FALLE 🔥
+        'gestion_mora': ['⚖️ Control de Cartera y Mora', 'Administración de créditos, penalizaciones y convenios.']
     };
 
-    document.getElementById('titulo-panel').innerText = titulos[idModulo][0];
-    document.getElementById('subtitulo-panel').innerText = titulos[idModulo][1];
+    if (titulos[idModulo]) {
+        document.getElementById('titulo-panel').innerText = titulos[idModulo][0];
+        document.getElementById('subtitulo-panel').innerText = titulos[idModulo][1];
+    }
 
     // 4. LÓGICA DE ACTIVACIÓN ESPECÍFICA POR MÓDULO
     
     // Si entramos a la pestaña de CRÉDITOS:
-    // Si entramos a la pestaña de CRÉDITOS:
     if (idModulo === 'creditos') {
-        aplicarTasaAlAbrirModulo(); 
-        cargarClientesDropdown();
-        cargarHistorialCreditos(); // Llamada directa
+        if (typeof aplicarTasaAlAbrirModulo === 'function') aplicarTasaAlAbrirModulo(); 
+        if (typeof cargarClientesDropdown === 'function') cargarClientesDropdown();
+        if (typeof cargarHistorialCreditos === 'function') cargarHistorialCreditos(); 
     }
 
     // Si entramos a la pestaña de CAPITAL:
     if (idModulo === 'capital') {
-        inicializarModuloCapital();
+        if (typeof inicializarModuloCapital === 'function') inicializarModuloCapital();
+    }
+
+    // 🔥 NUEVA REGLA: Si entramos a GESTIÓN Y MORA, cargar la tabla automáticamente
+    if (idModulo === 'gestion_mora') {
+        if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
     }
 }
-
+window.cambiarModulo = cambiarModulo;
 
 
 /**
@@ -4865,3 +4878,287 @@ async function enviarResumenSMS() {
     enviarSMSAutomatico(numeroCliente, msj);
     alert("✅ Resumen enviado exitosamente a: " + numeroCliente);
 }
+// =========================================================================
+// ⚖️ MÓDULO MAESTRO DE GESTIÓN DE MORA Y CONVENIOS (VERSIÓN DEFINITIVA)
+// =========================================================================
+
+window.cargarTablaGestionMora = async function() {
+    const contenedor = document.getElementById('contenedor-tabla-mora');
+    const selectorBuscador = document.getElementById('buscador-gestion-mora');
+    if (!contenedor) return;
+    
+    // 1. CAPTURAMOS EL CLIENTE ELEGIDO EN EL SELECTOR
+    const clienteSeleccionado = selectorBuscador ? selectorBuscador.value : '';
+
+    contenedor.innerHTML = '<p style="color:#64748b; font-size:14px; text-align:center;">⏳ Escaneando cartera y calculando saldos reales...</p>';
+    
+    try {
+        // 🔥 TRAEMOS LOS DATOS: ACTIVOS Y CONGELADOS
+        const { data: creditosActivos, error } = await supabaseClient
+            .from('creditos')
+            .select(`id, monto_capital, total_pagar, saldo_pendiente, fecha_emision, tasa_interes, estado, clientes!inner(id, nombres, apellidos, cedula), historial_pagos(abono_total)`)
+            .in('estado', ['activo', 'congelado'])
+            .order('fecha_emision', { ascending: true });
+
+        if (error) throw error;
+
+        // 🌟 MAGIA NUEVA: Traemos el historial para calcular el "N° de Crédito del Cliente"
+        const { data: historialTodos } = await supabaseClient
+            .from('creditos')
+            .select('id, cliente_id')
+            .order('id', { ascending: true });
+
+        const mapNumCreditoLocal = {};
+        if (historialTodos) {
+            const conteoPorCliente = {};
+            historialTodos.forEach(c => {
+                conteoPorCliente[c.cliente_id] = (conteoPorCliente[c.cliente_id] || 0) + 1;
+                mapNumCreditoLocal[c.id] = conteoPorCliente[c.cliente_id];
+            });
+        }
+
+        if (!creditosActivos || creditosActivos.length === 0) {
+            contenedor.innerHTML = `<p style="color: #10b981; font-weight: bold; text-align:center;">✨ Toda tu cartera está limpia. No hay créditos pendientes.</p>`;
+            if (selectorBuscador) selectorBuscador.innerHTML = '<option value="">🌍 TODOS LOS CLIENTES ACTIVOS</option>';
+            return;
+        }
+
+        // 2. LLENAR EL SELECTOR CON LOS CLIENTES (SIN REPETIR)
+        if (selectorBuscador) {
+            const mapClientes = new Map();
+            const clientesUnicos = [];
+            
+            creditosActivos.forEach(cre => {
+                const cli = cre.clientes;
+                if (cli && cli.id && !mapClientes.has(cli.id)) {
+                    mapClientes.set(cli.id, true);
+                    clientesUnicos.push(cli);
+                }
+            });
+
+            clientesUnicos.sort((a, b) => a.nombres.localeCompare(b.nombres));
+
+            let opcionesHTML = '<option value="">🌍 TODOS LOS CLIENTES ACTIVOS</option>';
+            clientesUnicos.forEach(cli => {
+                const nombreCompleto = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+                opcionesHTML += `<option value="${cli.id}">${nombreCompleto} (${cli.cedula})</option>`;
+            });
+            
+            selectorBuscador.innerHTML = opcionesHTML;
+            if (clienteSeleccionado) {
+                selectorBuscador.value = clienteSeleccionado;
+            }
+        }
+
+        // 3. FILTRAMOS LOS RESULTADOS SI ELEGISTE ALGO EN EL SELECTOR
+        let creditosFiltrados = creditosActivos || [];
+        const valorFiltro = selectorBuscador ? selectorBuscador.value : '';
+
+        if (valorFiltro !== '') {
+            creditosFiltrados = creditosFiltrados.filter(cre => cre.clientes && cre.clientes.id.toString() === valorFiltro);
+        }
+
+        if (creditosFiltrados.length === 0) {
+             contenedor.innerHTML = `<p style="color: #ef4444; font-weight: bold; text-align:center;">🔍 Este cliente no tiene créditos pendientes en este momento.</p>`;
+             return;
+        }
+
+        // 4. DIBUJAMOS LA TABLA CON LOS DATOS FILTRADOS
+        let filasHTML = creditosFiltrados.map(cre => {
+            const cli = cre.clientes || {};
+            const nombreCliente = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+            
+            // ==========================================================
+            // 🛡️ REFERENCIA BANCARIA Y NÚMERO DE CRÉDITO DEL CLIENTE
+            // ==========================================================
+            const inicialN = cli.nombres ? cli.nombres.charAt(0).toUpperCase() : '';
+            const inicialA = cli.apellidos ? cli.apellidos.charAt(0).toUpperCase() : '';
+            const ultimos4 = cli.cedula ? cli.cedula.slice(-4) : '0000';
+            const refBancaria = `REF: ${inicialN}${inicialA}-${ultimos4}`;
+            
+            const esCongelado = cre.estado === 'congelado';
+            const badgeCongelado = esCongelado ? `<span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">🧊 CONGELADO</span>` : '';
+            
+            // 🌟 AQUI INYECTAMOS EL NÚMERO DE CRÉDITO LOCAL (Ej: CRE #17)
+            const numLocal = mapNumCreditoLocal[cre.id] || 1;
+            let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numLocal).toUpperCase() : '';
+            let etiquetaCRE = creCifrado ? `CRE #${numLocal} [${creCifrado}]` : `CRE #${numLocal}`;
+
+            const fEmi = new Date(cre.fecha_emision);
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const nombreDia = dias[fEmi.getDay()];
+            const diaCap = nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
+            const fechaTxt = `${diaCap} ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()}`;
+
+            const pagos = cre.historial_pagos || [];
+            const totalPagado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
+            let saldoReal = parseFloat(cre.total_pagar) - totalPagado;
+            if (saldoReal < 0) saldoReal = 0; 
+
+            const tasaOriginal = parseFloat(cre.tasa_interes) || 20;
+
+            return `
+            <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s; ${esCongelado ? 'background: #f8fafc; border-left: 4px solid #0284c7;' : ''}" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='${esCongelado ? '#f8fafc' : 'transparent'}'">
+                <td style="padding: 12px; font-size: 12px;">
+                    <div style="color: #64748b; font-weight: bold; font-size: 10px; margin-bottom: 4px; letter-spacing: 0.5px;">ID: ${cre.id} | ${refBancaria}</div>
+                    <span style="background: #e0f2fe; color: #0369a1; padding: 3px 6px; border-radius: 4px; font-weight: bold;">${etiquetaCRE}</span>
+                </td>
+                <td style="padding: 12px; font-weight: bold; font-size: 13px;">${nombreCliente} ${badgeCongelado}</td>
+                <td style="padding: 12px; font-size: 12px; color: #475569;">${fechaTxt}</td>
+                <td style="padding: 12px; text-align: center; font-weight: bold;">$${parseFloat(cre.monto_capital).toFixed(2)}</td>
+                <td style="padding: 12px; text-align: center; color: #ca8a04; font-weight: bold;">$${parseFloat(cre.total_pagar).toFixed(2)}</td>
+                <td style="padding: 12px; text-align: center; color: #ef4444; font-weight: 900;">$${saldoReal.toFixed(2)}</td>
+                <td style="padding: 12px; text-align: center;">
+                    <button onclick="abrirPanelSancion(${cre.id}, '${nombreCliente.replace(/'/g, "\\'")}', ${cre.monto_capital}, ${cre.total_pagar}, ${saldoReal}, ${tasaOriginal}, '${cre.estado}', '${etiquetaCRE}', '${refBancaria}')" style="background: #0f172a; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        ⚙️ GESTIONAR
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        contenedor.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+            <thead>
+                <tr style="background: #f1f5f9; text-align: left; border-bottom: 2px solid #cbd5e1;">
+                    <th style="padding: 12px; font-size: 12px;">N° CRÉDITO</th>
+                    <th style="padding: 12px; font-size: 12px;">CLIENTE</th>
+                    <th style="padding: 12px; font-size: 12px;">EMISIÓN</th>
+                    <th style="padding: 12px; font-size: 12px; text-align: center;">CAPITAL INTACTO</th>
+                    <th style="padding: 12px; font-size: 12px; text-align: center;">TOTAL A PAGAR</th>
+                    <th style="padding: 12px; font-size: 12px; text-align: center;">SALDO ACTUAL</th>
+                    <th style="padding: 12px; font-size: 12px; text-align: center;">ACCIÓN</th>
+                </tr>
+            </thead>
+            <tbody>${filasHTML}</tbody>
+        </table>`;
+    } catch (error) {
+        contenedor.innerHTML = `<p style="color:red; text-align:center;">❌ Error: ${error.message}</p>`;
+    }
+};
+
+// =========================================================================
+// ⚙️ PANEL VISUAL DE SANCIONES Y CONEXIÓN A BASE DE DATOS
+// =========================================================================
+window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, saldo, tasaOriginal, estadoActual, etiquetaCRE, refBancaria) {
+    const capitalNum = parseFloat(capital) || 1;
+    const saldoNum = parseFloat(saldo) || 0;
+    const interesPorcentaje = parseFloat(tasaOriginal) || 20;
+    const esCongelado = estadoActual === 'congelado';
+    
+    // Matemática pura y dura sobre el porcentaje original
+    const multaSobreCapital = capitalNum * (interesPorcentaje / 100);
+    const multaSobreSaldo = saldoNum * (interesPorcentaje / 100);
+
+    const modalId = 'modal-sancion-alpha';
+    const modalPrevio = document.getElementById(modalId);
+    if (modalPrevio) modalPrevio.remove();
+
+    // BOTONES DINÁMICOS SEGÚN EL ESTADO
+    const btnCapitalHTML = esCongelado 
+        ? `<button disabled style="padding: 12px; background: #fca5a5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🚨 Mora s/ Capital (BLOQUEADO)</span></button>`
+        : `<button onclick="aplicarMoraSobreCapital(${idCredito}, ${multaSobreCapital}, ${saldoNum})" style="padding: 12px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);"><span>🚨 Mora s/ Capital</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Sumar $${multaSobreCapital.toFixed(2)}</span></button>`;
+
+    const btnSaldoHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #fdba74; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>⚡ Mora s/ Saldo (BLOQUEADO)</span></button>`
+        : `<button onclick="aplicarMoraSobreSaldo(${idCredito}, ${multaSobreSaldo}, ${saldoNum})" style="padding: 12px; background: #ea580c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(234, 88, 12, 0.2);"><span>⚡ Mora s/ Saldo</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Sumar $${multaSobreSaldo.toFixed(2)}</span></button>`;
+
+    const btnCongelarHTML = esCongelado
+        ? `<button onclick="alternarCongelamiento(${idCredito}, 'activo')" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);"><span>🔥 Descongelar Cuenta</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Reactivar recargos</span></button>`
+        : `<button onclick="alternarCongelamiento(${idCredito}, 'congelado')" style="padding: 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);"><span>🧊 Congelar Cuenta</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Pausar recargos</span></button>`;
+
+    const modalHTML = `
+    <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; backdrop-filter: blur(4px);">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;">
+            
+            <div style="background: #0f172a; padding: 20px; text-align: center;">
+                <h3 style="margin: 0; color: white; font-size: 18px;">⚖️ Panel de Resolución de Cartera</h3>
+                <!-- 🔥 AQUI ESTÁ EL CÓDIGO IDENTICO AL DE LA TABLA -->
+                <p style="margin: 8px 0 2px 0; color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">ID: ${idCredito} | ${refBancaria}</p>
+                <p style="margin: 0 0 5px 0; color: #ca8a04; font-weight: bold; font-size: 16px;">${etiquetaCRE}</p>
+                <p style="margin: 5px 0 0 0; color: #f8fafc; font-size: 14px; text-transform: uppercase;">${nombreCliente}</p>
+                ${esCongelado ? '<div style="margin-top: 10px; display: inline-block; background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">🧊 CUENTA CONGELADA Y PROTEGIDA</div>' : ''}
+            </div>
+
+            <div style="padding: 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 13px; font-weight: bold;">Capital Protegido:</span>
+                    <span style="color: #0f172a; font-weight: 900; font-size: 13px;">$${capitalNum.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 13px; font-weight: bold;">Interés del Contrato Original:</span>
+                    <span style="color: #0f172a; font-weight: 900; font-size: 13px;">${interesPorcentaje}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px dashed #cbd5e1;">
+                    <span style="color: #ef4444; font-weight: bold; font-size: 15px;">Saldo Pendiente Actual:</span>
+                    <span style="color: #ef4444; font-weight: 900; font-size: 20px;">$${saldoNum.toFixed(2)}</span>
+                </div>
+            </div>
+
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                ${btnCapitalHTML}
+                ${btnSaldoHTML}
+                ${btnCongelarHTML}
+            </div>
+
+            <div style="padding: 15px 20px; background: #f1f5f9; text-align: center;">
+                <button onclick="document.getElementById('${modalId}').remove()" style="padding: 10px 25px; background: white; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">Cancelar y Cerrar</button>
+            </div>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+};
+
+// =========================================================================
+// 🚀 INYECCIONES DIRECTAS A SUPABASE (LOS CEREBROS DE LOS BOTONES)
+// =========================================================================
+window.aplicarMoraSobreCapital = async function(idCredito, montoMulta, saldoActual) {
+    if (!confirm(`¿Aplicar una multa de $${parseFloat(montoMulta).toFixed(2)} a este crédito?`)) return;
+    try {
+        const nuevoTotal = parseFloat(saldoActual) + parseFloat(montoMulta);
+        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('total_pagar').eq('id', idCredito).single();
+        if (errBusq) throw errBusq;
+        const nuevoTotalPagarHistorico = parseFloat(credOriginal.total_pagar) + parseFloat(montoMulta);
+        
+        const { error } = await supabaseClient.from('creditos').update({ saldo_pendiente: nuevoTotal, total_pagar: nuevoTotalPagarHistorico }).eq('id', idCredito);
+        if (error) throw error;
+        
+        alert("✅ Multa sobre capital aplicada. El saldo ha aumentado.");
+        document.getElementById('modal-sancion-alpha').remove();
+        cargarTablaGestionMora();
+    } catch (error) { alert("❌ Error al procesar: " + error.message); }
+};
+
+window.aplicarMoraSobreSaldo = async function(idCredito, montoMulta, saldoActual) {
+    if (!confirm(`¿Aplicar una multa de $${parseFloat(montoMulta).toFixed(2)} a este crédito?`)) return;
+    try {
+        const nuevoTotal = parseFloat(saldoActual) + parseFloat(montoMulta);
+        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('total_pagar').eq('id', idCredito).single();
+        if (errBusq) throw errBusq;
+        const nuevoTotalPagarHistorico = parseFloat(credOriginal.total_pagar) + parseFloat(montoMulta);
+        
+        const { error } = await supabaseClient.from('creditos').update({ saldo_pendiente: nuevoTotal, total_pagar: nuevoTotalPagarHistorico }).eq('id', idCredito);
+        if (error) throw error;
+        
+        alert("✅ Multa sobre saldo aplicada. El saldo ha aumentado.");
+        document.getElementById('modal-sancion-alpha').remove();
+        cargarTablaGestionMora();
+    } catch (error) { alert("❌ Error al procesar: " + error.message); }
+};
+
+window.alternarCongelamiento = async function(idCredito, nuevoEstado) {
+    const accionTexto = nuevoEstado === 'congelado' ? 'CONGELAR' : 'DESCONGELAR';
+    if (!confirm(`¿Estás seguro de ${accionTexto} esta cuenta?`)) return;
+    try {
+        const { error } = await supabaseClient.from('creditos').update({ estado: nuevoEstado }).eq('id', idCredito);
+        if (error) throw error;
+        
+        const mensaje = nuevoEstado === 'congelado' 
+            ? "🧊 Cuenta congelada exitosamente. Protegida contra recargos." 
+            : "🔥 Cuenta descongelada exitosamente. Lista para nuevas multas.";
+        alert(mensaje);
+        
+        document.getElementById('modal-sancion-alpha').remove();
+        cargarTablaGestionMora();
+    } catch (error) { alert("❌ Error al procesar: " + error.message); }
+};

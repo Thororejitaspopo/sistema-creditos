@@ -34,6 +34,10 @@
                 <button class="btn-menu" onclick="cambiarModulo('supervisores')">👔 Supervisores</button>
                 <button class="btn-menu" onclick="cambiarModulo('cobradores')">🏍️ Cobradores</button>
                 <button class="btn-menu" onclick="cambiarModulo('reportes')">📋 Reportes Generales</button>
+
+                <!-- NUEVO BOTÓN DE GESTIÓN Y MORA -->
+                <button class="btn-menu" onclick="cambiarModulo('gestion_mora')">⚖️ Gestión y Mora</button>
+
                 <button class="btn-menu" style="color: var(--rojo-peligro);" onclick="cambiarModulo('eliminar'); cargarPapelera('clientes');">🗑️ Depurar / Eliminar</button>
             </nav>
         </div>
@@ -554,7 +558,7 @@
         <div id="mod-cobradores" class="modulo-contenido"><h3>🏍️ Control de Rutas de Cobradores</h3></div>
         
         <div id="mod-reportes" class="modulo-contenido">
-    <div id="modulo-reportes" class="modulo-seccion" style="padding: 20px;">
+        <div id="modulo-reportes" class="modulo-seccion" style="padding: 20px;">
         
         <!-- CABECERA DEL MÓDULO -->
         <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
@@ -656,6 +660,21 @@
     </div>
 </div>
         
+<!-- ========================================================================= -->
+<!-- ⚖️ MÓDULO: GESTIÓN DE CARTERA Y MORA -->
+<!-- ========================================================================= -->
+<div id="mod-gestion_mora" class="modulo-contenido" style="display: none;">
+    <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; gap: 10px; align-items: center; border-left: 4px solid #eab308;">
+        <span style="font-weight: bold; color: #64748b; font-size: 14px;">📍 Filtrar Cartera:</span>
+        <select id="buscador-gestion-mora" onchange="cargarTablaGestionMora()" style="flex: 1; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline: none; background: #f8fafc; font-weight: bold; color: #0f172a; cursor: pointer;">
+            <option value="">🌍 TODOS LOS CLIENTES ACTIVOS</option>
+        </select>
+        <button onclick="cargarTablaGestionMora()" style="padding: 12px 25px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;">
+            Consultar 🔍
+        </button>
+    </div>
+    <div id="contenedor-tabla-mora"></div>
+</div>
        <div id="mod-eliminar" class="modulo-contenido">
         <div style="padding: 20px; background: #f8fafc; border-radius: 10px;">
         
