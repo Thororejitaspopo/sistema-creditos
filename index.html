@@ -134,13 +134,29 @@
 
         <!-- Panel Derecho: Lista Negra / Mayor Mora -->
         <!-- Panel Derecho: Alertas de Vencimiento (Asistente Inteligente) -->
+        <!-- Panel Derecho: Alertas de Vencimiento (Asistente Inteligente) -->
+        <!-- Panel Derecho: Alertas de Vencimiento (Asistente Inteligente) -->
+        <!-- Panel Derecho: Alertas de Vencimiento (Asistente Inteligente) -->
         <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #ef4444;">
-            <h3 style="margin: 0 0 15px 0; color: #b91c1c; display: flex; align-items: center; gap: 8px; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
-                🔔 Alertas: Vencimientos y Mora
-            </h3>
-            <div id="dash-lista-vencimientos" style="color: #64748b; font-size: 14px; max-height: 280px; overflow-y: auto; padding-right: 5px;">
+            
+            <!-- Título y Contador -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #b91c1c; display: flex; align-items: center; gap: 8px; font-size: 18px;">
+                    🔔 Alertas de Cartera
+                </h3>
+                <span id="contador-alertas" style="background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 900;">0 Vencidos</span>
+            </div>
+            
+            <!-- Buscador Relámpago -->
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="buscador-alertas" onkeyup="filtrarAlertasDash()" placeholder="🔍 Escriba el nombre para buscar rápido..." style="width: 100%; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-family: inherit; font-size: 13px; box-sizing: border-box; background: #f8fafc; transition: all 0.3s;" onfocus="this.style.borderColor='#ef4444'; this.style.boxShadow='0 0 0 3px rgba(239, 68, 68, 0.2)';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
+            </div>
+
+            <!-- Contenedor de Tarjetas (AHORA CON EFECTO IMÁN) -->
+            <div id="dash-lista-vencimientos" style="color: #64748b; font-size: 14px; max-height: 280px; overflow-y: auto; scroll-snap-type: y mandatory; padding-right: 5px;">
                 <div style="text-align: center; padding: 20px;">⏳ El Robot está escaneando las fechas...</div>
             </div>
+            
         </div>
 
     </div>
