@@ -5561,3 +5561,122 @@ document.addEventListener('DOMContentLoaded', () => {
         espiaDashboard.observe(moduloInicio);
     }
 });
+
+// =========================================================================
+// 🔒 BOTÓN MAESTRO: MOTOR DE CASTIGOS AUTOMÁTICOS (SUPABASE)
+// =========================================================================
+window.ejecutarMorasConClave = async function() {
+    // 1. Cerradura de Seguridad
+    let claveIngresada = prompt("🔒 ACCESO RESTRINGIDO GERENCIAL:\nPor favor, ingrese la clave de autorización para ejecutar los castigos de cartera:");
+    if (claveIngresada === null) return; 
+
+    if (claveIngresada !== "Mora") {
+        alert("❌ CLAVE INCORRECTA.\nAcceso denegado. Usted no tiene permisos.");
+        return;
+    }
+
+    // 2. Si la clave es correcta, arranca el Motor
+    alert("✅ CLAVE ACEPTADA.\nIniciando el escaneo de cartera. Por favor presione 'Aceptar' y NO cierre esta ventana hasta que termine el proceso.");
+
+    try {
+        // Traemos los créditos activos para analizarlos
+        const { data: creditos } = await supabaseClient
+            .from('creditos')
+            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, fecha_emision, num_cuotas, clientes(perfil_cobro), historial_pagos(abono_total)')
+            .eq('estado', 'activo');
+
+        if (!creditos || creditos.length === 0) {
+            alert("No hay créditos activos para analizar.");
+            return;
+        }
+
+        const fechaHoy = new Date();
+        const hoyLimpiado = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), fechaHoy.getDate());
+        let castigosAplicados = 0;
+        let perfilesSocialesOmitidos = 0;
+
+        // 3. Analizamos cliente por cliente
+        for (let c of creditos) {
+            // Fecha límite actual
+            const fechaEmision = c.fecha_emision ? new Date(c.fecha_emision) : new Date();
+            const diasCredito = parseInt(c.num_cuotas) || 30;
+            const fechaVence = new Date(fechaEmision);
+            fechaVence.setDate(fechaVence.getDate() + diasCredito);
+            const venceLimpiado = new Date(fechaVence.getFullYear(), fechaVence.getMonth(), fechaVence.getDate());
+            
+            // ¿Cuántos días han pasado desde que se venció?
+            const diferenciaTiempo = venceLimpiado.getTime() - hoyLimpiado.getTime();
+            const diferenciaDias = Math.round(diferenciaTiempo / (1000 * 3600 * 24));
+
+            // SI YA PASARON LOS 10 DÍAS DE GRACIA (Es decir, diferenciaDias es menor o igual a -11)
+            if (diferenciaDias <= -11) {
+                
+                // Filtro 1: ¿Es perfil social?
+                if (c.clientes?.perfil_cobro === 'Social') {
+                    perfilesSocialesOmitidos++;
+                    continue; // Salta al siguiente cliente sin hacerle nada
+                }
+
+                // Matemática Financiera del Gerente:
+                const capital = parseFloat(c.monto_capital || 0);
+                const interes = parseFloat(c.total_interes || 0);
+                const cuotaFija = parseFloat(c.valor_cuota || 0);
+                const moraAnterior = parseFloat(c.monto_mora || 0);
+                const totalDeudaBase = parseFloat(c.total_pagar || 0);
+
+                // Sacamos el Porcentaje Real de este crédito (Ej: 20 / 100 = 0.20 -> 20%)
+                const porcentajeCredito = (interes / capital); 
+
+                // Sumamos los abonos
+                const pagos = c.historial_pagos || [];
+                const totalAbonado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
+                
+                // Calculamos cuotas pagadas y la regla de la Mitad+1
+                const cuotasPagadas = Math.floor(totalAbonado / cuotaFija);
+                const mitadMasUno = Math.floor(diasCredito / 2) + 1;
+                const saldoActual = (totalDeudaBase + moraAnterior) - totalAbonado;
+
+                let nuevaMoraASumar = 0;
+
+                // REGLA DE ORO
+                if (cuotasPagadas >= mitadMasUno) {
+                    // Castigo Suave: Mora sobre el Saldo (Ej: 56 * 0.20 = 11.20)
+                    nuevaMoraASumar = saldoActual * porcentajeCredito;
+                } else {
+                    // Castigo Fuerte: Mora sobre el Capital (Ej: 100 * 0.20 = 20.00)
+                    nuevaMoraASumar = capital * porcentajeCredito;
+                }
+
+                const moraTotalActualizada = moraAnterior + nuevaMoraASumar;
+
+                // Patear la fecha de emisión 30 días adelante para que se limpie la pantalla de alertas
+                const nuevaFechaEmision = new Date(fechaEmision);
+                nuevaFechaEmision.setDate(nuevaFechaEmision.getDate() + 30);
+                const nuevaFechaISO = nuevaFechaEmision.toISOString().split('T')[0];
+
+                // 4. Inyectar la decisión del Robot a Supabase
+                await supabaseClient
+                    .from('creditos')
+                    .update({ 
+                        monto_mora: moraTotalActualizada.toFixed(2),
+                        fecha_emision: nuevaFechaISO
+                    })
+                    .eq('id', c.id);
+
+                castigosAplicados++;
+            }
+        }
+
+        // 5. Reporte Final al Gerente
+        alert(`🚀 ¡PROCESO COMPLETADO CON ÉXITO!\n\n- Se aplicó mora y se renovó la fecha a: ${castigosAplicados} clientes.\n- Se protegió a ${perfilesSocialesOmitidos} perfiles sociales.\n\nEl panel de Alertas se va a actualizar ahora mismo.`);
+        
+        // Actualizamos la pantalla para ver la magia
+        if (typeof window.despertarRobotDashboard === 'function') {
+            window.despertarRobotDashboard();
+        }
+
+    } catch (error) {
+        console.error("Error en el Motor de Castigos:", error);
+        alert("Ocurrió un error al intentar procesar las moras. Revise la consola.");
+    }
+};
