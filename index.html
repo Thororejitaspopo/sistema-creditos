@@ -57,8 +57,95 @@
         </div>
 
         <div id="mod-inicio" class="modulo-contenido active">
-            <h3>Página de Inicio</h3>
-            <p style="color: #64748b; margin-top: 10px;">Vista global del sistema.</p>
+            <!-- ======================================================= -->
+<!-- 🚀 CENTRO DE COMANDO: DASHBOARD ALPHA V5 -->
+<!-- ======================================================= -->
+<div class="contenedor-sistema-alpha" style="padding: 20px; background-color: #f8fafc; min-height: 100vh;">
+    
+    <!-- 1. CABECERA INTELIGENTE Y SALUDO -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; border-left: 8px solid #0284c7;">
+        <div>
+            <h1 id="dash-saludo" style="margin: 0; color: #0f172a; font-size: 26px; font-weight: 900;">¡Buenos días, Miguel! ☀️</h1>
+            <p id="dash-fecha" style="margin: 5px 0 0 0; color: #64748b; font-size: 15px;">Calculando fecha actual...</p>
+        </div>
+        <div style="text-align: right;">
+            <div style="background: #fef08a; color: #854d0e; padding: 8px 18px; border-radius: 30px; font-weight: 900; font-size: 15px; display: inline-block; border: 1px dashed #ca8a04;">
+                🎯 Meta de Cobro Hoy: <span id="dash-meta-hoy" style="font-size: 18px;">$0.00</span>
+            </div>
+            <p id="dash-chismoso-mora" style="margin: 8px 0 0 0; color: #ef4444; font-size: 12px; font-weight: bold; display: none;">🚨 ¡Robot de Mora ejecutado con éxito!</p>
+        </div>
+    </div>
+
+    <!-- 2. ACCESOS DIRECTOS (BOTONES GIGANTES) -->
+    <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+        <button onclick="document.querySelector('[onclick*=\'crear-credito\']').click()" style="flex: 1; padding: 18px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: transform 0.2s;">
+            ➕ NUEVO CRÉDITO RÁPIDO
+        </button>
+        <button onclick="document.querySelector('[onclick*=\'registrar-pago\']').click()" style="flex: 1; padding: 18px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); transition: transform 0.2s;">
+            💰 REGISTRAR PAGO
+        </button>
+    </div>
+
+    <!-- 3. LOS 4 INDICADORES VITALES -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px;">
+        
+        <!-- Tarjeta 1: Caja Matriz -->
+        <div style="background: white; padding: 22px; border-radius: 12px; border-bottom: 5px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
+            <div style="color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">💵 Caja Matriz (Efectivo)</div>
+            <div id="dash-caja" style="font-size: 28px; font-weight: 900; color: #1e293b; margin-top: 8px;">$0.00</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 80px; opacity: 0.05;">🏦</div>
+        </div>
+
+        <!-- Tarjeta 2: Capital en la Calle -->
+        <div style="background: white; padding: 22px; border-radius: 12px; border-bottom: 5px solid #0284c7; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
+            <div style="color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">🏍️ Capital en la Calle</div>
+            <div id="dash-capital-calle" style="font-size: 28px; font-weight: 900; color: #1e293b; margin-top: 8px;">$0.00</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 80px; opacity: 0.05;">📈</div>
+        </div>
+
+        <!-- Tarjeta 3: Cuentas Congeladas -->
+        <div style="background: white; padding: 22px; border-radius: 12px; border-bottom: 5px solid #06b6d4; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
+            <div style="color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">🧊 Cuentas Congeladas</div>
+            <div id="dash-congeladas" style="font-size: 28px; font-weight: 900; color: #1e293b; margin-top: 8px;">0</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 80px; opacity: 0.05;">❄️</div>
+        </div>
+
+        <!-- Tarjeta 4: Ganancia Pura -->
+        <div style="background: white; padding: 22px; border-radius: 12px; border-bottom: 5px solid #8b5cf6; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
+            <div style="color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">💎 Ganancia Proyectada</div>
+            <div id="dash-ganancia" style="font-size: 28px; font-weight: 900; color: #1e293b; margin-top: 8px;">$0.00</div>
+            <div style="position: absolute; top: -10px; right: -10px; font-size: 80px; opacity: 0.05;">💰</div>
+        </div>
+
+    </div>
+
+    <!-- 4. PANELES DE RANKING (LOS MEJORES Y LOS PEORES) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <!-- Panel Izquierdo: Buenos Pagadores -->
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h3 style="margin: 0 0 15px 0; color: #15803d; display: flex; align-items: center; gap: 8px; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
+                ⭐ Top 5: Mejores Pagadores
+            </h3>
+            <div id="dash-lista-buenos" style="color: #64748b; font-size: 14px;">
+                <div style="text-align: center; padding: 20px;">⏳ Despertando al Robot...</div>
+            </div>
+        </div>
+
+        <!-- Panel Derecho: Lista Negra / Mayor Mora -->
+        <!-- Panel Derecho: Alertas de Vencimiento (Asistente Inteligente) -->
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #ef4444;">
+            <h3 style="margin: 0 0 15px 0; color: #b91c1c; display: flex; align-items: center; gap: 8px; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
+                🔔 Alertas: Vencimientos y Mora
+            </h3>
+            <div id="dash-lista-vencimientos" style="color: #64748b; font-size: 14px; max-height: 280px; overflow-y: auto; padding-right: 5px;">
+                <div style="text-align: center; padding: 20px;">⏳ El Robot está escaneando las fechas...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- ======================================================= -->
         </div>
 
         <div id="mod-consultar" class="modulo-contenido">
@@ -70,51 +157,61 @@
                 
                 <div class="seccion-formulario seccion-registro">
                     
-                    <div class="grupo-bloque">
-                        <h2>Personal y Identificación</h2>
-                        
-                        <div class="fila-campos" style="grid-template-columns: 1fr 2fr 2fr;">
-                            <div class="campo">
-                                <label>ID Sistema</label>
-                                <input type="text" id="cli-id-auto" value="AUTO" disabled>
-                            </div>
-                            <div class="campo">
-                                <label>Nombres</label>
-                                <input type="text" id="cli-nombres" placeholder="Ej: JUAN CARLOS" oninput="this.value = this.value.toUpperCase()">
-                            </div>
-                            <div class="campo">
-                                <label>Apellidos</label>
-                                <input type="text" id="cli-apellidos" placeholder="Ej: PÉREZ MORA" oninput="this.value = this.value.toUpperCase()">
-                            </div>
-                        </div>
-                        
-                        <div class="fila-campos">
-                            <div class="campo">
-                                <label>Cédula / RUC</label>
-                                <input type="text" id="cli-cedula" placeholder="Ej: 120XXXXXXX" maxlength="13" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                            </div>
-                            <div class="campo">
-                                <label>WhatsApp</label>
-                                <input type="text" id="cli-whatsapp" placeholder="Ej: 09XXXXXXXX" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                            </div>
-                        </div>
+                   <div class="grupo-bloque">
+    <h2>Personal y Identificación</h2>
+    
+    <div class="fila-campos" style="grid-template-columns: 1fr 2fr 2fr;">
+        <div class="campo">
+            <label>ID Sistema</label>
+            <input type="text" id="cli-id-auto" value="AUTO" disabled>
+        </div>
+        <div class="campo">
+            <label>Nombres</label>
+            <input type="text" id="cli-nombres" placeholder="Ej: JUAN CARLOS" oninput="this.value = this.value.toUpperCase()">
+        </div>
+        <div class="campo">
+            <label>Apellidos</label>
+            <input type="text" id="cli-apellidos" placeholder="Ej: PÉREZ MORA" oninput="this.value = this.value.toUpperCase()">
+        </div>
+    </div>
+    
+    <div class="fila-campos">
+        <div class="campo">
+            <label>Cédula / RUC</label>
+            <input type="text" id="cli-cedula" placeholder="Ej: 120XXXXXXX" maxlength="13" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+        <div class="campo">
+            <label>WhatsApp</label>
+            <input type="text" id="cli-whatsapp" placeholder="Ej: 09XXXXXXXX" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+    </div>
 
-                        <div class="fila-campos">
-                            <div class="campo">
-                                <label>Correo Electrónico</label>
-                                <input type="email" id="cli-correo" placeholder="juan@gmail.com">
-                            </div>
-                        </div>
+    <div class="fila-campos">
+        <div class="campo">
+            <label>Correo Electrónico</label>
+            <input type="email" id="cli-correo" placeholder="juan@gmail.com">
+        </div>
+    </div>
 
-                        <div class="fila-campos">
-                            <div class="campo">
-                                <label>Garante / Referido (Clientes Guardados en Sistema)</label>
-                                <select id="cli-garante">
-                                    <option value="">🚫 Sin Garante / Cliente Directo</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div> 
+    <div class="fila-campos" style="display: flex; gap: 15px;">
+        <div class="campo" style="flex: 2;">
+            <label>Garante / Referido (Clientes Guardados en Sistema)</label>
+            <select id="cli-garante" style="width: 100%;">
+                <option value="">🚫 Sin Garante / Cliente Directo</option>
+            </select>
+        </div>
+        
+        <!-- 🔥 AQUI INYECTAMOS EL NUEVO BOTÓN DE INMUNIDAD DE MORA -->
+        <div class="campo" style="flex: 1;">
+            <label>Perfil / Castigo de Mora</label>
+            <select id="cli-perfil-mora" style="width: 100%; border: 2px solid #0284c7; background-color: #f0f9ff; font-weight: bold;">
+                <option value="Normal">🟢 Mora NORMAL (Multar al vencerse)</option>
+                <option value="Social">🛡️ Perfil SOCIAL (Nunca cobrar mora)</option>
+                <option value="Lista_Negra">⛔ LISTA NEGRA (Deuda incobrable)</option>
+            </select>
+        </div>
+    </div>
+</div>
                     
                     <div class="grupo-bloque">
                         <h2>Ubicación y Logística de Ruta</h2>

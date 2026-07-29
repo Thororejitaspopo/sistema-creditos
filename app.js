@@ -319,6 +319,9 @@ async function registrarCliente() {
     const inputCorreo = document.getElementById('cli-correo');
     const inputSector = document.getElementById('cli-sector');
     const inputRuta = document.getElementById('cli-ruta');
+    
+    // 🔥 CAPTURA DEL NUEVO CAMPO DE INMUNIDAD
+    const selectPerfilMora = document.getElementById('cli-perfil-mora');
 
     // -------------------------------------------------------------------------
     // 2. LIMPIEZA DE ERRORES
@@ -337,6 +340,9 @@ async function registrarCliente() {
     const cedula = inputCedula.value.trim();
     const whatsapp = inputWhatsapp.value.trim();
     const correo = inputCorreo.value.trim();
+    
+    // 🔥 VALOR DE INMUNIDAD
+    const perfil_cobro = selectPerfilMora ? selectPerfilMora.value : 'Normal';
     
     const garanteSeleccionado = document.getElementById('cli-garante').value;
     const garante_id = garanteSeleccionado ? parseInt(garanteSeleccionado) : null;
@@ -476,9 +482,10 @@ async function registrarCliente() {
         urlFotoCedula = urlPublicaCed.publicUrl; 
     }
 
+    // 🔥 INYECCIÓN DEL PERFIL DE MORA AQUÍ
     const datosCliente = { 
         nombres, apellidos, cedula, whatsapp, correo, sector, ruta, direccion, referencia, 
-        tel_referencia, observaciones, nivel, limite_creditos, garante_id,
+        tel_referencia, observaciones, nivel, limite_creditos, garante_id, perfil_cobro,
         fecha_ingreso: idEditando === null ? fechaRegistro : (listaClientesGlobal.find(c => c.id === idEditando)?.fecha_ingreso || fechaRegistro), 
         usuario_registro: 'Administrador', url_foto_cliente: urlFotoCliente, url_foto_cedula: urlFotoCedula    
     };
@@ -521,7 +528,8 @@ async function registrarCliente() {
             if (cobrarAfiliacion) { alert(`✅ ¡${codigoUnico} guardado, $1.00 cobrado y SMS enviado!`);
             } else { alert(`✅ ¡${codigoUnico} guardado (Gratis) y SMS enviado!`); }
 
-            limpiarFormularioClientes(); cargarClientes();
+            if (typeof limpiarFormularioClientes === 'function') limpiarFormularioClientes(); 
+            if (typeof cargarClientes === 'function') cargarClientes();
         }
 
     } else {
@@ -559,7 +567,8 @@ async function registrarCliente() {
             if (cobrarEdicion) { alert(`✅ ¡Datos de ${codigoUnico} actualizados, $0.50 cobrados y SMS enviado!`);
             } else { alert(`✅ ¡Datos de ${codigoUnico} actualizados (Gratis) y SMS enviado!`); }
 
-            limpiarFormularioClientes(); cargarClientes();
+            if (typeof limpiarFormularioClientes === 'function') limpiarFormularioClientes(); 
+            if (typeof cargarClientes === 'function') cargarClientes();
         }
     }
 }
@@ -1691,8 +1700,6 @@ function calcularProyeccionCredito() {
 // =========================================================================
 // =========================================================================
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
-// =========================================================================
-// =========================================================================
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
 // =========================================================================
 async function guardarNuevoCredito() {
@@ -1856,8 +1863,13 @@ async function guardarNuevoCredito() {
             
             enviarSMSAutomatico(infoCliente.whatsapp, mensajeVoucher);
         }
+        
         // =========================================================================
-        if (typeof cargarHistorialCreditos === 'function') {
+        // 🔥 CORRECCIÓN CIRUGÍA: Llamamos a la versión global blindada
+        // =========================================================================
+        if (typeof window.cargarHistorialCreditos === 'function') {
+            window.cargarHistorialCreditos();
+        } else if (typeof cargarHistorialCreditos === 'function') {
             cargarHistorialCreditos();
         }
         
@@ -1889,6 +1901,7 @@ async function guardarNuevoCredito() {
         alert("❌ Hubo un error al guardar en la base de datos: " + error.message);
     }
 }
+
 // =========================================================================
 // BLOCK 12: ESCUCHADOR EN TIEMPO REAL PARA RESTRINGIR LETRAS EN EL MONTO
 // =========================================================================
@@ -2116,19 +2129,19 @@ function aplicarFiltroAlHistorial() {
 // ==========================================
 // VARIABLES DE CONTROL DE PAGINACIÓN Y BÚSQUEDA (CRÉDITOS)
 // ==========================================
-let paginaActualCreditos = 1;
-const itemsPorPaginaCreditos = 3;
-let filtroTextoCredito = ""; // 🔍 Guarda de forma segura lo que se escribe en el buscador
+window.paginaActualCreditos = 1;
+window.itemsPorPaginaCreditos = 3;
+window.filtroTextoCredito = ""; // 🔍 Guarda de forma segura lo que se escribe en el buscador
 
 // Función que se activa automáticamente al escribir en la barra de búsqueda
-function buscarCreditoEnVivo() {
+window.buscarCreditoEnVivo = function() {
     const inputBuscador = document.getElementById('buscador-creditos');
     if (inputBuscador) {
-        filtroTextoCredito = inputBuscador.value.trim();
-        paginaActualCreditos = 1; // Al buscar, forzamos regresar siempre a la página 1
-        cargarHistorialCreditos(); // Refrescamos la lista con el filtro puesto
+        window.filtroTextoCredito = inputBuscador.value.trim();
+        window.paginaActualCreditos = 1; // Al buscar, forzamos regresar siempre a la página 1
+        window.cargarHistorialCreditos(); // Refrescamos la lista con el filtro puesto
     }
-}
+};
 
 // El "Guardia" para que no se mezcle al cambiar de página (TU GUARDIA INTACTO)
 const observador = new MutationObserver(() => aplicarFiltroAlHistorial());
@@ -2138,38 +2151,32 @@ if (contenedorHistorial) {
 }
 
 // =========================================================================
-// 1. CARGAR EL HISTORIAL DE CRÉDITOS (CON BUSCADOR, PAGINACIÓN, BOTÓN DE ANULAR Y CÓDIGO BANCARIO UNIFICADO)
+// 1. CARGAR EL HISTORIAL DE CRÉDITOS (CON BUSCADOR, PAGINACIÓN Y RESTA DE ABONOS)
 // =========================================================================
-async function cargarHistorialCreditos() {
+window.cargarHistorialCreditos = async function() {
     const contenedor = document.getElementById('lista-creditos-derecha');
     if (!contenedor) return;
     
-    // Cálculo de rangos dinámicos
-    const desde = (paginaActualCreditos - 1) * itemsPorPaginaCreditos;
-    const hasta = desde + itemsPorPaginaCreditos - 1;
+    const desde = (window.paginaActualCreditos - 1) * window.itemsPorPaginaCreditos;
+    const hasta = desde + window.itemsPorPaginaCreditos - 1;
 
-    // =====================================================================
-    // 🔒 1. EL DOBLE CANDADO MAESTRO: Filtramos cliente y crédito activos
-    // =====================================================================
     let consulta = supabaseClient
         .from('creditos') 
         .select(`
-            id, cliente_id, monto_capital, total_pagar, tasa_interes, 
-            fecha_emision, frecuencia_pago, valor_cuota, forma_entrega, num_cuotas,
+            id, cliente_id, monto_capital, total_pagar, monto_mora, tasa_interes, 
+            fecha_emision, frecuencia_pago, valor_cuota, forma_entrega, num_cuotas, estado,
             clientes!inner(nombres, apellidos, cedula, estado)
         `, { count: 'exact' })
-        .eq('clientes.estado', 'activo') // Candado 1: El cliente no está archivado
-        .eq('estado', 'activo');         // 🔒 Candado 2: El crédito NO está anulado
+        .eq('clientes.estado', 'activo') 
+        .in('estado', ['activo', 'congelado']); // 🔥 EL CAMBIO MAESTRO: Mostrar activos y congelados      
 
-    // 2. Si el buscador tiene texto, aplicamos el filtro avanzado
-    if (filtroTextoCredito !== "") {
+    if (window.filtroTextoCredito !== "") {
         consulta = consulta.or(
-            `nombres.ilike.%${filtroTextoCredito}%,apellidos.ilike.%${filtroTextoCredito}%,cedula.ilike.%${filtroTextoCredito}%`, 
+            `nombres.ilike.%${window.filtroTextoCredito}%,apellidos.ilike.%${window.filtroTextoCredito}%,cedula.ilike.%${window.filtroTextoCredito}%`, 
             { foreignTable: 'clientes' }
         );
     }
 
-    // 3. Ejecutamos el ordenamiento y el rango de paginación
     const { data, error, count } = await consulta
         .order('id', { ascending: false }) 
         .range(desde, hasta); 
@@ -2181,9 +2188,23 @@ async function cargarHistorialCreditos() {
 
     if (data && data.length > 0) {
         
-        // =====================================================================
-        // 🌟 PROCESAMIENTO DEL CÓDIGO BANCARIO EN TIEMPO REAL
-        // =====================================================================
+        const idsCreditosVisibles = data.map(c => c.id);
+        let pagosTotalesPorCredito = {};
+        
+        if (idsCreditosVisibles.length > 0) {
+            const { data: historialPagos } = await supabaseClient
+                .from('historial_pagos')
+                .select('id_credito, abono_total')
+                .in('id_credito', idsCreditosVisibles);
+                
+            if (historialPagos) {
+                historialPagos.forEach(p => {
+                    if (!pagosTotalesPorCredito[p.id_credito]) pagosTotalesPorCredito[p.id_credito] = 0;
+                    pagosTotalesPorCredito[p.id_credito] += parseFloat(p.abono_total || 0);
+                });
+            }
+        }
+
         const creditosProcesados = await Promise.all(data.map(async (c) => {
             const inicialN = c.clientes?.nombres ? c.clientes.nombres.charAt(0).toUpperCase() : 'X';
             const inicialA = c.clientes?.apellidos ? c.clientes.apellidos.charAt(0).toUpperCase() : 'X';
@@ -2205,11 +2226,11 @@ async function cargarHistorialCreditos() {
             const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
 
             c.codigoOficial = `${codigoBancario} | CRE #${numeroCredito} [${codigoCifrado}]`;
+            c.totalAbonado = pagosTotalesPorCredito[c.id] || 0;
+            
             return c;
         }));
-        // =====================================================================
 
-        // Mapeamos tus tarjetas de crédito con el nuevo formato
         const htmlCreditos = creditosProcesados.map(c => {
             const fechaObj = new Date(c.fecha_emision);
             const ahora = new Date().getTime();
@@ -2221,18 +2242,25 @@ async function cargarHistorialCreditos() {
             
             const nombre = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}`.toUpperCase() : 'SIN NOMBRE';
 
+            const moraExtra = parseFloat(c.monto_mora) || 0;
+            const deudaTotalCalculada = (parseFloat(c.total_pagar) - c.totalAbonado) + moraExtra;
+            
+            const etiquetaMora = moraExtra > 0 ? `<span style="color: #ef4444; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap;">Mora $${moraExtra.toFixed(2)}</span>` : '';
+            const etiquetaDeuda = moraExtra > 0 ? `<span style="margin-left: 6px; color: #854d0e; font-size: 11px; font-weight: bold; background: #fef08a; padding: 2px 6px; border-radius: 4px; border: 1px dashed #ca8a04; white-space: nowrap;">👉 Deuda Total: $${deudaTotalCalculada.toFixed(2)}</span>` : '';
+
+            // 🔥 Diseño especial para distinguir créditos congelados
+            const esCongelado = c.estado === 'congelado';
+            const badgeCongelado = esCongelado ? `<span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">🧊 CONGELADO</span>` : '';
+
             return `
-            <div style="padding: 15px; border-bottom: 2px solid #e2e8f0; background: #fff; margin-bottom: 12px; border-radius: 8px; border-left: 6px solid #0284c7; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="padding: 15px; border-bottom: 2px solid #e2e8f0; background: #fff; margin-bottom: 12px; border-radius: 8px; border-left: 6px solid ${esCongelado ? '#0284c7' : '#10b981'}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 
                 <div style="font-weight: 900; font-size: 13px; color: #1e293b; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                    
                     <span>ID: ${c.id}</span> <span style="color: #cbd5e1;">|</span> 
-                    <span>${nombre}</span> <span style="color: #cbd5e1;">|</span> 
-                    
+                    <span>${nombre} ${badgeCongelado}</span> <span style="color: #cbd5e1;">|</span> 
                     <span style="color: #0284c7; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; border: 1px solid #bae6fd;">
                         🆔 ${c.codigoOficial}
                     </span> 
-                    
                     <span style="color: #cbd5e1;">|</span> 
                     <span style="color: #64748b; font-weight: normal; font-size: 11px;">${formatoFecha}, ${horaFormateada}</span>
                     
@@ -2243,17 +2271,18 @@ async function cargarHistorialCreditos() {
                             <button onclick="intentarAnularCredito(${c.id}, ${c.monto_capital})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Eliminar crédito">🚫</button>
                         ` : ''}
                     </div>
-
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-bottom: 10px;">
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 15px; font-size: 12px; margin-bottom: 10px; align-items: center;">
                     <div>Capital: <b>$${c.monto_capital}</b></div>
-                    <div>Interés: <b>${c.tasa_interes || 0}%</b></div>
+                    <div>Interés: <b>${~~c.tasa_interes ? c.tasa_interes : 0}%</b></div>
                     <div>Cuota: <b>$${c.valor_cuota || 0}</b></div>
-                    <div style="color: #0284c7;">💰 Total a Pagar: <b>$${c.total_pagar}</b></div>
+                    <div style="display: flex; align-items: center; gap: 4px; color: #0284c7;">
+                        💰 Total a Pagar: <b>$${parseFloat(c.total_pagar).toFixed(2)}</b> ${etiquetaMora} ${etiquetaDeuda}
+                    </div>
                 </div>
 
-                <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; font-size: 12px; color: #475569;">
+                <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 10px; font-size: 12px; color: #475569;">
                     <div>🔄 Frecuencia de Pago: <b>${c.frecuencia_pago || 'No especificada'}</b></div>
                     <div style="margin-top: 4px;">🔢 N° de Cuotas: <b>${c.num_cuotas || 'N/A'}</b></div>
                     <div style="margin-top: 4px;">💳 Forma de Entrega / Origen: <b>${c.forma_entrega || 'No especificada'}</b></div>
@@ -2261,21 +2290,21 @@ async function cargarHistorialCreditos() {
             </div>`;
         }).join('');
 
-        const totalPaginas = Math.ceil(count / itemsPorPaginaCreditos);
+        const totalPaginas = Math.ceil(count / window.itemsPorPaginaCreditos);
 
         const paginacionHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 12px; border-top: 2px dashed #e2e8f0; gap: 10px;">
-                <button onclick="cambiarPaginaCreditos(${paginaActualCreditos - 1})" ${paginaActualCreditos === 1 ? 'disabled' : ''} 
-                    style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: ${paginaActualCreditos === 1 ? '#f1f5f9' : 'white'}; color: ${paginaActualCreditos === 1 ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 6px; cursor: ${paginaActualCreditos === 1 ? 'not-allowed' : 'pointer'}; transition: 0.2s;">
+                <button onclick="window.cambiarPaginaCreditos(${window.paginaActualCreditos - 1})" ${window.paginaActualCreditos === 1 ? 'disabled' : ''} 
+                    style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: ${window.paginaActualCreditos === 1 ? '#f1f5f9' : 'white'}; color: ${window.paginaActualCreditos === 1 ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 6px; cursor: ${window.paginaActualCreditos === 1 ? 'not-allowed' : 'pointer'}; transition: 0.2s;">
                     Anterior
                 </button>
                 
                 <span style="font-size: 12px; font-weight: bold; color: #475569; background: #f8fafc; padding: 4px 10px; border-radius: 20px; border: 1px solid #e2e8f0;">
-                    Pág. ${paginaActualCreditos} de ${totalPaginas}
+                    Pág. ${window.paginaActualCreditos} de ${totalPaginas}
                 </span>
                 
-                <button onclick="cambiarPaginaCreditos(${paginaActualCreditos + 1})" ${paginaActualCreditos >= totalPaginas ? 'disabled' : ''} 
-                    style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: ${paginaActualCreditos >= totalPaginas ? '#f1f5f9' : 'white'}; color: ${paginaActualCreditos >= totalPaginas ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 6px; cursor: ${paginaActualCreditos >= totalPaginas ? 'not-allowed' : 'pointer'}; transition: 0.2s;">
+                <button onclick="window.cambiarPaginaCreditos(${window.paginaActualCreditos + 1})" ${window.paginaActualCreditos >= totalPaginas ? 'disabled' : ''} 
+                    style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: ${window.paginaActualCreditos >= totalPaginas ? '#f1f5f9' : 'white'}; color: ${window.paginaActualCreditos >= totalPaginas ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 6px; cursor: ${window.paginaActualCreditos >= totalPaginas ? 'not-allowed' : 'pointer'}; transition: 0.2s;">
                     Siguiente
                 </button>
             </div>
@@ -2284,19 +2313,19 @@ async function cargarHistorialCreditos() {
         contenedor.innerHTML = htmlCreditos + paginacionHTML;
 
     } else {
-        if (filtroTextoCredito !== "") {
-            contenedor.innerHTML = `<p style='text-align: center; color: #94a3b8; padding: 15px 0;'>No se encontraron créditos para "<b>${filtroTextoCredito}</b>".</p>`;
+        if (window.filtroTextoCredito !== "") {
+            contenedor.innerHTML = `<p style='text-align: center; color: #94a3b8; padding: 15px 0;'>No se encontraron créditos para "<b>${window.filtroTextoCredito}</b>".</p>`;
         } else {
             contenedor.innerHTML = "<p style='text-align: center; color: #94a3b8;'>No hay créditos registrados.</p>";
         }
     }
-}
+};
 
-// Función original para cambiar de página y refrescar automáticamente
-function cambiarPaginaCreditos(nuevaPagina) {
-    paginaActualCreditos = nuevaPagina;
-    cargarHistorialCreditos();
-}
+// 🔥 Función global 100% blindada para cambiar de página (AQUÍ ESTÁ LA SOLUCIÓN DEL BOTÓN)
+window.cambiarPaginaCreditos = function(nuevaPagina) {
+    window.paginaActualCreditos = nuevaPagina;
+    window.cargarHistorialCreditos();
+};
 // ==========================================
 // 2. ABRIR EL MODAL DE EDICIÓN
 // ==========================================
@@ -2851,11 +2880,9 @@ async function cargarPapelera(categoria) {
             }
 
             contenedor.innerHTML = pagosBorrados.map(pago => {
-                // 1. Fecha de Eliminación
                 const fEli = new Date(pago.fecha_eliminacion);
                 const fechaEliminacionTxt = `${fEli.toLocaleDateString('es-EC')} | H:${fEli.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
                 
-                // 2. Fecha Original del Pago (NUEVO)
                 let fechaOriginalTxt = 'Fecha original no registrada';
                 if (pago.fecha_pago_original) {
                     const fOri = new Date(pago.fecha_pago_original);
@@ -2863,11 +2890,9 @@ async function cargarPapelera(categoria) {
                     fechaOriginalTxt = `📅 ${diaOri.charAt(0).toUpperCase() + diaOri.slice(1)} ${fOri.toLocaleDateString('es-EC')} | H:${fOri.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
                 }
 
-                // 3. Datos Extraídos (NUEVO)
                 const metodoPago = pago.forma_pago ? pago.forma_pago.toUpperCase() : 'EFECTIVO';
                 const creCifrado = pago.codigo_cre || 'CRE #?';
                 
-                // 4. Cliente
                 const cli = diccionarioClientes[pago.id_credito] || {};
                 const nombreCliente = cli.nombres ? `${cli.nombres} ${cli.apellidos}`.toUpperCase() : 'CLIENTE DESCONOCIDO';
                 
@@ -2911,9 +2936,10 @@ async function cargarPapelera(categoria) {
     else if (categoria === 'finalizados') {
         contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda histórica y calculando últimos pagos...</p>';
         try {
+            // 🔥 AÑADIDO: "cliente_id" a la consulta para calcular CRE exacto
             const { data: finalizados, error } = await supabaseClient
                 .from('creditos')
-                .select(`id, monto_capital, total_pagar, fecha_emision, frecuencia_pago, num_cuotas, valor_cuota, clientes!inner(nombres, apellidos, cedula)`)
+                .select(`id, monto_capital, total_pagar, monto_mora, fecha_emision, frecuencia_pago, num_cuotas, valor_cuota, cliente_id, clientes!inner(nombres, apellidos, cedula)`)
                 .eq('estado', 'finalizado')
                 .order('id', { ascending: false });
 
@@ -2921,6 +2947,22 @@ async function cargarPapelera(categoria) {
             if (finalizados.length === 0) {
                 contenedor.innerHTML = `<p style="color: #8b5cf6; font-weight: bold;">✨ Aún no hay créditos finalizados en el historial.</p>`;
                 return;
+            }
+
+            // 🔥 MAGIA: Calculamos el historial para saber el número exacto (Ej: 38)
+            const { data: todosLosCreditos } = await supabaseClient
+                .from('creditos')
+                .select('id, cliente_id')
+                .order('id', { ascending: true });
+                
+            let mapaNumeroCredito = {};
+            if (todosLosCreditos) {
+                let conteos = {};
+                todosLosCreditos.forEach(c => {
+                    if (!conteos[c.cliente_id]) conteos[c.cliente_id] = 0;
+                    conteos[c.cliente_id]++;
+                    mapaNumeroCredito[c.id] = conteos[c.cliente_id];
+                });
             }
 
             const idsCreditos = finalizados.map(c => c.id);
@@ -2959,12 +3001,24 @@ async function cargarPapelera(categoria) {
                 const u4 = (cli.cedula || '0000').trim().slice(-4);
                 const refFinal = `REF: ${iN}${iA}-${u4}`;
                 
-                let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(cre.id).toUpperCase() : '';
-                let etiquetaCRE = creCifrado ? `CRE [${creCifrado}]` : `CRE`;
+                // 🔥 AQUÍ ARMAMOS LA ETIQUETA PERFECTA (Ej: CRE #38 [RJ])
+                let numeroCredito = mapaNumeroCredito[cre.id] || '?';
+                let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
+                let etiquetaCRE = `CRE #${numeroCredito} [${creCifrado}]`;
 
                 const capital = parseFloat(cre.monto_capital) || 1;
                 const total = parseFloat(cre.total_pagar) || 1;
                 const calcInteresPorcentaje = Math.round(((total - capital) / capital) * 100);
+
+                // 🔥 INYECCIÓN DE MORA Y TOTAL REAL CANCELADO
+                const moraExtra = parseFloat(cre.monto_mora) || 0;
+                let visualTotalAPagar = `<span style="font-size: 14px; color: #166534; font-weight: 900;">💰 Total a Pagar: $${total.toFixed(2)}</span>`;
+                
+                if (moraExtra > 0) {
+                    const totalCancelado = total + moraExtra;
+                    visualTotalAPagar += ` <span style="background: #fee2e2; color: #ef4444; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 5px;">+ Mora $${moraExtra.toFixed(2)}</span>`;
+                    visualTotalAPagar += ` <span style="background: #f8fafc; border: 1px dashed #cbd5e1; color: #334155; font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 5px;">👉 Cancelado: $${totalCancelado.toFixed(2)}</span>`;
+                }
 
                 let fechaEmisionTxt = formatearFechaAlpha(cre.fecha_emision);
                 let fechaUltimoPagoTxt = ultimosPagos[cre.id] ? formatearFechaAlpha(ultimosPagos[cre.id]) : 'Sin pagos registrados';
@@ -2976,8 +3030,8 @@ async function cargarPapelera(categoria) {
                     
                     <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
                         <span style="background: #f1f5f9; color: #334155; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #cbd5e1;">${refFinal}</span>
-                        <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #bae6fd;">${etiquetaCRE}</span>
                         <span style="background: #ede9fe; color: #5b21b6; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #ddd6fe;">CRÉDITO #${cre.id}</span>
+                        <span style="background: #fef08a; color: #854d0e; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #fde047;">${etiquetaCRE}</span>
                         <span style="background: #dcfce7; color: #166534; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #bbf7d0;">✅ PAGADO AL 100%</span>
                         <span style="margin-left: auto; font-size: 18px;">🏆</span>
                     </div>
@@ -2990,7 +3044,7 @@ async function cargarPapelera(categoria) {
                             <span style="font-size: 13px; color: #334155;"><strong>Capital:</strong> $${capital.toFixed(2)}</span>
                             <span style="font-size: 13px; color: #334155;"><strong>Interés:</strong> ${calcInteresPorcentaje}%</span>
                             <span style="font-size: 13px; color: #334155;"><strong>Cuota:</strong> $${parseFloat(cre.valor_cuota || 0).toFixed(2)}</span>
-                            <span style="font-size: 14px; color: #166534; font-weight: 900;">💰 Total a Pagar: $${total.toFixed(2)}</span>
+                            ${visualTotalAPagar}
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
                             <span style="font-size: 12px; color: #475569;">🔄 <strong>Frecuencia de Pago:</strong> ${cre.frecuencia_pago || 'Cobro Diario'}</span>
@@ -3585,11 +3639,11 @@ async function buscarCreditoParaCobro() {
     }
 
     try {
-        // 🔥 MAGIA: Agregamos "num_cuotas" a la consulta para que lo jale de la base de datos
+        // 🔥 EL CAMBIO MAESTRO: Ahora el cajero puede ver créditos 'activos' y 'congelados' (acuerdos verbales)
         const { data: creditos, error } = await supabaseClient
             .from('creditos')
-            .select(`id, monto_capital, total_pagar, valor_cuota, frecuencia_pago, estado, fecha_emision, cliente_id, num_cuotas, clientes (nombres, apellidos, cedula)`)
-            .eq('estado', 'activo');
+            .select(`id, monto_capital, total_pagar, monto_mora, valor_cuota, frecuencia_pago, estado, fecha_emision, cliente_id, num_cuotas, clientes (nombres, apellidos, cedula)`)
+            .in('estado', ['activo', 'congelado']); 
 
         if (error) throw error;
 
@@ -3600,7 +3654,7 @@ async function buscarCreditoParaCobro() {
         });
 
         if (creditosDelCliente.length === 0) {
-            alert("🔍 No se encontró ningún crédito ACTIVO para este cliente.");
+            alert("🔍 No se encontró ningún crédito ACTIVO o CONGELADO para este cliente.");
             return;
         }
 
@@ -3612,25 +3666,28 @@ async function buscarCreditoParaCobro() {
             .eq('cliente_id', idDelCliente)
             .order('id', { ascending: true });
 
+        // Traemos los pagos para restar lo que ya abonó
+        const idsActivos = creditosDelCliente.map(c => c.id);
+        const { data: pagosCliente } = await supabaseClient
+            .from('historial_pagos')
+            .select('id_credito, abono_total')
+            .in('id_credito', idsActivos);
+
         listaCreditosActivosCliente = creditosDelCliente;
 
         // EVALUACIÓN DE RUTAS: 1 crédito vs Múltiples créditos
         if (creditosDelCliente.length === 1) {
-            // Ruta rápida: Tiene solo un crédito, lo cargamos directo
             await cargarEstadoCuentaCredito(creditosDelCliente[0].id);
         } else {
-            // Ruta múltiple: Mostramos el selector con la fecha de emisión real y el CRE Cifrado
             const selectMulti = document.getElementById('selector-multicredito');
             selectMulti.innerHTML = '<option value="">-- Seleccione el crédito --</option>';
             
             creditosDelCliente.forEach(c => {
-                // Formateamos la fecha usando tu columna fecha_emision
                 const f = new Date(c.fecha_emision);
                 const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
                 const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
                 const fechaTxt = `${dias[f.getDay()]} ${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()}`;
                 
-                // 🔑 MAGIA DE GRADUACIÓN: Cálculo de tu CRE # y la letra cifrada
                 let numeroCredito = 1;
                 if (todosCreditosCliente) {
                     const index = todosCreditosCliente.findIndex(tc => tc.id === c.id);
@@ -3641,8 +3698,27 @@ async function buscarCreditoParaCobro() {
                 const cli = c.clientes || {};
                 const prestamo = parseFloat(c.total_pagar).toFixed(0);
                 
-                // 🎯 TEXTO FINAL UNIFICADO
-                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}] | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}`;
+                const moraCredito = parseFloat(c.monto_mora) || 0;
+                let textoMoraExtra = "";
+                
+                if (moraCredito > 0) {
+                    let totalPagadoHastaHoy = 0;
+                    if (pagosCliente) {
+                        pagosCliente.forEach(p => {
+                            if (p.id_credito === c.id) {
+                                totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
+                            }
+                        });
+                    }
+                    const deudaTotalCalc = (parseFloat(c.total_pagar) - totalPagadoHastaHoy) + moraCredito;
+                    textoMoraExtra = ` | Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalCalc.toFixed(2)}`;
+                }
+                
+                // 🔥 Etiqueta visual si es un acuerdo verbal (Congelado)
+                const alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
+                
+                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}${textoMoraExtra}`;
+                
                 selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
             });
 
@@ -3655,7 +3731,6 @@ async function buscarCreditoParaCobro() {
         alert("Error al buscar créditos: " + err.message);
     }
 }
-
 // codigo CRE#
 // =========================================================================
 // 🔐 MOTOR CRIPTOGRÁFICO ALPHA: TRADUCTOR DE NÚMEROS A LETRAS
@@ -3799,8 +3874,17 @@ async function cargarEstadoCuentaCredito(idCredito) {
         elCuotas.innerHTML = `${cuotasTotales} &nbsp; <span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes)</span>`;
     }
 
+    // 🔥 INYECCIÓN: Lógica matemática para sumar mora y dibujar las etiquetas en la tarjeta
+    const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
+    const saldoFinalMora = saldoRestanteNeto + moraGuardada;
+    
+    const etiquetaMora = moraGuardada > 0 ? `<span style="margin-left: 10px; color: #ef4444; font-size: 12px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">+ Mora $${moraGuardada.toFixed(2)}</span>` : '';
+    
+    // Dejamos el Préstamo Original intacto
     document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
-    document.getElementById('lbl-recaudacion-saldo').innerText = `$${saldoRestanteNeto.toFixed(2)}`;
+    
+    // Imprimimos el Saldo Real (Capital/Interés pendiente + Mora) y le pegamos la etiqueta
+    document.getElementById('lbl-recaudacion-saldo').innerHTML = `$${saldoFinalMora.toFixed(2)} ${etiquetaMora}`;
 
     document.getElementById('monto-cobro-input').value = encontrado.valor_cuota;
     
@@ -4343,7 +4427,10 @@ function simularEnrutamientoFlujo(valor) {
     const monto = parseFloat(valor);
     if (isNaN(monto) || monto <= 0 || !creditoSeleccionadoCobro) return;
 
-    const interesFaltantePorAsegurar = interesTotalPactado - interesYaPagado;
+    // 🔥 REGLA DE ORO ALPHA: La mora es pura ganancia, se suma al interés esperado
+    const moraExtra = parseFloat(creditoSeleccionadoCobro.monto_mora) || 0;
+    const interesFaltantePorAsegurar = (interesTotalPactado + moraExtra) - interesYaPagado;
+    
     let destinoInteres = 0; let destinoCapital = 0;
 
     if (interesFaltantePorAsegurar > 0) {
@@ -4404,8 +4491,12 @@ async function procesarCobroOficial() {
         return;
     }
 
-    if (montoInput > creditoSeleccionadoCobro.saldoNeto) {
-        alert(`⚠️ Alerta: El abono no puede ser mayor al saldo pendiente actual ($${creditoSeleccionadoCobro.saldoNeto.toFixed(2)}).`);
+    // 🔥 REGLA DE ORO ALPHA: Calculamos el límite real sumando la mora al saldo
+    const moraExtra = parseFloat(creditoSeleccionadoCobro.monto_mora) || 0;
+    const saldoRealTotal = parseFloat(creditoSeleccionadoCobro.saldoNeto) + moraExtra;
+
+    if (montoInput > saldoRealTotal) {
+        alert(`⚠️ Alerta: El abono no puede ser mayor al saldo pendiente actual ($${saldoRealTotal.toFixed(2)}).`);
         return;
     }
 
@@ -4422,7 +4513,8 @@ async function procesarCobroOficial() {
         
         const numeroNuevoPago = (count || 0) + 1;
 
-        const interesFaltantePorAsegurar = interesTotalPactado - interesYaPagado;
+        // 🔥 REGLA DE ORO ALPHA: Asignamos la mora a la Bóveda de Interés
+        const interesFaltantePorAsegurar = (interesTotalPactado + moraExtra) - interesYaPagado;
         let finalInteres = 0; let finalCapital = 0;
 
         if (interesFaltantePorAsegurar > 0) {
@@ -4455,7 +4547,7 @@ async function procesarCobroOficial() {
         // =================================================================
         // 🧮 CÁLCULO DE SALDO RESIDUAL Y VALIDACIÓN DE LIQUIDACIÓN
         // =================================================================
-        const nuevoSaldo = parseFloat((creditoSeleccionadoCobro.saldoNeto - montoInput).toFixed(2));
+        const nuevoSaldo = parseFloat((saldoRealTotal - montoInput).toFixed(2));
         const esCancelacionTotal = nuevoSaldo <= 0;
 
         // =================================================================
@@ -4896,7 +4988,7 @@ window.cargarTablaGestionMora = async function() {
         // 🔥 TRAEMOS LOS DATOS: ACTIVOS Y CONGELADOS
         const { data: creditosActivos, error } = await supabaseClient
             .from('creditos')
-            .select(`id, monto_capital, total_pagar, saldo_pendiente, fecha_emision, tasa_interes, estado, clientes!inner(id, nombres, apellidos, cedula), historial_pagos(abono_total)`)
+            .select(`id, monto_capital, total_pagar, monto_mora, saldo_pendiente, fecha_emision, tasa_interes, estado, clientes!inner(id, nombres, apellidos, cedula), historial_pagos(abono_total)`)
             .in('estado', ['activo', 'congelado'])
             .order('fecha_emision', { ascending: true });
 
@@ -4963,7 +5055,7 @@ window.cargarTablaGestionMora = async function() {
              return;
         }
 
-        // 4. DIBUJAMOS LA TABLA CON LOS DATOS FILTRADOS
+        // 4. DIBUJAMOS LA TABLA CON LOS DATOS FILTRADOS Y MATEMÁTICAS EXACTAS
         let filasHTML = creditosFiltrados.map(cre => {
             const cli = cre.clientes || {};
             const nombreCliente = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
@@ -4979,7 +5071,6 @@ window.cargarTablaGestionMora = async function() {
             const esCongelado = cre.estado === 'congelado';
             const badgeCongelado = esCongelado ? `<span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">🧊 CONGELADO</span>` : '';
             
-            // 🌟 AQUI INYECTAMOS EL NÚMERO DE CRÉDITO LOCAL (Ej: CRE #17)
             const numLocal = mapNumCreditoLocal[cre.id] || 1;
             let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numLocal).toUpperCase() : '';
             let etiquetaCRE = creCifrado ? `CRE #${numLocal} [${creCifrado}]` : `CRE #${numLocal}`;
@@ -4991,9 +5082,19 @@ window.cargarTablaGestionMora = async function() {
             const diaCap = nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
             const fechaTxt = `${diaCap} ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()}`;
 
+            // 🔥 MATEMÁTICA PURA Y DURA ALPHA
+            const moraExtra = parseFloat(cre.monto_mora) || 0;
+            const prestamoOriginal = parseFloat(cre.total_pagar) || 0;
+            
+            // 1. Total a Pagar Real: Préstamo original + todas las moras acumuladas
+            const deudaTotalReal = prestamoOriginal + moraExtra;
+
+            // 2. Sumamos todo el dinero que el cliente ya abonó
             const pagos = cre.historial_pagos || [];
-            const totalPagado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
-            let saldoReal = parseFloat(cre.total_pagar) - totalPagado;
+            const totalAbonado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
+            
+            // 3. Saldo Neto Actual = La deuda real menos lo que ya pagó
+            let saldoReal = deudaTotalReal - totalAbonado;
             if (saldoReal < 0) saldoReal = 0; 
 
             const tasaOriginal = parseFloat(cre.tasa_interes) || 20;
@@ -5007,10 +5108,14 @@ window.cargarTablaGestionMora = async function() {
                 <td style="padding: 12px; font-weight: bold; font-size: 13px;">${nombreCliente} ${badgeCongelado}</td>
                 <td style="padding: 12px; font-size: 12px; color: #475569;">${fechaTxt}</td>
                 <td style="padding: 12px; text-align: center; font-weight: bold;">$${parseFloat(cre.monto_capital).toFixed(2)}</td>
-                <td style="padding: 12px; text-align: center; color: #ca8a04; font-weight: bold;">$${parseFloat(cre.total_pagar).toFixed(2)}</td>
+                <td style="padding: 12px; text-align: center; color: #ca8a04; font-weight: bold;">$${deudaTotalReal.toFixed(2)}</td>
+                
+                <!-- 🔥 AQUÍ INYECTAMOS LA NUEVA COLUMNA DE ABONOS -->
+                <td style="padding: 12px; text-align: center; color: #16a34a; font-weight: bold;">$${totalAbonado.toFixed(2)}</td>
+                
                 <td style="padding: 12px; text-align: center; color: #ef4444; font-weight: 900;">$${saldoReal.toFixed(2)}</td>
                 <td style="padding: 12px; text-align: center;">
-                    <button onclick="abrirPanelSancion(${cre.id}, '${nombreCliente.replace(/'/g, "\\'")}', ${cre.monto_capital}, ${cre.total_pagar}, ${saldoReal}, ${tasaOriginal}, '${cre.estado}', '${etiquetaCRE}', '${refBancaria}')" style="background: #0f172a; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <button onclick="abrirPanelSancion(${cre.id}, '${nombreCliente.replace(/'/g, "\\'")}', ${cre.monto_capital}, ${deudaTotalReal}, ${saldoReal}, ${tasaOriginal}, '${cre.estado}', '${etiquetaCRE}', '${refBancaria}')" style="background: #0f172a; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         ⚙️ GESTIONAR
                     </button>
                 </td>
@@ -5018,7 +5123,7 @@ window.cargarTablaGestionMora = async function() {
         }).join('');
 
         contenedor.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
             <thead>
                 <tr style="background: #f1f5f9; text-align: left; border-bottom: 2px solid #cbd5e1;">
                     <th style="padding: 12px; font-size: 12px;">N° CRÉDITO</th>
@@ -5026,6 +5131,8 @@ window.cargarTablaGestionMora = async function() {
                     <th style="padding: 12px; font-size: 12px;">EMISIÓN</th>
                     <th style="padding: 12px; font-size: 12px; text-align: center;">CAPITAL INTACTO</th>
                     <th style="padding: 12px; font-size: 12px; text-align: center;">TOTAL A PAGAR</th>
+                    <!-- 🔥 CABECERA DE LA NUEVA COLUMNA -->
+                    <th style="padding: 12px; font-size: 12px; text-align: center;">ABONOS</th>
                     <th style="padding: 12px; font-size: 12px; text-align: center;">SALDO ACTUAL</th>
                     <th style="padding: 12px; font-size: 12px; text-align: center;">ACCIÓN</th>
                 </tr>
@@ -5115,15 +5222,25 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
 window.aplicarMoraSobreCapital = async function(idCredito, montoMulta, saldoActual) {
     if (!confirm(`¿Aplicar una multa de $${parseFloat(montoMulta).toFixed(2)} a este crédito?`)) return;
     try {
-        const nuevoTotal = parseFloat(saldoActual) + parseFloat(montoMulta);
-        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('total_pagar').eq('id', idCredito).single();
+        // 🛑 CAMBIO CLAVE: Leemos el monto_mora y saldo_pendiente, JAMÁS pedimos el total_pagar
+        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente').eq('id', idCredito).single();
         if (errBusq) throw errBusq;
-        const nuevoTotalPagarHistorico = parseFloat(credOriginal.total_pagar) + parseFloat(montoMulta);
         
-        const { error } = await supabaseClient.from('creditos').update({ saldo_pendiente: nuevoTotal, total_pagar: nuevoTotalPagarHistorico }).eq('id', idCredito);
+        const moraAnterior = parseFloat(credOriginal.monto_mora) || 0;
+        const saldoAnterior = parseFloat(credOriginal.saldo_pendiente) || parseFloat(saldoActual);
+        
+        const nuevaMora = moraAnterior + parseFloat(montoMulta);
+        const nuevoSaldo = saldoAnterior + parseFloat(montoMulta);
+        
+        // 🛑 CAMBIO CLAVE: Guardamos el nuevo saldo y la mora extra. El 'total_pagar' se queda intocable.
+        const { error } = await supabaseClient.from('creditos').update({ 
+            saldo_pendiente: nuevoSaldo, 
+            monto_mora: nuevaMora 
+        }).eq('id', idCredito);
+        
         if (error) throw error;
         
-        alert("✅ Multa sobre capital aplicada. El saldo ha aumentado.");
+        alert("✅ Multa sobre capital aplicada. El saldo ha aumentado de forma segura.");
         document.getElementById('modal-sancion-alpha').remove();
         cargarTablaGestionMora();
     } catch (error) { alert("❌ Error al procesar: " + error.message); }
@@ -5132,15 +5249,25 @@ window.aplicarMoraSobreCapital = async function(idCredito, montoMulta, saldoActu
 window.aplicarMoraSobreSaldo = async function(idCredito, montoMulta, saldoActual) {
     if (!confirm(`¿Aplicar una multa de $${parseFloat(montoMulta).toFixed(2)} a este crédito?`)) return;
     try {
-        const nuevoTotal = parseFloat(saldoActual) + parseFloat(montoMulta);
-        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('total_pagar').eq('id', idCredito).single();
+        // 🛑 CAMBIO CLAVE: Leemos el monto_mora y saldo_pendiente, JAMÁS pedimos el total_pagar
+        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente').eq('id', idCredito).single();
         if (errBusq) throw errBusq;
-        const nuevoTotalPagarHistorico = parseFloat(credOriginal.total_pagar) + parseFloat(montoMulta);
         
-        const { error } = await supabaseClient.from('creditos').update({ saldo_pendiente: nuevoTotal, total_pagar: nuevoTotalPagarHistorico }).eq('id', idCredito);
+        const moraAnterior = parseFloat(credOriginal.monto_mora) || 0;
+        const saldoAnterior = parseFloat(credOriginal.saldo_pendiente) || parseFloat(saldoActual);
+        
+        const nuevaMora = moraAnterior + parseFloat(montoMulta);
+        const nuevoSaldo = saldoAnterior + parseFloat(montoMulta);
+        
+        // 🛑 CAMBIO CLAVE: Guardamos el nuevo saldo y la mora extra. El 'total_pagar' se queda intocable.
+        const { error } = await supabaseClient.from('creditos').update({ 
+            saldo_pendiente: nuevoSaldo, 
+            monto_mora: nuevaMora 
+        }).eq('id', idCredito);
+        
         if (error) throw error;
         
-        alert("✅ Multa sobre saldo aplicada. El saldo ha aumentado.");
+        alert("✅ Multa sobre saldo aplicada. El saldo ha aumentado de forma segura.");
         document.getElementById('modal-sancion-alpha').remove();
         cargarTablaGestionMora();
     } catch (error) { alert("❌ Error al procesar: " + error.message); }
@@ -5162,3 +5289,173 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado) {
         cargarTablaGestionMora();
     } catch (error) { alert("❌ Error al procesar: " + error.message); }
 };
+
+
+// =========================================================================
+// 🤖 ROBOT DEL DASHBOARD (ACTUALIZA NÚMEROS EN TIEMPO REAL)
+// =========================================================================
+// =========================================================================
+// 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: ASISTENTE DE VENCIMIENTOS)
+// =========================================================================
+window.despertarRobotDashboard = async function() {
+    try {
+        // 1. FECHA Y HORA ACTUAL
+        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const fechaHoy = new Date();
+        let fechaString = fechaHoy.toLocaleDateString('es-ES', opcionesFecha);
+        const txtFecha = document.getElementById('dash-fecha');
+        if (txtFecha) txtFecha.innerText = fechaString.charAt(0).toUpperCase() + fechaString.slice(1);
+
+        // 2. CONSULTAR CAPITAL GENERAL (EFECTIVO + BANCOS)
+        const { data: cajas } = await supabaseClient.from('cajas_capital').select('saldo_actual');
+        if (cajas && cajas.length > 0) {
+            let capitalTotalGeneral = 0;
+            cajas.forEach(caja => capitalTotalGeneral += parseFloat(caja.saldo_actual || 0));
+            if(document.getElementById('dash-caja')) document.getElementById('dash-caja').innerText = `$${capitalTotalGeneral.toFixed(2)}`;
+        }
+
+        // 3. TRAER CRÉDITOS (AHORA INCLUYE FECHAS Y PERFIL DE COBRO) 🔥
+        const { data: creditos } = await supabaseClient
+            .from('creditos')
+            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, estado, fecha_emision, num_cuotas, clientes(nombres, apellidos, perfil_cobro)')
+            .in('estado', ['activo', 'congelado']);
+
+        if (creditos && creditos.length > 0) {
+            let gananciaProyectada = 0;
+            let cuentasCongeladas = 0;
+            let metaHoy = 0;
+            let deudaTotalEsperada = 0;
+            let idsActivos = [];
+            let alertasVencimiento = [];
+
+            creditos.forEach(c => {
+                idsActivos.push(c.id);
+                
+                if (c.estado === 'congelado') cuentasCongeladas++;
+                if (c.estado === 'activo') metaHoy += parseFloat(c.valor_cuota || 0);
+                gananciaProyectada += parseFloat(c.total_interes || 0);
+                deudaTotalEsperada += parseFloat(c.total_pagar || 0) + parseFloat(c.monto_mora || 0);
+
+                // 🔥 LÓGICA DE FECHAS PARA EL ASISTENTE DE VENCIMIENTOS
+                if (c.estado === 'activo') {
+                    // Si el crédito no tiene fecha de emisión guardada, la inventamos como hoy para que no de error
+                    const fechaEmision = c.fecha_emision ? new Date(c.fecha_emision) : new Date();
+                    
+                    // Calculamos la fecha de vencimiento sumando los días (cuotas) a la fecha de emisión
+                    const diasCredito = parseInt(c.num_cuotas) || 30; // Asume 30 si no hay dato
+                    const fechaVence = new Date(fechaEmision);
+                    fechaVence.setDate(fechaVence.getDate() + diasCredito);
+                    
+                    // Calculamos la diferencia en días exactos entre hoy y el vencimiento
+                    // Hacemos que ambas fechas arranquen a las 00:00:00 para evitar errores de horas
+                    const hoyLimpiado = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), fechaHoy.getDate());
+                    const venceLimpiado = new Date(fechaVence.getFullYear(), fechaVence.getMonth(), fechaVence.getDate());
+                    
+                    const diferenciaTiempo = venceLimpiado.getTime() - hoyLimpiado.getTime();
+                    const diferenciaDias = Math.round(diferenciaTiempo / (1000 * 3600 * 24));
+                    const perfilCliente = c.clientes?.perfil_cobro || 'Normal';
+
+                    // Si vence hoy (0), o ya venció hace menos de 10 días (-1 a -10)
+                    if (diferenciaDias <= 0 && diferenciaDias >= -10) {
+                        const esHoy = diferenciaDias === 0;
+                        const diasAtraso = Math.abs(diferenciaDias);
+                        
+                        alertasVencimiento.push({
+                            nombre: `${c.clientes?.nombres} ${c.clientes?.apellidos}`,
+                            emisionTxt: fechaEmision.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }),
+                            venceTxt: fechaVence.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }),
+                            diasAtraso: diasAtraso,
+                            esHoy: esHoy,
+                            perfil: perfilCliente
+                        });
+                    }
+                }
+            });
+
+            // 4. RESTAR LOS ABONOS PARA EL CAPITAL EN LA CALLE
+            let totalAbonado = 0;
+            if(idsActivos.length > 0) {
+                const { data: pagos } = await supabaseClient
+                    .from('historial_pagos')
+                    .select('abono_total')
+                    .in('id_credito', idsActivos);
+                if (pagos) pagos.forEach(p => totalAbonado += parseFloat(p.abono_total || 0));
+            }
+            const capitalEnLaCalle = deudaTotalEsperada - totalAbonado;
+
+            // 5. IMPRIMIR INDICADORES
+            if(document.getElementById('dash-capital-calle')) document.getElementById('dash-capital-calle').innerText = `$${capitalEnLaCalle.toFixed(2)}`;
+            if(document.getElementById('dash-congeladas')) document.getElementById('dash-congeladas').innerText = cuentasCongeladas;
+            if(document.getElementById('dash-ganancia')) document.getElementById('dash-ganancia').innerText = `$${gananciaProyectada.toFixed(2)}`;
+            if(document.getElementById('dash-meta-hoy')) document.getElementById('dash-meta-hoy').innerText = `$${metaHoy.toFixed(2)}`;
+
+            // 6. 🔥 DIBUJAR LAS ALERTAS INTELIGENTES (Reemplaza a los morosos)
+            let htmlAlertas = '';
+            if (alertasVencimiento.length > 0) {
+                htmlAlertas = alertasVencimiento.map(alerta => {
+                    const colorBorde = alerta.esHoy ? '#eab308' : '#ef4444';
+                    const titulo = alerta.esHoy ? '¡VENCE HOY!' : `Vencido hace ${alerta.diasAtraso} días`;
+                    const badgePerfil = alerta.perfil === 'Social' 
+                        ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">🛡️ SOCIAL (Exento)</span>`
+                        : `<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">⚠️ NORMAL (Aplica Mora)</span>`;
+
+                    return `
+                    <div style="margin-bottom:12px; background: #f8fafc; border-left: 4px solid ${colorBorde}; padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.5;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <strong style="color: #0f172a; font-size: 13px;">${alerta.nombre.toUpperCase()}</strong>
+                            <span style="color: ${colorBorde}; font-weight: 900; font-size: 11px;">${titulo}</span>
+                        </div>
+                        <div style="color: #475569; margin-bottom: 5px;">
+                            El crédito de ${alerta.nombre.toUpperCase()} prestado el <b>${alerta.emisionTxt}</b> finaliza el <b>${alerta.venceTxt}</b>.
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #64748b; font-size: 11px;">(10 días de gracia. Regla: Mitad+1)</span>
+                            ${badgePerfil}
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                htmlAlertas = `
+                <div style="text-align:center; padding:30px 10px;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+                    <p style="color:#10b981; font-weight:bold; margin: 0;">¡Día despejado, Gerente Miguel!</p>
+                    <p style="color:#64748b; font-size: 12px; margin-top: 5px;">No hay créditos que se venzan hoy ni en periodo de gracia.</p>
+                </div>`;
+            }
+            // Inyectamos en el nuevo div de vencimientos
+            if(document.getElementById('dash-lista-vencimientos')) document.getElementById('dash-lista-vencimientos').innerHTML = htmlAlertas;
+            
+            // 7. LOS MEJORES PAGADORES
+            if(document.getElementById('dash-lista-buenos')) document.getElementById('dash-lista-buenos').innerHTML = '<p style="text-align:center; color:#334155; padding:20px 0; font-size: 13px;">⭐ Analizando historial de pagos...</p>';
+        }
+
+    } catch (error) {
+        console.error("Error al despertar el robot:", error);
+    }
+};
+
+// Auto-ejecutar cuando se carga la página por primera vez
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(window.despertarRobotDashboard, 1000);
+});
+
+// =========================================================================
+// 🕵️ ESPÍA SILENCIOSO PARA ACTUALIZAR EL DASHBOARD EN VIVO
+// =========================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const moduloInicio = document.getElementById('mod-inicio');
+    
+    if (moduloInicio) {
+        // El espía detecta cuando la pantalla de inicio es visible
+        const espiaDashboard = new IntersectionObserver((entradas) => {
+            if (entradas[0].isIntersecting) {
+                // ¡El módulo de inicio apareció en pantalla! Despertamos al robot.
+                if (typeof window.despertarRobotDashboard === 'function') {
+                    window.despertarRobotDashboard();
+                }
+            }
+        }, { threshold: 0.1 }); // Se activa apenas el 10% del panel asoma en pantalla
+
+        espiaDashboard.observe(moduloInicio);
+    }
+});
