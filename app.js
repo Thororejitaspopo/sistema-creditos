@@ -3828,7 +3828,12 @@ async function cargarEstadoCuentaCredito(idCredito) {
         fechaEmisionStr = `${dias[fEmi.getDay()]} ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()}`;
     }
 
+    // 🔥 BUSCAMOS EL ACUERDO DE PAGO Y EL NÚMERO DE CRE A LA VEZ 🔥
     let numCre = '?';
+    let textoAcuerdo = ''; // Variable para guardar el acuerdo si existe
+    let nuevaCuotaAcuerdo = null;
+    let nuevaFrecuenciaAcuerdo = null;
+
     try {
         const { data: credFull } = await supabaseClient
             .from('creditos')
@@ -3836,22 +3841,41 @@ async function cargarEstadoCuentaCredito(idCredito) {
             .eq('id', encontrado.id)
             .single();
             
-        if (credFull && credFull.numero_credito) {
-            numCre = credFull.numero_credito;
-        } else if (credFull && credFull.cliente_id) {
-            const { data: historialCli } = await supabaseClient
-                .from('creditos')
-                .select('id')
-                .eq('cliente_id', credFull.cliente_id)
-                .order('id', { ascending: true });
+        if (credFull) {
+            textoAcuerdo = credFull.acuerdo_pago || ''; // Leemos el cajón de memoria
+            
+            // INTELIGENCIA ARTIFICIAL BÁSICA: Leer la cuota y la frecuencia del acuerdo
+            if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
+                const acuerdoLower = textoAcuerdo.toLowerCase();
                 
-            if (historialCli) {
-                const pos = historialCli.findIndex(c => c.id == encontrado.id);
-                if (pos !== -1) numCre = pos + 1;
+                // 1. Extraer el valor en dólares ($)
+                const matchMonto = textoAcuerdo.match(/\$?\s*(\d+(\.\d{1,2})?)/);
+                if (matchMonto) nuevaCuotaAcuerdo = parseFloat(matchMonto[1]);
+
+                // 2. Extraer la frecuencia
+                if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) nuevaFrecuenciaAcuerdo = 'DIARIO';
+                else if (acuerdoLower.includes('semanal') || acuerdoLower.includes('por semana')) nuevaFrecuenciaAcuerdo = 'SEMANAL';
+                else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) nuevaFrecuenciaAcuerdo = 'QUINCENAL';
+                else if (acuerdoLower.includes('mensual') || acuerdoLower.includes('al mes')) nuevaFrecuenciaAcuerdo = 'MENSUAL';
+            }
+            
+            if (credFull.numero_credito) {
+                numCre = credFull.numero_credito;
+            } else if (credFull.cliente_id) {
+                const { data: historialCli } = await supabaseClient
+                    .from('creditos')
+                    .select('id')
+                    .eq('cliente_id', credFull.cliente_id)
+                    .order('id', { ascending: true });
+                    
+                if (historialCli) {
+                    const pos = historialCli.findIndex(c => c.id == encontrado.id);
+                    if (pos !== -1) numCre = pos + 1;
+                }
             }
         }
     } catch (errorCRE) {
-        console.log("Error buscando el CRE:", errorCRE);
+        console.log("Error buscando datos completos del crédito:", errorCRE);
     }
 
     const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numCre).toUpperCase() : '?';
@@ -3859,34 +3883,89 @@ async function cargarEstadoCuentaCredito(idCredito) {
     document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | CRE #${numCre} [${codigoCifrado}] | 📅 ${fechaEmisionStr}`;
     document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
     document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
-    document.getElementById('lbl-recaudacion-cuota').innerText = `$${parseFloat(encontrado.valor_cuota).toFixed(2)}`;
-    document.getElementById('lbl-recaudacion-frecuencia').innerText = (encontrado.frecuencia_pago || 'DIARIO').replace('📅', '').trim().toUpperCase();
+    
+    // =====================================================================
+    // 🌟 MAGIA INTERNACIONAL: EL LETRERO DORADO DE CONVENIOS
+    // =====================================================================
+    const contenedorBanderas = document.getElementById('contenedor-banderas-recaudacion'); 
+    
+    // Si no existe el contenedor de banderas (es decir, es la primera vez que inyectamos esto), lo creamos dinámicamente:
+    if (!contenedorBanderas) {
+        const lblRef = document.getElementById('lbl-recaudacion-ref');
+        const divBanderas = document.createElement('div');
+        divBanderas.id = 'contenedor-banderas-recaudacion';
+        divBanderas.style.marginBottom = '15px';
+        lblRef.parentNode.insertBefore(divBanderas, lblRef.nextSibling); // Lo pone debajo del nombre del cliente
+    }
+    
+    // Pintamos el letrero SÓLO si la cuenta está congelada y tiene un acuerdo
+    const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
+    if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
+        cajaBanderas.innerHTML = `
+            <div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 12px 15px; margin-top: 10px; box-shadow: 0 4px 6px -1px rgba(202, 138, 4, 0.2);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                    <span style="font-size: 18px;">🤝</span>
+                    <span style="color: #854d0e; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Acuerdo de Refinanciamiento Activo</span>
+                </div>
+                <div style="color: #422006; font-size: 14px; font-weight: bold; line-height: 1.4; padding-left: 26px;">
+                    "${textoAcuerdo}"
+                </div>
+                <div style="text-align: right; margin-top: 5px;">
+                    <span style="background: #ca8a04; color: white; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold;">CUENTA CONGELADA</span>
+                </div>
+            </div>`;
+    } else if (encontrado.estado === 'congelado' && textoAcuerdo.trim() === '') {
+         // Letrero azul suave si está congelado pero sin texto específico
+         cajaBanderas.innerHTML = `
+            <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px 15px; margin-top: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">🧊</span>
+                    <span style="color: #0369a1; font-weight: 800; font-size: 13px;">Cuenta Protegida (Sin acuerdo escrito)</span>
+                </div>
+            </div>`;
+    } else {
+        cajaBanderas.innerHTML = ''; // Limpiamos si es una cuenta normal activa
+    }
+    // =====================================================================
+
+    // 🧮 APLICAR MATEMÁTICAS DEL CONVENIO A LA INTERFAZ
+    const cuotaFinal = nuevaCuotaAcuerdo !== null ? nuevaCuotaAcuerdo : parseFloat(encontrado.valor_cuota);
+    const frecuenciaFinal = nuevaFrecuenciaAcuerdo !== null ? nuevaFrecuenciaAcuerdo : (encontrado.frecuencia_pago || 'DIARIO').replace('📅', '').trim().toUpperCase();
+
+    document.getElementById('lbl-recaudacion-cuota').innerText = `$${cuotaFinal.toFixed(2)}`;
+    document.getElementById('lbl-recaudacion-frecuencia').innerText = frecuenciaFinal;
+    
+    // Si hay convenio, resaltar los valores para que el cajero se dé cuenta del cambio
+    if (nuevaCuotaAcuerdo !== null) {
+        document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px;">$${cuotaFinal.toFixed(2)}</span>`;
+        document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal}</span>`;
+    }
     
     // MAGIA MATEMÁTICA: Cuotas pendientes
     const elCuotas = document.getElementById('lbl-recaudacion-num-cuotas');
     if (elCuotas) {
-        const cuotasTotales = parseInt(encontrado.num_cuotas) || 1;
-        const valorDeCuota = parseFloat(encontrado.valor_cuota) || 1;
+        // Usamos la cuota final (la del acuerdo o la original) para calcular cuotas pendientes
+        const valorDeCuota = cuotaFinal || 1; 
         
         let cuotasPendientes = Math.ceil(saldoRestanteNeto / valorDeCuota);
         if (cuotasPendientes < 0) cuotasPendientes = 0; 
 
-        elCuotas.innerHTML = `${cuotasTotales} &nbsp; <span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes)</span>`;
+        // Si hay convenio, cambiamos el texto a "N/A" para cuotas totales originales
+        const textoCuotasTotales = nuevaCuotaAcuerdo !== null ? '<span title="Modificado por convenio">N/A</span>' : (parseInt(encontrado.num_cuotas) || 1);
+
+        elCuotas.innerHTML = `${textoCuotasTotales} &nbsp; <span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes Aprox.)</span>`;
     }
 
-    // 🔥 INYECCIÓN: Lógica matemática para sumar mora y dibujar las etiquetas en la tarjeta
     const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
     const saldoFinalMora = saldoRestanteNeto + moraGuardada;
     
     const etiquetaMora = moraGuardada > 0 ? `<span style="margin-left: 10px; color: #ef4444; font-size: 12px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">+ Mora $${moraGuardada.toFixed(2)}</span>` : '';
     
-    // Dejamos el Préstamo Original intacto
     document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
-    
-    // Imprimimos el Saldo Real (Capital/Interés pendiente + Mora) y le pegamos la etiqueta
     document.getElementById('lbl-recaudacion-saldo').innerHTML = `$${saldoFinalMora.toFixed(2)} ${etiquetaMora}`;
 
-    document.getElementById('monto-cobro-input').value = encontrado.valor_cuota;
+    // El input sugiere cobrar la cuota del acuerdo, o la cuota normal si no hay acuerdo
+    document.getElementById('monto-cobro-input').value = cuotaFinal.toFixed(2);
     
     if (typeof simularEnrutamientoFlujo === 'function') {
         simularEnrutamientoFlujo(encontrado.valor_cuota);
@@ -3895,8 +3974,6 @@ async function cargarEstadoCuentaCredito(idCredito) {
     document.getElementById('recaudacion-espera-msg').style.display = 'none';
     document.getElementById('panel-recaudacion-activo').style.display = 'block';
 
-    // 🎨 LLAMAMOS A LA FUNCIÓN QUE DIBUJA SOLO 4 ABONOS EN PANTALLA
-    // (Ahora se ejecuta al final para asegurar que el CRE cifrado ya está calculado)
     renderizarAbonosPaginados();
 }
 
@@ -5143,7 +5220,6 @@ window.cargarTablaGestionMora = async function() {
         contenedor.innerHTML = `<p style="color:red; text-align:center;">❌ Error: ${error.message}</p>`;
     }
 };
-
 // =========================================================================
 // ⚙️ PANEL VISUAL DE SANCIONES Y CONEXIÓN A BASE DE DATOS
 // =========================================================================
@@ -5174,15 +5250,22 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
         ? `<button onclick="alternarCongelamiento(${idCredito}, 'activo')" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);"><span>🔥 Descongelar Cuenta</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Reactivar recargos</span></button>`
         : `<button onclick="alternarCongelamiento(${idCredito}, 'congelado')" style="padding: 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);"><span>🧊 Congelar Cuenta</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Pausar recargos</span></button>`;
 
+    // 🔥 BOTÓN PERDONAR AHORA ES DINÁMICO Y SE BLOQUEA SI ESTÁ CONGELADO 🔥
+    const btnPerdonarHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #86efac; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🛡️ Perdonar este mes (BLOQUEADO)</span></button>`
+        : `<button onclick="perdonarMoraEsteMes(${idCredito})" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"><span>🛡️ Perdonar este mes</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Pausar 30 días</span></button>`;
+
+    // 📜 BOTÓN: HISTORIAL DE MORAS
+    const btnHistorialHTML = `<button onclick="verHistorialMoras(${idCredito}, '${nombreCliente.replace(/'/g, "\\'")}')" style="margin-top: 5px; padding: 10px; background: #f8fafc; color: #334155; border: 1px dashed #94a3b8; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'"><span>📜 Ver Historial de Moras y Perdones</span></button>`;
+   
     const modalHTML = `
     <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; backdrop-filter: blur(4px);">
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;">
             
             <div style="background: #0f172a; padding: 20px; text-align: center;">
                 <h3 style="margin: 0; color: white; font-size: 18px;">⚖️ Panel de Resolución de Cartera</h3>
-                <!-- 🔥 AQUI ESTÁ EL CÓDIGO IDENTICO AL DE LA TABLA -->
-                <p style="margin: 8px 0 2px 0; color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">ID: ${idCredito} | ${refBancaria}</p>
-                <p style="margin: 0 0 5px 0; color: #ca8a04; font-weight: bold; font-size: 16px;">${etiquetaCRE}</p>
+                <p style="margin: 8px 0 2px 0; color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">ID: ${idCredito} | ${refBancaria || 'REF: NO-DATA'}</p>
+                <p style="margin: 0 0 5px 0; color: #ca8a04; font-weight: bold; font-size: 16px;">${etiquetaCRE || 'CRE #'}</p>
                 <p style="margin: 5px 0 0 0; color: #f8fafc; font-size: 14px; text-transform: uppercase;">${nombreCliente}</p>
                 ${esCongelado ? '<div style="margin-top: 10px; display: inline-block; background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">🧊 CUENTA CONGELADA Y PROTEGIDA</div>' : ''}
             </div>
@@ -5206,6 +5289,8 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
                 ${btnCapitalHTML}
                 ${btnSaldoHTML}
                 ${btnCongelarHTML}
+                ${btnPerdonarHTML}
+                ${btnHistorialHTML} 
             </div>
 
             <div style="padding: 15px 20px; background: #f1f5f9; text-align: center;">
@@ -5216,78 +5301,188 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 };
 
-// =========================================================================
-// 🚀 INYECCIONES DIRECTAS A SUPABASE (LOS CEREBROS DE LOS BOTONES)
-// =========================================================================
-window.aplicarMoraSobreCapital = async function(idCredito, montoMulta, saldoActual) {
-    if (!confirm(`¿Aplicar una multa de $${parseFloat(montoMulta).toFixed(2)} a este crédito?`)) return;
-    try {
-        // 🛑 CAMBIO CLAVE: Leemos el monto_mora y saldo_pendiente, JAMÁS pedimos el total_pagar
-        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente').eq('id', idCredito).single();
-        if (errBusq) throw errBusq;
-        
-        const moraAnterior = parseFloat(credOriginal.monto_mora) || 0;
-        const saldoAnterior = parseFloat(credOriginal.saldo_pendiente) || parseFloat(saldoActual);
-        
-        const nuevaMora = moraAnterior + parseFloat(montoMulta);
-        const nuevoSaldo = saldoAnterior + parseFloat(montoMulta);
-        
-        // 🛑 CAMBIO CLAVE: Guardamos el nuevo saldo y la mora extra. El 'total_pagar' se queda intocable.
-        const { error } = await supabaseClient.from('creditos').update({ 
-            saldo_pendiente: nuevoSaldo, 
-            monto_mora: nuevaMora 
-        }).eq('id', idCredito);
-        
-        if (error) throw error;
-        
-        alert("✅ Multa sobre capital aplicada. El saldo ha aumentado de forma segura.");
+// Función temporal para que el botón verde no dé error si lo aplasta
+window.perdonarMoraEsteMes = function(idCredito) {
+    if(confirm("🛡️ ¿Desea PERDONAR LA MORA y patear la fecha 30 días para este crédito?")) {
+        alert("En el siguiente paso programaremos Supabase para guardar este perdón.");
         document.getElementById('modal-sancion-alpha').remove();
-        cargarTablaGestionMora();
-    } catch (error) { alert("❌ Error al procesar: " + error.message); }
+    }
 };
 
-window.aplicarMoraSobreSaldo = async function(idCredito, montoMulta, saldoActual) {
-    if (!confirm(`¿Aplicar una multa de $${parseFloat(montoMulta).toFixed(2)} a este crédito?`)) return;
+// =========================================================================
+// 🔌 MOTORES DE RESOLUCIÓN INDIVIDUAL (CONECTADOS A SUPABASE)
+// =========================================================================
+
+// 1. EL BOTÓN ROJO: MORA S/ CAPITAL
+window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldoActual) {
+    if (!confirm(`🚨 ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE CAPITAL?`)) return;
+
     try {
-        // 🛑 CAMBIO CLAVE: Leemos el monto_mora y saldo_pendiente, JAMÁS pedimos el total_pagar
-        const { data: credOriginal, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente').eq('id', idCredito).single();
+        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente, fecha_emision, num_cuotas, fecha_vencimiento_actual').eq('id', idCredito).single();
         if (errBusq) throw errBusq;
         
-        const moraAnterior = parseFloat(credOriginal.monto_mora) || 0;
-        const saldoAnterior = parseFloat(credOriginal.saldo_pendiente) || parseFloat(saldoActual);
+        const moraAnterior = parseFloat(credito.monto_mora) || 0;
+        const saldoAnterior = parseFloat(credito.saldo_pendiente) || parseFloat(saldoActual);
         
-        const nuevaMora = moraAnterior + parseFloat(montoMulta);
-        const nuevoSaldo = saldoAnterior + parseFloat(montoMulta);
-        
-        // 🛑 CAMBIO CLAVE: Guardamos el nuevo saldo y la mora extra. El 'total_pagar' se queda intocable.
+        const nuevaMora = moraAnterior + parseFloat(cantidadASumar);
+        const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar);
+
+        // 🛑 LA MAGIA: Solo pateamos la 'fecha_vencimiento_actual' 30 días
+        let fechaBase = credito.fecha_vencimiento_actual ? new Date(credito.fecha_vencimiento_actual) : new Date(new Date(credito.fecha_emision).getTime() + (credito.num_cuotas * 24 * 60 * 60 * 1000));
+        fechaBase.setDate(fechaBase.getDate() + 30);
+        const nuevaFechaVencimiento = fechaBase.toISOString().split('T')[0];
+
         const { error } = await supabaseClient.from('creditos').update({ 
-            saldo_pendiente: nuevoSaldo, 
-            monto_mora: nuevaMora 
+            saldo_pendiente: Number(nuevoSaldo.toFixed(2)),
+            monto_mora: Number(nuevaMora.toFixed(2)),
+            fecha_vencimiento_actual: nuevaFechaVencimiento // Actualizamos el campo móvil
         }).eq('id', idCredito);
-        
+
         if (error) throw error;
+
+        await supabaseClient.from('historial_moras').insert({
+            credito_id: idCredito,
+            tipo_accion: 'Mora s/ Capital',
+            monto_castigo: Number(cantidadASumar.toFixed(2)),
+            detalle: `Mora aplicada. Próximo vencimiento: ${nuevaFechaVencimiento}.`
+        });
+
+        alert("✅ Mora aplicada correctamente.\nEl cliente sale de las alertas.");
         
-        alert("✅ Multa sobre saldo aplicada. El saldo ha aumentado de forma segura.");
-        document.getElementById('modal-sancion-alpha').remove();
-        cargarTablaGestionMora();
-    } catch (error) { alert("❌ Error al procesar: " + error.message); }
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
+        if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
+        
+    } catch (error) {
+        console.error("Error en Mora Capital:", error);
+        alert("❌ Error al procesar: " + error.message);
+    }
 };
 
+// 2. EL BOTÓN NARANJA: MORA S/ SALDO
+window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoActual) {
+    if (!confirm(`⚡ ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE SALDO?`)) return;
+
+    try {
+        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente, fecha_emision, num_cuotas, fecha_vencimiento_actual').eq('id', idCredito).single();
+        if (errBusq) throw errBusq;
+        
+        const moraAnterior = parseFloat(credito.monto_mora) || 0;
+        const saldoAnterior = parseFloat(credito.saldo_pendiente) || parseFloat(saldoActual);
+        
+        const nuevaMora = moraAnterior + parseFloat(cantidadASumar);
+        const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar);
+
+        // 🛑 LA MAGIA: Solo pateamos la 'fecha_vencimiento_actual' 30 días
+        let fechaBase = credito.fecha_vencimiento_actual ? new Date(credito.fecha_vencimiento_actual) : new Date(new Date(credito.fecha_emision).getTime() + (credito.num_cuotas * 24 * 60 * 60 * 1000));
+        fechaBase.setDate(fechaBase.getDate() + 30);
+        const nuevaFechaVencimiento = fechaBase.toISOString().split('T')[0];
+
+        const { error } = await supabaseClient.from('creditos').update({ 
+            saldo_pendiente: Number(nuevoSaldo.toFixed(2)),
+            monto_mora: Number(nuevaMora.toFixed(2)),
+            fecha_vencimiento_actual: nuevaFechaVencimiento 
+        }).eq('id', idCredito);
+
+        if (error) throw error;
+
+        await supabaseClient.from('historial_moras').insert({
+            credito_id: idCredito,
+            tipo_accion: 'Mora s/ Saldo',
+            monto_castigo: Number(cantidadASumar.toFixed(2)),
+            detalle: `Mora aplicada. Próximo vencimiento: ${nuevaFechaVencimiento}.`
+        });
+
+        alert("✅ Mora aplicada correctamente.");
+        
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
+        if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
+
+    } catch (error) {
+        console.error("Error en Mora Saldo:", error);
+        alert("❌ Error al procesar: " + error.message);
+    }
+};
+
+// 3. EL BOTÓN VERDE: PERDONAR ESTE MES (PERFIL SOCIAL)
+window.perdonarMoraEsteMes = async function(idCredito) {
+    if (!confirm("🛡️ ¿Desea PERDONAR LA MORA y patear la fecha 30 días para este crédito?")) return;
+
+    try {
+        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('fecha_emision, num_cuotas, fecha_vencimiento_actual').eq('id', idCredito).single();
+        if (errBusq) throw errBusq;
+        
+        // 🛑 LA MAGIA: Solo pateamos la 'fecha_vencimiento_actual' 30 días
+        let fechaBase = credito.fecha_vencimiento_actual ? new Date(credito.fecha_vencimiento_actual) : new Date(new Date(credito.fecha_emision).getTime() + (credito.num_cuotas * 24 * 60 * 60 * 1000));
+        fechaBase.setDate(fechaBase.getDate() + 30);
+        const nuevaFechaVencimiento = fechaBase.toISOString().split('T')[0];
+
+        const { error } = await supabaseClient.from('creditos').update({ 
+            fecha_vencimiento_actual: nuevaFechaVencimiento 
+        }).eq('id', idCredito);
+
+        if (error) throw error;
+
+        await supabaseClient.from('historial_moras').insert({
+            credito_id: idCredito,
+            tipo_accion: 'Perdón de Mora (Social)',
+            monto_castigo: 0.00,
+            detalle: `Perdón aplicado. Próximo vencimiento: ${nuevaFechaVencimiento}.`
+        });
+
+        alert("✅ Cliente perdonado y registrado en el historial.");
+        
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
+        if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
+
+    } catch (error) {
+        console.error("Error al Perdonar:", error);
+        alert("❌ Error al procesar: " + error.message);
+    }
+};
+
+// =========================================================================
+// 🧊 MOTOR PARA CONGELAR/DESCONGELAR CUENTAS Y REGISTRAR CONVENIOS
+// =========================================================================
 window.alternarCongelamiento = async function(idCredito, nuevoEstado) {
-    const accionTexto = nuevoEstado === 'congelado' ? 'CONGELAR' : 'DESCONGELAR';
-    if (!confirm(`¿Estás seguro de ${accionTexto} esta cuenta?`)) return;
+    let mensajeConfirmacion = nuevoEstado === 'congelado' 
+        ? "¿Está seguro de CONGELAR esta cuenta? Se detendrán los recargos automáticos." 
+        : "¿Está seguro de DESCONGELAR esta cuenta? Volverá a estar activa en el radar.";
+        
+    if (!confirm(mensajeConfirmacion)) return;
+
+    let notaAcuerdo = '';
+    // Si la vamos a congelar, el sistema lanza la pregunta clave:
+    if (nuevoEstado === 'congelado') {
+        notaAcuerdo = prompt("🤝 CONVENIO DE PAGO (Opcional):\n\nSi llegó a un acuerdo de refinanciamiento con el cliente, escríbalo aquí (Ej: $50 Semanal los viernes).\n\nSi no hay acuerdo, deje esto vacío y presione Aceptar:") || '';
+    }
+
     try {
-        const { error } = await supabaseClient.from('creditos').update({ estado: nuevoEstado }).eq('id', idCredito);
+        // Inyectamos a Supabase el nuevo estado y la nota (si se descongela, se guarda vacío)
+        const { error } = await supabaseClient.from('creditos').update({ 
+            estado: nuevoEstado,
+            acuerdo_pago: notaAcuerdo 
+        }).eq('id', idCredito);
+
         if (error) throw error;
+
+        let msjExito = nuevoEstado === 'congelado' 
+            ? "🧊 Cuenta CONGELADA exitosamente." + (notaAcuerdo ? `\nAcuerdo guardado: ${notaAcuerdo}` : "")
+            : "🔥 Cuenta DESCONGELADA. El cliente vuelve al radar normal.";
+            
+        alert(msjExito);
         
-        const mensaje = nuevoEstado === 'congelado' 
-            ? "🧊 Cuenta congelada exitosamente. Protegida contra recargos." 
-            : "🔥 Cuenta descongelada exitosamente. Lista para nuevas multas.";
-        alert(mensaje);
-        
-        document.getElementById('modal-sancion-alpha').remove();
-        cargarTablaGestionMora();
-    } catch (error) { alert("❌ Error al procesar: " + error.message); }
+        // Cerramos el panel negro y recargamos el sistema visual
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
+        if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
+
+    } catch (error) {
+        console.error("Error al cambiar estado:", error);
+        alert("❌ Error al procesar: " + error.message);
+    }
 };
 
 
@@ -5310,7 +5505,7 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado) {
 // 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: BUSCADOR RELÁMPAGO Y FILTROS)
 // =========================================================================
 // =========================================================================
-// 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: SCROLL MAGNÉTICO)
+// 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: CONECTADO AL CALENDARIO MÓVIL)
 // =========================================================================
 window.despertarRobotDashboard = async function() {
     try {
@@ -5341,9 +5536,10 @@ window.despertarRobotDashboard = async function() {
             });
         }
 
+        // 🛑 CIRUGÍA 1: Agregamos 'fecha_vencimiento_actual' al final del select
         const { data: creditos } = await supabaseClient
             .from('creditos')
-            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, estado, fecha_emision, num_cuotas, clientes(nombres, apellidos, cedula, perfil_cobro), historial_pagos(abono_total)')
+            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, estado, fecha_emision, num_cuotas, clientes(nombres, apellidos, cedula, perfil_cobro), historial_pagos(abono_total), fecha_vencimiento_actual')
             .in('estado', ['activo', 'congelado']);
 
         if (creditos && creditos.length > 0) {
@@ -5374,8 +5570,16 @@ window.despertarRobotDashboard = async function() {
                 if (c.estado === 'activo') {
                     const fechaEmision = c.fecha_emision ? new Date(c.fecha_emision) : new Date();
                     const diasCredito = parseInt(c.num_cuotas) || 30;
-                    const fechaVence = new Date(fechaEmision);
-                    fechaVence.setDate(fechaVence.getDate() + diasCredito);
+                    
+                    // 🛑 CIRUGÍA 2: El Robot lee la fecha móvil. Si no hay, usa la lógica original.
+                    let fechaVence;
+                    if (c.fecha_vencimiento_actual) {
+                        const partes = c.fecha_vencimiento_actual.split('-');
+                        fechaVence = new Date(partes[0], partes[1] - 1, partes[2]);
+                    } else {
+                        fechaVence = new Date(fechaEmision.getFullYear(), fechaEmision.getMonth(), fechaEmision.getDate());
+                        fechaVence.setDate(fechaVence.getDate() + diasCredito);
+                    }
                     
                     const hoyLimpiado = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), fechaHoy.getDate());
                     const venceLimpiado = new Date(fechaVence.getFullYear(), fechaVence.getMonth(), fechaVence.getDate());
@@ -5447,7 +5651,6 @@ window.despertarRobotDashboard = async function() {
                         ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #bbf7d0;">🛡️ SOCIAL (No Multar)</span>`
                         : `<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fecaca;">⚠️ NORMAL (Aplica Mora)</span>`;
 
-                    // 🔥 ATENCIÓN AQUÍ: Se inyectó scroll-snap-align: start; scroll-snap-stop: always;
                     return `
                     <div class="tarjeta-alerta-vencimiento" data-nombre="${alerta.nombre}" style="scroll-snap-align: start; scroll-snap-stop: always; margin-bottom:15px; background: white; border: 1px solid #e2e8f0; border-left: 5px solid ${colorBorde}; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
                         
@@ -5481,16 +5684,24 @@ window.despertarRobotDashboard = async function() {
                                 </div>
                             </div>
 
-                            <div style="color: #475569; font-size: 11px; line-height: 1.6;">
-                                <div style="display: flex; align-items: center; gap: 5px;">
-                                    <span style="font-size: 14px;">📅</span> 
-                                    <span>Emitido: <b style="color: #334155;">${alerta.emisionTxt}</b></span>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                                <div style="color: #475569; font-size: 11px; line-height: 1.6;">
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <span style="font-size: 14px;">📅</span> 
+                                        <span>Emitido: <b style="color: #334155;">${alerta.emisionTxt}</b></span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
+                                        <span style="font-size: 14px;">🚩</span> 
+                                        <span>Vencimiento: <b style="color: #dc2626;">${alerta.venceTxt}</b></span>
+                                    </div>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
-                                    <span style="font-size: 14px;">🚩</span> 
-                                    <span>Vencimiento: <b style="color: #dc2626;">${alerta.venceTxt}</b></span>
-                                </div>
+                                
+                                <!-- 🔥 LLAMADA DIRECTA A SU FUNCIÓN MAESTRA 🔥 -->
+                                <button onclick="abrirPanelSancion('${alerta.idCredito}', '${alerta.nombre.replace(/'/g, "\\'")}', ${alerta.capital}, 0, ${alerta.saldo}, 20, 'activo', '${alerta.etiquetaCRE}', 'REF: ${alerta.refBancaria}')" style="background: #0f172a; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='#0f172a'">
+                                    ⚙️ GESTIONAR
+                                </button>
                             </div>
+                            
                         </div>
 
                         <div style="background: #f8fafc; padding: 8px 15px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
@@ -5563,10 +5774,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// 🔒 BOTÓN MAESTRO: MOTOR DE CASTIGOS AUTOMÁTICOS (SUPABASE)
+// ⚡ LA BARREDORA AUTOMÁTICA DE MORAS (NUEVAS REGLAS: 15 PAGOS + HISTORIAL)
 // =========================================================================
 window.ejecutarMorasConClave = async function() {
-    // 1. Cerradura de Seguridad
+    // 1. Cerradura de Seguridad (Mantenemos su estilo de seguridad)
     let claveIngresada = prompt("🔒 ACCESO RESTRINGIDO GERENCIAL:\nPor favor, ingrese la clave de autorización para ejecutar los castigos de cartera:");
     if (claveIngresada === null) return; 
 
@@ -5575,16 +5786,15 @@ window.ejecutarMorasConClave = async function() {
         return;
     }
 
-    // 2. Si la clave es correcta, arranca el Motor
     alert("✅ CLAVE ACEPTADA.\nIniciando el escaneo de cartera. Por favor presione 'Aceptar' y NO cierre esta ventana hasta que termine el proceso.");
 
     try {
-        // Traemos los créditos activos para analizarlos
-        const { data: creditos } = await supabaseClient
+        const { data: creditos, error: errCreditos } = await supabaseClient
             .from('creditos')
-            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, fecha_emision, num_cuotas, clientes(perfil_cobro), historial_pagos(abono_total)')
+            .select('id, monto_capital, saldo_pendiente, monto_mora, fecha_emision, num_cuotas, fecha_vencimiento_actual, clientes(nombres, apellidos, perfil_cobro), historial_pagos(id)')
             .eq('estado', 'activo');
 
+        if (errCreditos) throw errCreditos;
         if (!creditos || creditos.length === 0) {
             alert("No hay créditos activos para analizar.");
             return;
@@ -5592,91 +5802,165 @@ window.ejecutarMorasConClave = async function() {
 
         const fechaHoy = new Date();
         const hoyLimpiado = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), fechaHoy.getDate());
+        
         let castigosAplicados = 0;
         let perfilesSocialesOmitidos = 0;
 
-        // 3. Analizamos cliente por cliente
-        for (let c of creditos) {
-            // Fecha límite actual
-            const fechaEmision = c.fecha_emision ? new Date(c.fecha_emision) : new Date();
-            const diasCredito = parseInt(c.num_cuotas) || 30;
-            const fechaVence = new Date(fechaEmision);
-            fechaVence.setDate(fechaVence.getDate() + diasCredito);
-            const venceLimpiado = new Date(fechaVence.getFullYear(), fechaVence.getMonth(), fechaVence.getDate());
+        for (const c of creditos) {
+            const perfilCliente = c.clientes?.perfil_cobro || 'Normal';
             
-            // ¿Cuántos días han pasado desde que se venció?
+            // 🛡️ REGLA 1: Ignoramos Perfil Social
+            if (perfilCliente.toUpperCase().includes('SOCIAL')) {
+                perfilesSocialesOmitidos++;
+                continue; 
+            }
+
+            // Calculamos fecha de vencimiento con el calendario seguro
+            let fechaVence;
+            if (c.fecha_vencimiento_actual) {
+                const partes = c.fecha_vencimiento_actual.split('-');
+                fechaVence = new Date(partes[0], partes[1] - 1, partes[2]);
+            } else {
+                const fechaE = new Date(c.fecha_emision);
+                fechaVence = new Date(fechaE.getFullYear(), fechaE.getMonth(), fechaE.getDate());
+                fechaVence.setDate(fechaVence.getDate() + (parseInt(c.num_cuotas) || 30));
+            }
+
+            const venceLimpiado = new Date(fechaVence.getFullYear(), fechaVence.getMonth(), fechaVence.getDate());
             const diferenciaTiempo = venceLimpiado.getTime() - hoyLimpiado.getTime();
             const diferenciaDias = Math.round(diferenciaTiempo / (1000 * 3600 * 24));
 
-            // SI YA PASARON LOS 10 DÍAS DE GRACIA (Es decir, diferenciaDias es menor o igual a -11)
-            if (diferenciaDias <= -11) {
+            // 🚨 REGLA 2: Atacar al DÍA 10 (<= -10)
+            if (diferenciaDias <= -10) {
                 
-                // Filtro 1: ¿Es perfil social?
-                if (c.clientes?.perfil_cobro === 'Social') {
-                    perfilesSocialesOmitidos++;
-                    continue; // Salta al siguiente cliente sin hacerle nada
-                }
-
-                // Matemática Financiera del Gerente:
-                const capital = parseFloat(c.monto_capital || 0);
-                const interes = parseFloat(c.total_interes || 0);
-                const cuotaFija = parseFloat(c.valor_cuota || 0);
-                const moraAnterior = parseFloat(c.monto_mora || 0);
-                const totalDeudaBase = parseFloat(c.total_pagar || 0);
-
-                // Sacamos el Porcentaje Real de este crédito (Ej: 20 / 100 = 0.20 -> 20%)
-                const porcentajeCredito = (interes / capital); 
-
-                // Sumamos los abonos
-                const pagos = c.historial_pagos || [];
-                const totalAbonado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
+                const cantidadAbonos = c.historial_pagos ? c.historial_pagos.length : 0;
+                const moraAnterior = parseFloat(c.monto_mora) || 0;
+                const saldoAnterior = parseFloat(c.saldo_pendiente) || 0;
+                const capital = parseFloat(c.monto_capital) || 0;
                 
-                // Calculamos cuotas pagadas y la regla de la Mitad+1
-                const cuotasPagadas = Math.floor(totalAbonado / cuotaFija);
-                const mitadMasUno = Math.floor(diasCredito / 2) + 1;
-                const saldoActual = (totalDeudaBase + moraAnterior) - totalAbonado;
+                let multaAplicar = 0;
+                let tipoAccionGuardar = '';
 
-                let nuevaMoraASumar = 0;
-
-                // REGLA DE ORO
-                if (cuotasPagadas >= mitadMasUno) {
-                    // Castigo Suave: Mora sobre el Saldo (Ej: 56 * 0.20 = 11.20)
-                    nuevaMoraASumar = saldoActual * porcentajeCredito;
+                // ⚖️ REGLA 3: La regla de los 15 pagos (Su nueva instrucción)
+                if (cantidadAbonos <= 15) {
+                    multaAplicar = capital * 0.20; 
+                    tipoAccionGuardar = 'Mora Automática (s/ Capital)';
                 } else {
-                    // Castigo Fuerte: Mora sobre el Capital (Ej: 100 * 0.20 = 20.00)
-                    nuevaMoraASumar = capital * porcentajeCredito;
+                    multaAplicar = saldoAnterior * 0.20; 
+                    tipoAccionGuardar = 'Mora Automática (s/ Saldo)';
                 }
 
-                const moraTotalActualizada = moraAnterior + nuevaMoraASumar;
+                // 🛑 ACTUALIZACIÓN: Sumamos al saldo igual que en los botones manuales
+                const nuevaMora = moraAnterior + multaAplicar;
+                const nuevoSaldo = saldoAnterior + multaAplicar;
 
-                // Patear la fecha de emisión 30 días adelante para que se limpie la pantalla de alertas
-                const nuevaFechaEmision = new Date(fechaEmision);
-                nuevaFechaEmision.setDate(nuevaFechaEmision.getDate() + 30);
-                const nuevaFechaISO = nuevaFechaEmision.toISOString().split('T')[0];
+                // 📅 Pateamos la fecha móvil (Calendario seguro)
+                let fechaBase = c.fecha_vencimiento_actual ? new Date(c.fecha_vencimiento_actual) : new Date(new Date(c.fecha_emision).getTime() + ((parseInt(c.num_cuotas)||30) * 24 * 60 * 60 * 1000));
+                fechaBase.setDate(fechaBase.getDate() + 30);
+                const nuevaFechaVencimiento = fechaBase.toISOString().split('T')[0];
 
-                // 4. Inyectar la decisión del Robot a Supabase
-                await supabaseClient
-                    .from('creditos')
-                    .update({ 
-                        monto_mora: moraTotalActualizada.toFixed(2),
-                        fecha_emision: nuevaFechaISO
-                    })
-                    .eq('id', c.id);
+                // 💾 Actualizamos Supabase (Saldo, Mora y Fecha Móvil)
+                await supabaseClient.from('creditos').update({ 
+                    saldo_pendiente: Number(nuevoSaldo.toFixed(2)),
+                    monto_mora: Number(nuevaMora.toFixed(2)),
+                    fecha_vencimiento_actual: nuevaFechaVencimiento 
+                }).eq('id', c.id);
+
+                // 🧾 Historial de Moras
+                await supabaseClient.from('historial_moras').insert({
+                    credito_id: c.id,
+                    tipo_accion: tipoAccionGuardar,
+                    monto_castigo: Number(multaAplicar.toFixed(2)),
+                    detalle: `Multa automática (${Math.abs(diferenciaDias)} días atraso). Pagos hechos: ${cantidadAbonos}.`
+                });
 
                 castigosAplicados++;
             }
         }
 
-        // 5. Reporte Final al Gerente
-        alert(`🚀 ¡PROCESO COMPLETADO CON ÉXITO!\n\n- Se aplicó mora y se renovó la fecha a: ${castigosAplicados} clientes.\n- Se protegió a ${perfilesSocialesOmitidos} perfiles sociales.\n\nEl panel de Alertas se va a actualizar ahora mismo.`);
+        alert(`🚀 ¡PROCESO COMPLETADO CON ÉXITO!\n\n- Se aplicó mora a: ${castigosAplicados} clientes (Saldrán de sus Alertas).\n- Se mantuvieron en Alertas a ${perfilesSocialesOmitidos} clientes con perfil SOCIAL para su revisión manual.\n\nEl panel se actualizará ahora.`);
         
-        // Actualizamos la pantalla para ver la magia
-        if (typeof window.despertarRobotDashboard === 'function') {
-            window.despertarRobotDashboard();
-        }
+        if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
 
     } catch (error) {
-        console.error("Error en el Motor de Castigos:", error);
-        alert("Ocurrió un error al intentar procesar las moras. Revise la consola.");
+        console.error("Error en barrido automático:", error);
+        alert("❌ Ocurrió un error al procesar las moras automáticas: " + error.message);
+    }
+};
+
+// =========================================================================
+// 📜 VISOR DEL HISTORIAL DE MORAS POR CRÉDITO
+// =========================================================================
+window.verHistorialMoras = async function(idCredito, nombreCliente) {
+    try {
+        // Buscamos las moras de este crédito en la bóveda, ordenadas por fecha (las más nuevas primero)
+        const { data: historial, error } = await supabaseClient
+            .from('historial_moras')
+            .select('*')
+            .eq('credito_id', idCredito)
+            .order('fecha_registro', { ascending: false });
+
+        if (error) throw error;
+
+        let tablaHTML = '';
+
+        if (!historial || historial.length === 0) {
+            tablaHTML = `<div style="text-align:center; padding: 20px; color: #64748b; font-weight: bold;">✅ Este crédito es impecable. No tiene moras registradas.</div>`;
+        } else {
+            // Construimos las filas de la tabla
+            const filas = historial.map(h => {
+                const fecha = new Date(h.fecha_registro).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+                return `
+                <tr style="border-bottom: 1px solid #e2e8f0; font-size: 12px;">
+                    <td style="padding: 10px; color: #475569;">${fecha}</td>
+                    <td style="padding: 10px; font-weight: bold; color: #0f172a;">${h.tipo_accion}</td>
+                    <td style="padding: 10px; color: #ef4444; font-weight: bold;">$${parseFloat(h.monto_castigo).toFixed(2)}</td>
+                </tr>`;
+            }).join('');
+
+            tablaHTML = `
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: #f1f5f9; color: #334155; font-size: 11px; text-transform: uppercase;">
+                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Fecha</th>
+                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Tipo de Sanción</th>
+                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+            </table>`;
+        }
+
+        // Creamos la ventanita visual flotante
+        const modalHistorialId = 'modal-visor-moras';
+        if (document.getElementById(modalHistorialId)) document.getElementById(modalHistorialId).remove();
+
+        const modalVisor = `
+        <div id="${modalHistorialId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 20px; backdrop-filter: blur(4px);">
+            <div style="background: white; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;">
+                <div style="background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: white; font-size: 16px;">📜 Historial de Castigos</h3>
+                    <button onclick="document.getElementById('${modalHistorialId}').remove()" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;">&times;</button>
+                </div>
+                <div style="padding: 15px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                    <strong style="color: #0f172a; text-transform: uppercase;">${nombreCliente}</strong>
+                    <div style="color: #64748b; font-size: 12px; margin-top: 4px;">Revisión de auditoría de multas</div>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto; padding: 10px 20px;">
+                    ${tablaHTML}
+                </div>
+                <div style="padding: 15px 20px; background: #f1f5f9; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <button onclick="document.getElementById('${modalHistorialId}').remove()" style="padding: 8px 25px; background: white; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">Cerrar Historial</button>
+                </div>
+            </div>
+        </div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', modalVisor);
+
+    } catch (error) {
+        console.error("Error al cargar historial:", error);
+        alert("Ocurrió un error al cargar el historial de moras.");
     }
 };
