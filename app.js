@@ -3967,8 +3967,8 @@ async function cargarEstadoCuentaCredito(idCredito) {
     // El input sugiere cobrar la cuota del acuerdo, o la cuota normal si no hay acuerdo
     document.getElementById('monto-cobro-input').value = cuotaFinal.toFixed(2);
     
-    if (typeof simularEnrutamientoFlujo === 'function') {
-        simularEnrutamientoFlujo(encontrado.valor_cuota);
+   if (typeof simularEnrutamientoFlujo === 'function') {
+        simularEnrutamientoFlujo(cuotaFinal); // <-- LA SOLUCIÓN
     }
 
     document.getElementById('recaudacion-espera-msg').style.display = 'none';
@@ -4498,7 +4498,10 @@ async function reenviarReciboAbono(idAbono) {
     }
 }
 // =========================================================================
-// ⚡ SIMULADOR DE ENRUTAMIENTO EN VIVO (REGLA DE ORO ALPHA)
+// ⚡ SIMULADOR DE ENRUTAMIENTO EN VIVO (REGLA DE ORO ALPHA + BYPASS CONVENIOS)
+// =========================================================================
+// =========================================================================
+// ⚡ SIMULADOR DE ENRUTAMIENTO EN VIVO (REGLA DE ORO ALPHA PURA)
 // =========================================================================
 function simularEnrutamientoFlujo(valor) {
     const monto = parseFloat(valor);
@@ -4508,11 +4511,13 @@ function simularEnrutamientoFlujo(valor) {
     const moraExtra = parseFloat(creditoSeleccionadoCobro.monto_mora) || 0;
     const interesFaltantePorAsegurar = (interesTotalPactado + moraExtra) - interesYaPagado;
     
-    let destinoInteres = 0; let destinoCapital = 0;
+    let destinoInteres = 0; 
+    let destinoCapital = 0;
 
     if (interesFaltantePorAsegurar > 0) {
         if (monto <= interesFaltantePorAsegurar) {
-            destinoInteres = monto; destinoCapital = 0;
+            destinoInteres = monto; 
+            destinoCapital = 0;
             document.getElementById('sim-leyenda-fase').innerHTML = `👑 FASE 1: Asegurando Utilidades ($${(interesFaltantePorAsegurar - monto).toFixed(2)} restantes)`;
             document.getElementById('sim-leyenda-fase').style.color = "#ca8a04";
         } else {
@@ -4522,11 +4527,13 @@ function simularEnrutamientoFlujo(valor) {
             document.getElementById('sim-leyenda-fase').style.color = "#0284c7";
         }
     } else {
-        destinoInteres = 0; destinoCapital = monto;
+        destinoInteres = 0; 
+        destinoCapital = monto;
         document.getElementById('sim-leyenda-fase').innerText = "🛡️ FASE 2: Interés blindado. Todo repone tu Capital.";
         document.getElementById('sim-leyenda-fase').style.color = "#10b981";
     }
 
+    // Dibujamos los números finales en pantalla
     document.getElementById('sim-boveda-interes').innerText = `$${destinoInteres.toFixed(2)}`;
     document.getElementById('sim-boveda-capital').innerText = `$${destinoCapital.toFixed(2)}`;
 }
