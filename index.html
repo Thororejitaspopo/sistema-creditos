@@ -11,6 +11,36 @@
 </head>
 <body>
 
+<!-- 🔒 PUERTA DE SEGURIDAD ALPHA -->
+<div id="pantalla-seguridad" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
+    <h1 style="color: #10b981; letter-spacing: 2px;">SISTEMA ALPHA V5</h1>
+    <p style="color: #64748b; font-size: 14px; margin-bottom: 30px;">ACCESO RESTRINGIDO GERENCIAL</p>
+    
+    <input type="password" id="pin-acceso" placeholder="Ingrese PIN" style="padding: 15px; font-size: 20px; text-align: center; border-radius: 8px; border: 2px solid #334155; background: #1e293b; color: white; margin-bottom: 20px; width: 250px; letter-spacing: 5px;">
+    
+    <button onclick="verificarAcceso()" style="padding: 15px 40px; font-size: 16px; font-weight: bold; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">INGRESAR AL SISTEMA</button>
+    <p id="msg-error-pin" style="color: #ef4444; margin-top: 15px; font-weight: bold; display: none;">❌ PIN INCORRECTO</p>
+</div>
+
+<script>
+    // Bloquear el sistema visualmente
+    document.body.style.overflow = 'hidden';
+
+    function verificarAcceso() {
+        const pin = document.getElementById('pin-acceso').value;
+        // 🔥 AQUÍ PONE SU CONTRASEÑA SECRETA 🔥
+        if (pin === "8080") { 
+            document.getElementById('pantalla-seguridad').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Desbloquea el sistema
+        } else {
+            document.getElementById('msg-error-pin').style.display = 'block';
+            document.getElementById('pin-acceso').value = '';
+        }
+    }
+</script>
+<!-- FIN PUERTA DE SEGURIDAD -->
+
+
     <aside>
         <div>
             <div class="logo-sistema">SISTEMA ALPHA V5</div>
@@ -670,7 +700,7 @@
             </div>
         </div>
 
-        <div id="mod-interes" class="modulo-contenido"><h3>📈 Bóveda de Intereses y Recargos</h3></div>
+        <div id="mod-interes" class="modulo-contenido"></div>
         <div id="mod-cierre" class="modulo-contenido"><h3>🔒 Cierre de Caja Definitivo</h3></div>
         <div id="mod-supervisores" class="modulo-contenido"><h3>👔 Control de Personal Supervisor</h3></div>
         <div id="mod-cobradores" class="modulo-contenido"><h3>🏍️ Control de Rutas de Cobradores</h3></div>
@@ -679,14 +709,28 @@
         <div id="modulo-reportes" class="modulo-seccion" style="padding: 20px;">
         
         <!-- CABECERA DEL MÓDULO -->
-        <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
-            <h2 style="color: var(--azul-premium); margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                📋 Centro de Reportes e Inteligencia de Negocio
-            </h2>
-            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
-                Exporte y audite la base de datos de clientes y la cartera de créditos en tiempo real.
-            </p>
-        </div>
+<div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+            📋 Centro de Reportes e Inteligencia de Negocio
+        </h2>
+        <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+            Exporte y audite la base de datos de clientes, créditos y utilidades en tiempo real.
+        </p>
+    </div>
+    
+    <!-- 🔥 EL NUEVO FILTRO UNIVERSAL 🔥 -->
+    <div style="background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+        <label for="filtro-mes-reportes" style="display: block; font-size: 11px; color: #475569; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px;">
+            Filtro de Exportación:
+        </label>
+        <select id="filtro-mes-reportes" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #94a3b8; background: white; color: #0f172a; font-weight: bold; font-size: 13px; outline: none; cursor: pointer; min-width: 200px;">
+            <option value="todos">🌍 Ver Todo el Historial</option>
+            <option value="actual" selected>📅 Mes Actual</option>
+            <!-- Aquí el JavaScript meterá los meses anteriores automáticamente -->
+        </select>
+    </div>
+</div>
         
         <!-- ========================================== -->
         <!-- PISO 1: REPORTES DE CLIENTES               -->
@@ -775,6 +819,44 @@
             </div>
         </div>
 
+
+        <!-- ... (Aquí arriba está su código de Auditoría de Cartera (Créditos)) ... -->
+
+<div style="border-top: 1px dashed #cbd5e1; margin: 30px 0;"></div>
+
+<h3 style="color: #0f172a; margin-top: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+    🏦 Flujo de Utilidades (Intereses y Ajustes)
+</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+    
+    <!-- Tarjeta Excel Utilidades -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <h4 style="color: #059669; margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            📊 Microsoft Excel (.xlsx)
+        </h4>
+        <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+            Exporta el historial detallado de ganancias, moras cobradas, retiros de utilidad e ingresos manuales para análisis contable.
+        </p>
+        <button onclick="exportarUtilidadesExcel()" style="width: 100%; background: #059669; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <span>📊</span> Descargar Utilidades (Excel)
+        </button>
+    </div>
+
+    <!-- Tarjeta PDF Utilidades -->
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <h4 style="color: #7c3aed; margin: 0 0 10px 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            📄 Documento PDF (.pdf)
+        </h4>
+        <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+            Genera un informe formal que resume los ingresos mensuales, gastos deducidos y el total histórico de la bóveda de utilidades.
+        </p>
+        <button onclick="exportarUtilidadesPDF()" style="width: 100%; background: #7c3aed; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(124, 58, 237, 0.2); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <span>📄</span> Generar Utilidades (PDF)
+        </button>
+    </div>
+
+</div>
+
     </div>
 </div>
         
@@ -842,6 +924,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
+    
     <script src="app.js"></script>
+    <!-- Aquí conectamos el nuevo módulo, que heredará todo el poder de app.js -->
+    <script src="modulos/clientes.js"></script>
+   <!-- Conexión del nuevo motor financiero -->
+    <script src="modulos/creditos.js"></script>
+    <!-- Conexión del Módulo de Bóveda y Capital -->
+    <script src="modulos/capital.js"></script>
+    <!-- Conexión del Módulo de Papelera y Auditoría -->
+    <script src="modulos/depuracion.js"></script>
+    <!-- Conexión del Módulo de Pagos y Recaudación -->
+    <script src="modulos/pagos.js"></script>
+    <!-- Conexión del Módulo de Gestión de Mora -->
+    <script src="modulos/mora.js"></script>
+    <!-- Conexión del Módulo de interes-->
+    <script src="modulos/interes.js"></script>
 </body>
 </html>

@@ -1,0 +1,988 @@
+async function registrarCliente() {
+    // Asegurar que la variable de edición exista de forma segura
+    const idEditando = typeof idClienteEditando !== 'undefined' ? idClienteEditando : null;
+
+    // -------------------------------------------------------------------------
+    // 1. CAPTURA DE ELEMENTOS HTML
+    // -------------------------------------------------------------------------
+    const inputNombres = document.getElementById('cli-nombres');
+    const inputApellidos = document.getElementById('cli-apellidos');
+    const inputCedula = document.getElementById('cli-cedula');
+    const inputWhatsapp = document.getElementById('cli-whatsapp');
+    const inputCorreo = document.getElementById('cli-correo');
+    const inputSector = document.getElementById('cli-sector');
+    const inputRuta = document.getElementById('cli-ruta');
+    
+    // 🔥 CAPTURA DEL NUEVO CAMPO DE INMUNIDAD
+    const selectPerfilMora = document.getElementById('cli-perfil-mora');
+
+    // -------------------------------------------------------------------------
+    // 2. LIMPIEZA DE ERRORES
+    // -------------------------------------------------------------------------
+    inputNombres.classList.remove('campo-error');
+    inputApellidos.classList.remove('campo-error');
+    inputCedula.classList.remove('campo-error');
+    inputWhatsapp.classList.remove('campo-error');
+    inputCorreo.classList.remove('campo-error');
+    if(inputSector) inputSector.classList.remove('campo-error');
+    if(inputRuta) inputRuta.classList.remove('campo-error');
+
+    // Extraemos los valores limpios
+    const nombres = inputNombres.value.trim();
+    const apellidos = inputApellidos.value.trim();
+    const cedula = inputCedula.value.trim();
+    const whatsapp = inputWhatsapp.value.trim();
+    const correo = inputCorreo.value.trim();
+    
+    // 🔥 VALOR DE INMUNIDAD
+    const perfil_cobro = selectPerfilMora ? selectPerfilMora.value : 'Normal';
+    
+    const garanteSeleccionado = document.getElementById('cli-garante').value;
+    const garante_id = garanteSeleccionado ? parseInt(garanteSeleccionado) : null;
+
+    const sector = inputSector ? inputSector.value : '';
+    const ruta = inputRuta ? inputRuta.value : '';
+    const direccion = document.getElementById('cli-direccion').value.trim();
+    const referencia = document.getElementById('cli-referencia').value.trim();
+    const tel_referencia = document.getElementById('cli-tel-referencia').value.trim();
+    const observaciones = document.getElementById('cli-observaciones').value.trim();
+    const nivel = document.getElementById('cli-nivel').value;
+    const limite_creditos = parseInt(document.getElementById('cli-limite').value) || 2;
+
+    // -------------------------------------------------------------------------
+    // 3. VALIDACIÓN DE CAMPOS VACÍOS
+    // -------------------------------------------------------------------------
+    let tieneCamposVacios = false;
+
+    if (!nombres) { inputNombres.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!apellidos) { inputApellidos.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!cedula) { inputCedula.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!whatsapp) { inputWhatsapp.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (!correo) { inputCorreo.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (inputSector && !sector) { inputSector.classList.add('campo-error'); tieneCamposVacios = true; }
+    if (inputRuta && !ruta) { inputRuta.classList.add('campo-error'); tieneCamposVacios = true; }
+
+    if (tieneCamposVacios) {
+        alert("❌ Error: Nombres, Apellidos, Cédula, WhatsApp, Correo, Sector y Ruta son OBLIGATORIOS.");
+        return;
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. VALIDACIÓN DE CORREO Y CÉDULA
+    // -------------------------------------------------------------------------
+    const patronCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!patronCorreo.test(correo)) {
+        inputCorreo.classList.add('campo-error');
+        alert("⚠️ Error: El formato del correo electrónico ingresado no es válido.");
+        return;
+    }
+
+    if (cedula.length < 10) {
+        inputCedula.classList.add('campo-error');
+        alert("⚠️ La cédula ingresada está incompleta. Debe tener al menos 10 dígitos.");
+        return;
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. VALIDACIÓN DE DUPLICADOS
+    // -------------------------------------------------------------------------
+    const cedulaExiste = listaClientesGlobal.some(c => c.cedula === cedula && c.id !== idEditando);
+    if (cedulaExiste) {
+        inputCedula.classList.add('campo-error');
+        alert("⛔ Error: Este número de Cédula / RUC ya está registrado con otro cliente.");
+        return;
+    }
+
+    if (whatsapp.length !== 10) {
+        inputWhatsapp.classList.add('campo-error'); 
+        alert(`⚠️ Operación Cancelada: El número de WhatsApp es inválido.\n\nDebe tener exactamente 10 dígitos obligatorios.`);
+        return; 
+    }
+
+    const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idEditando);
+    if (whatsappExiste) {
+        inputWhatsapp.classList.add('campo-error');
+        alert("⛔ Error: Este número de WhatsApp ya está asignado a otro cliente.");
+        return;
+    }
+
+    const correoExiste = listaClientesGlobal.some(c => c.correo && c.correo.toLowerCase() === correo.toLowerCase() && c.id !== idEditando);
+    if (correo && correoExiste) {
+        inputCorreo.classList.add('campo-error');
+        alert("⛔ Error: Este Correo Electrónico ya está registrado con otro cliente.");
+        return;
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. GENERACIÓN DE FECHAS, ARCHIVOS Y CÓDIGO BANCARIO
+    // -------------------------------------------------------------------------
+    const ahora = new Date();
+    
+    // Fecha para guardar en la base de datos
+    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const nombreDia = dias[ahora.getDay()];
+    const diaNum = String(ahora.getDate()).padStart(2, '0');
+    const mesNombre = meses[ahora.getMonth()];
+    const anio = ahora.getFullYear();
+    let horas = ahora.getHours();
+    const minutos = String(ahora.getMinutes()).padStart(2, '0');
+    const ampm = horas >= 12 ? 'Pm' : 'Am';
+    horas = horas % 12 || 12;
+    const fechaRegistro = `${nombreDia} ${diaNum}/${mesNombre}/${anio} hora ${horas}:${minutos} ${ampm}`;
+
+    // Fecha corta y elegante para enviar en el SMS
+    const fechaLargaSMS = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+    const horaFormateadaSMS = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const fechaHoraSMS = `${fechaLargaSMS.charAt(0).toUpperCase() + fechaLargaSMS.slice(1)} | ${horaFormateadaSMS}`;
+
+    // === GENERACIÓN DEL CÓDIGO DE CLIENTE ===
+    const inicialN = nombres.charAt(0).toUpperCase();
+    const inicialA = apellidos.charAt(0).toUpperCase();
+    const ultimos4 = cedula.slice(-4);
+    const codigoUnico = `${inicialN}${inicialA}-${ultimos4}`; // Ej: MA-5760
+    const nombreCompleto = `${nombres.toUpperCase()} ${apellidos.toUpperCase()}`;
+
+    const inputFotoCliente = document.getElementById('cli-foto-perfil'); 
+    const inputFotoCedula = document.getElementById('cli-foto-cedula');   
+
+    let urlFotoCliente = null;
+    let urlFotoCedula = null;
+
+    if (idEditando !== null) {
+        const clienteExistente = listaClientesGlobal.find(c => c.id === idEditando);
+        if (clienteExistente) {
+            urlFotoCliente = clienteExistente.url_foto_cliente; 
+            urlFotoCedula = clienteExistente.url_foto_cedula;   
+        }
+    }
+
+    if (inputFotoCliente && inputFotoCliente.files.length > 0) {
+        const archivoPerfil = inputFotoCliente.files[0]; 
+        const nombreArchivo = `perfil_${cedula}_${Date.now()}.${archivoPerfil.name.split('.').pop()}`; 
+        const { data, error: errorPerfil } = await supabaseClient.storage.from('fotos_clientes').upload(nombreArchivo, archivoPerfil);
+        if (errorPerfil) { alert("⚠️ Error foto perfil: " + errorPerfil.message); return; }
+        const { data: urlPublica } = supabaseClient.storage.from('fotos_clientes').getPublicUrl(nombreArchivo);
+        urlFotoCliente = urlPublica.publicUrl; 
+    }
+
+    if (inputFotoCedula && inputFotoCedula.files.length > 0) {
+        const archivoCedula = inputFotoCedula.files[0]; 
+        const nombreArchivoCed = `cedula_${cedula}_${Date.now()}.${archivoCedula.name.split('.').pop()}`; 
+        const { data, error: errorCedula } = await supabaseClient.storage.from('fotos_clientes').upload(nombreArchivoCed, archivoCedula);
+        if (errorCedula) { alert("⚠️ Error foto cédula: " + errorCedula.message); return; }
+        const { data: urlPublicaCed } = supabaseClient.storage.from('fotos_clientes').getPublicUrl(nombreArchivoCed);
+        urlFotoCedula = urlPublicaCed.publicUrl; 
+    }
+
+    // 🔥 INYECCIÓN DEL PERFIL DE MORA AQUÍ
+    const datosCliente = { 
+        nombres, apellidos, cedula, whatsapp, correo, sector, ruta, direccion, referencia, 
+        tel_referencia, observaciones, nivel, limite_creditos, garante_id, perfil_cobro,
+        fecha_ingreso: idEditando === null ? fechaRegistro : (listaClientesGlobal.find(c => c.id === idEditando)?.fecha_ingreso || fechaRegistro), 
+        usuario_registro: 'Administrador', url_foto_cliente: urlFotoCliente, url_foto_cedula: urlFotoCedula    
+    };
+
+    // -------------------------------------------------------------------------
+    // 7. ENVÍO A SUPABASE Y SMS CON CÓDIGO BANCARIO Y FECHA
+    // -------------------------------------------------------------------------
+    if (idEditando === null) {
+        // ==========================================
+        // RUTA 1: CLIENTE NUEVO
+        // ==========================================
+        const { data, error } = await supabaseClient.from('clientes').insert([datosCliente]);
+
+        if (error) {
+            alert("Error de Registro: " + error.message);
+        } else {
+            let cobrarAfiliacion = confirm(`💰 COBRO DE AFILIACIÓN\n\n¿Deseas cobrar $1.00 de afiliación por ingresar este cliente al sistema?\n\n🟢 ACEPTAR = Cobrar $1.00\n🔴 CANCELAR = Gratis`);
+
+            if (cobrarAfiliacion) {
+                try {
+                    const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+                    await supabaseClient.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData.saldo_actual) + 1.00 }).eq('id', 1);
+                    
+                    await supabaseClient.from('historial_capital').insert([{
+                        caja_id: 1, monto: 1.00,
+                        concepto: `🟢 INGRESO: Afiliación nuevo cliente - ${codigoUnico} ${nombreCompleto}`
+                    }]);
+                    
+                    if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+                    if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+                } catch (errorCobro) { console.error("Error contable:", errorCobro); }
+            }
+
+            try {
+                // SMS PROFESIONAL (Fecha y Código separados)
+                const msjBienvenida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 ${codigoUnico}\n\nHola ${nombreCompleto}, tu registro ha sido exitoso.\n\nA partir de ahora podras acceder a nuestra linea de creditos.\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                if (typeof enviarSMSAutomatico === 'function') await enviarSMSAutomatico(whatsapp, msjBienvenida);
+            } catch (errorSMS) { console.error("Error SMS:", errorSMS); }
+
+            if (cobrarAfiliacion) { alert(`✅ ¡${codigoUnico} guardado, $1.00 cobrado y SMS enviado!`);
+            } else { alert(`✅ ¡${codigoUnico} guardado (Gratis) y SMS enviado!`); }
+
+            if (typeof limpiarFormularioClientes === 'function') limpiarFormularioClientes(); 
+            if (typeof cargarClientes === 'function') cargarClientes();
+        }
+
+    } else {
+        // ==========================================
+        // RUTA 2: EDICIÓN DE CLIENTE
+        // ==========================================
+        const { data, error } = await supabaseClient.from('clientes').update(datosCliente).eq('id', idEditando);
+
+        if (error) {
+            alert("Error al actualizar: " + error.message);
+        } else {
+            let cobrarEdicion = confirm(`💰 COBRO POR ACTUALIZACIÓN\n\n¿Deseas cobrar $0.50 por actualizar los datos de este cliente?\n\n🟢 ACEPTAR = Cobrar $0.50\n🔴 CANCELAR = Gratis`);
+
+            if (cobrarEdicion) {
+                try {
+                    const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+                    await supabaseClient.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData.saldo_actual) + 0.50 }).eq('id', 1);
+                    
+                    await supabaseClient.from('historial_capital').insert([{
+                        caja_id: 1, monto: 0.50,
+                        concepto: `🟢 INGRESO: Actualización de datos - ${codigoUnico} ${nombreCompleto}`
+                    }]);
+                    
+                    if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+                    if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
+                } catch (errorCobro) { console.error("Error contable:", errorCobro); }
+            }
+
+            try {
+                // SMS PROFESIONAL (Fecha y Código separados)
+                const msjActualizacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 ${codigoUnico}\n\nHola ${nombreCompleto}, tus datos han sido actualizados exitosamente en nuestro sistema.\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                if (typeof enviarSMSAutomatico === 'function') await enviarSMSAutomatico(whatsapp, msjActualizacion);
+            } catch (errorSMS) { console.error("Error SMS:", errorSMS); }
+
+            if (cobrarEdicion) { alert(`✅ ¡Datos de ${codigoUnico} actualizados, $0.50 cobrados y SMS enviado!`);
+            } else { alert(`✅ ¡Datos de ${codigoUnico} actualizados (Gratis) y SMS enviado!`); }
+
+            if (typeof limpiarFormularioClientes === 'function') limpiarFormularioClientes(); 
+            if (typeof cargarClientes === 'function') cargarClientes();
+        }
+    }
+}
+
+/* ==========================================================================
+   4. LOGÍSTICA ADMINISTRATIVA: FUNCIONES DE LA BASE DE DATOS (CON FILTRO DE ARCHIVADOS)
+   ========================================================================== */
+
+/**
+ * Consulta la base de datos remota para bajar la lista de clientes activos.
+ */
+async function cargarClientes() {
+    // Captura el contenedor donde se listan las tarjetas de clientes
+    const contenedor = document.getElementById('lista-clientes');
+    // Inyecta un texto temporal de carga para avisar al usuario que el sistema está trabajando
+    contenedor.innerHTML = '<p style="text-align:center; color:#64748b; font-size:13px;">Cargando base de datos...</p>';
+
+    // =====================================================================
+    // 🌟 NUEVO: EL FILTRO INTELIGENTE (.neq('estado', 'inactivo'))
+    // Le decimos a Supabase: "Tráeme todos, MENOS los inactivos/archivados"
+    // =====================================================================
+    const { data: clientes, error } = await supabaseClient
+        .from('clientes')
+        .select('*')
+        .neq('estado', 'inactivo') 
+        .order('id', { ascending: false });
+
+    // Verifica si la conexión con la nube falló para reportar el error en pantalla
+    if (error) {
+        // Pinta el mensaje de error con letras rojas de peligro
+        contenedor.innerHTML = `<p style="text-align:center; color:red; font-size:13px;">Error: ${error.message}</p>`;
+        // Detiene por completo la función para evitar colapsar el sistema
+        return;
+    }
+
+    // Guarda los clientes descargados en la memoria global del sistema
+    listaClientesGlobal = clientes;
+    
+    // Ejecuta las dos inyecciones dinámicas en tu pantalla mandando los datos descargados
+    renderizarLista(clientes);
+    // Actualiza la lista desplegable de garantes disponibles
+    actualizarComboGarantes(clientes);
+}
+
+/**
+ * Agarra la lista de clientes en caché y fabrica las opciones del combo box "cli-garante".
+ */
+function actualizarComboGarantes(clientes) {
+    // Enlaza el elemento Select del formulario destinado a los garantes
+    const combo = document.getElementById('cli-garante');
+    
+    // Mantiene por defecto siempre limpia la opción base
+    combo.innerHTML = '<option value="">🚫 Sin Garante / Cliente Directo</option>';
+    
+    // Mapea los clientes registrados para cargarlos como garantes disponibles
+    clientes.forEach(cliente => {
+        // Crea una etiqueta de opción HTML vacía en la memoria del navegador
+        const option = document.createElement('option');
+        // Asigna el ID numérico real del cliente como valor interno del elemento
+        option.value = cliente.id; 
+        // Genera el texto visible combinando el nombre, apellido y cédula del garante
+        option.text = `👤 ${cliente.nombres.toUpperCase()} ${cliente.apellidos.toUpperCase()} (C.I: ${cliente.cedula})`;
+        // Agrega la opción terminada dentro del elemento Select del formulario
+        combo.appendChild(option);
+    });
+}
+
+/**
+ * Convierte el array de clientes en bloques visuales de tarjetas con paginación de 10 en 10.
+ */
+/**
+ * Convierte el array de clientes en bloques visuales de tarjetas con paginación de 10 en 10.
+ */
+function renderizarLista(clientes) {
+    // Captura el panel donde se van a colgar las tarjetas físicas de los clientes
+    const contenedor = document.getElementById('lista-clientes');
+    // Captura el contenedor del pie de página que fabricamos en tu HTML para poner los números
+    const contenedorPaginacion = document.getElementById('paginacion-clientes');
+    
+    // Limpia las tarjetas de la página anterior para no duplicar datos viejos
+    contenedor.innerHTML = '';
+    
+    // Limpia los botones numéricos viejos para recalcular la numeración según el filtro actual
+    if (contenedorPaginacion) {
+        contenedorPaginacion.innerHTML = '';
+    }
+
+    // Revisa si el arreglo llegó vacío (ya sea de Supabase o porque el buscador no halló nada)
+    if (clientes.length === 0) {
+        // Escribe un aviso sutil indicando la ausencia de registros
+        contenedor.innerHTML = '<p style="text-align:center; color:#64748b; font-size:13px; margin-top:10px;">No hay clientes en el sistema.</p>';
+        // Detiene la función inmediatamente para evitar cálculos innecesarios
+        return;
+    }
+
+    // Calcula el casillero exacto donde inicia el corte para la página actual
+    const indiceInicio = (paginaActual - 1) * clientesPorPagina;
+    // Calcula el punto final exacto donde la tejera del código debe cortar la lista
+    const indiceFin = indiceInicio + clientesPorPagina;
+    // Corta el pastel de datos para extraer únicamente el lote de 10 clientes de esta hoja
+    const clientesDeLaPagina = clientes.slice(indiceInicio, indiceFin);
+
+    // Arranca el ciclo principal usando únicamente los 10 clientes recortados para esta pantalla
+    clientesDeLaPagina.forEach(cliente => {
+        // Genera el código visual con ceros a la izquierda tomando como base el ID real de Supabase
+        const codigoSecuencial = 'CLI-' + String(cliente.id).padStart(6, '0');
+        // Extrae la inicial del nombre y del apellido para fabricar el avatar circular
+        const iniciales = ((cliente.nombres[0] || '') + (cliente.apellidos[0] || '')).toUpperCase();
+        
+        // Inicializa la variable de color con el azul básico por defecto
+        let colorNivel = '#0369a1';
+        // Si la categoría contiene la palabra 'Oro', cambia el color al verde de éxito
+        if(cliente.nivel.includes('Oro')) colorNivel = 'var(--verde-exito)';
+        // Si contiene la palabra 'Plata', le asigna un color gris corporativo elegante
+        if(cliente.nivel.includes('Plata')) colorNivel = '#475569';
+        // Si contiene la palabra 'Platino', absorbe el color azul premium del sistema
+        if(cliente.nivel.includes('Platino')) colorNivel = 'var(--azul-premium)';
+        // Si contiene la palabra 'Diamante', le inyecta un color morado de alto estatus
+        if(cliente.nivel.includes('Diamante')) colorNivel = '#7c3aed';
+
+        // Fabrica un bloque DIV completamente nuevo en la memoria del navegador
+        const tarjeta = document.createElement('div');
+        // Le inyecta la clase CSS obligatoria para heredar el diseño de tarjeta flotante
+        tarjeta.className = 'tarjeta-cliente';
+        // Maqueta la estructura interna combinando el avatar, los datos y los botones de control
+        tarjeta.innerHTML = `
+            <div class="info-perfil">
+                <div class="avatar-letra">${iniciales}</div>
+                <div class="detalles-perfil">
+                    <h4><span>${codigoSecuencial}</span> - ${cliente.nombres.toUpperCase()} ${cliente.apellidos.toUpperCase()}</h4>
+                    <p>C.I: ${cliente.cedula} | ${cliente.ruta}</p>
+                    <p style="color: ${colorNivel}; font-weight: 600; font-size: 11px;">${cliente.nivel}</p>
+                </div>
+            </div>
+            <div class="acciones-cliente">
+                <button class="btn-accion btn-ver" title="Ver Historial" onclick="verCliente(${cliente.id})">👁️</button>
+                <button class="btn-accion btn-edit" title="Editar Datos del Cliente" onclick="prepararEdicion(${cliente.id})">✏️</button>
+                
+                <button class="btn-accion btn-credito" title="Crear Crédito" onclick="redirigirACrearCredito(${cliente.id})">💳</button>
+                
+                <button class="btn-accion btn-elim" title="Eliminar de Raíz" onclick="eliminarCliente(${cliente.id})">🗑️</button>
+            </div>
+        `;
+        // Cuelga la tarjeta terminada y estructurada dentro del contenedor visible de tu interfaz
+        contenedor.appendChild(tarjeta);
+    });
+
+    // Calcula cuántas páginas físicas existen dividiendo el total para 10
+    const totalPaginas = Math.ceil(clientes.length / clientesPorPagina);
+    // Inicia un ciclo que correrá desde la página 1 hasta llegar al total calculado
+    for (let i = 1; i <= totalPaginas; i++) {
+        // Crea un elemento de tipo botón HTML dinámicamente en memoria
+        const boton = document.createElement('button');
+        // Le añade la clase CSS para que absorba los estilos del archivo styles.css
+        boton.className = 'btn-pagina';
+        // Coloca el número del conteo actual como texto visible del botón (1, 2, 3...)
+        boton.innerText = i;
+
+        // Evalúa si el botón que se está construyendo es igual a la página que mira el usuario
+        if (i === paginaActual) {
+            // Si coincide, le incrusta la clase 'active' para pintarlo de azul corporativo
+            boton.classList.add('active');
+        }
+
+        // Configura el oído interactivo (Click) para responder inmediatamente al presionarlo
+        boton.onclick = function () {
+            // Actualiza la variable de control global con el número de página seleccionado
+            paginaActual = i;
+            // Vuelve a llamar a esta función pasando la misma lista original para actualizar la vista
+            renderizarLista(clientes);
+        };
+
+        // Verifica si el contenedor inferior existe antes de colgar el botón numérico listo
+        if (contenedorPaginacion) {
+            contenedorPaginacion.appendChild(boton);
+        }
+    }
+}
+
+
+
+// =========================================================================
+// BLOCK 30: ATAJO HACIA MÓDULO CRÉDITO (CONEXIÓN INTEGRADA)
+// =========================================================================
+function redirigirACrearCredito(clienteId) {
+    // 1. Guardamos el ID en memoria para que el formulario de crédito lo capture
+    localStorage.setItem('cliente_para_credito_id', clienteId);
+
+    // 2. Usamos su función nativa 'cambiarModulo' para activar el DIV correspondiente
+    // Según su HTML, el ID del contenedor es 'mod-creditos'
+    if (typeof cambiarModulo === 'function') {
+        cambiarModulo('creditos'); 
+        
+        // 3. Opcional: Si su función 'cambiarModulo' no selecciona automáticamente el cliente en el select,
+        // forzamos la carga del select después de un pequeño retraso
+        setTimeout(() => {
+            const selectCliente = document.getElementById('cred-cliente-id');
+            if (selectCliente) {
+                selectCliente.value = clienteId;
+                // Si tiene una función de cálculo, la llamamos para que se activen los valores
+                if (typeof calcularProyeccionCredito === 'function') {
+                    calcularProyeccionCredito();
+                }
+            }
+        }, 300);
+    } else {
+        console.error("La función cambiarModulo no está definida.");
+    }
+}
+// ... (El resto de tus funciones de edición, registro y eliminación se mantienen intactas)
+
+/**
+ * Captura al cliente seleccionado por ID y rellena todos los inputs de tu formulario para editarlo.
+ */
+function prepararEdicion(id) {
+    // Busca dentro de la memoria global al cliente que coincida exactamente con la ID seleccionada
+    const cliente = listaClientesGlobal.find(c => c.id === id);
+    // Si por algún motivo extraño no encuentra al cliente, cancela el proceso de inmediato
+    if (!cliente) return;
+
+    // Coloca el ID del cliente en el centinela para avisar que entramos en modo Edición
+    idClienteEditando = id;
+
+    // Rellena cada uno de los inputs del formulario con la información guardada en Supabase
+    document.getElementById('cli-id-auto').value = 'EDITANDO';
+    document.getElementById('cli-nombres').value = cliente.nombres;
+    document.getElementById('cli-apellidos').value = cliente.apellidos;
+    document.getElementById('cli-cedula').value = cliente.cedula;
+    document.getElementById('cli-whatsapp').value = cliente.whatsapp;
+    document.getElementById('cli-correo').value = cliente.correo || '';
+    
+    // Muestra al garante que ya tenía asignado (si no tenía, vuelve a "Sin garante")
+    document.getElementById('cli-garante').value = cliente.garante_id || '';
+
+    document.getElementById('cli-sector').value = cliente.sector;
+    document.getElementById('cli-ruta').value = cliente.ruta;
+    document.getElementById('cli-direccion').value = cliente.direccion || '';
+    document.getElementById('cli-referencia').value = cliente.referencia || '';
+    document.getElementById('cli-tel-referencia').value = cliente.tel_referencia || '';
+    document.getElementById('cli-observaciones').value = cliente.observaciones || '';
+    document.getElementById('cli-nivel').value = cliente.nivel;
+    document.getElementById('cli-limite').value = cliente.limite_creditos;
+
+    // Captura el botón principal de guardar del formulario de la izquierda
+    const btn = document.querySelector('.btn-guardar');
+    // Modifica su texto para alertar que los cambios actualizarán un registro existente
+    btn.innerText = "💾 ACTUALIZAR DATOS ALPHA";
+    // Cambia el fondo azul estándar por un color naranja degradado de advertencia comercial
+    btn.style.background = "linear-gradient(135deg, var(--naranja-recargo) 0%, #c2410c 100%)";
+
+    // Realiza un desplazamiento suave automático de la pantalla directo hacia el formulario
+    document.querySelector('.seccion-formulario').scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * Recopila los inputs y decide si guarda un nuevo registro o actualiza uno existente en Supabase.
+ */
+// =========================================================================
+// DETECTORES DE ENTRADA: Quitan el color rojo en vivo apenas el usuario escribe
+// =========================================================================
+document.getElementById('cli-nombres').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-apellidos').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-cedula').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-whatsapp').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+document.getElementById('cli-correo').addEventListener('input', (e) => e.target.classList.remove('campo-error'));
+if(document.getElementById('cli-sector')) {
+    document.getElementById('cli-sector').addEventListener('change', (e) => e.target.classList.remove('campo-error'));
+}
+if(document.getElementById('cli-ruta')) {
+    document.getElementById('cli-ruta').addEventListener('change', (e) => e.target.classList.remove('campo-error'));
+}
+
+
+
+/**
+ * Devuelve el formulario de la izquierda a sus valores limpios vacíos de fábrica.
+ */
+function limpiarFormularioClientes() {
+    // Resetea el centinela regresándolo al valor null de registro nuevo
+    idClienteEditando = null;
+
+    // Borra minuciosamente los textos internos de cada input del formulario
+    document.getElementById('cli-id-auto').value = 'AUTO';
+    document.getElementById('cli-nombres').value = '';
+    document.getElementById('cli-apellidos').value = '';
+    document.getElementById('cli-cedula').value = '';
+    document.getElementById('cli-whatsapp').value = '';
+    document.getElementById('cli-correo').value = '';
+    document.getElementById('cli-garante').value = ''; 
+    document.getElementById('cli-sector').value = ''; 
+    document.getElementById('cli-ruta').value = ''; 
+    document.getElementById('cli-direccion').value = '';
+    document.getElementById('cli-referencia').value = '';
+    document.getElementById('cli-tel-referencia').value = '';
+    document.getElementById('cli-observaciones').value = '';
+    document.getElementById('cli-nivel').value = 'Bronce'; 
+    document.getElementById('cli-limite').value = '2';
+
+    // Captura el botón de guardar para restablecer su estética original azul
+    const btn = document.querySelector('.btn-guardar');
+    // Le devuelve su texto corporativo inicial de registro
+    btn.innerText = "💾 REGISTRAR CLIENTE ALPHA";
+    // Le vuelve a inyectar el degradado azul rey estándar del sistema
+    btn.style.background = "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)";
+}
+/**
+ * ELIMINACIÓN INTELIGENTE: Borra de raíz si no hay historial, archiva si hay créditos.
+ */
+async function eliminarCliente(id) {
+    try {
+        // 1. ESCANEO RÁPIDO: Verificamos si tiene créditos (vivos o muertos)
+        const { data: creditos, error: errCreditos } = await supabaseClient
+            .from('creditos')
+            .select('id')
+            .eq('cliente_id', id);
+
+        if (errCreditos) {
+            alert("⚠️ Error al verificar el historial del cliente: " + errCreditos.message);
+            return;
+        }
+
+        // 2. RUTA A: CLIENTE SIN HISTORIAL (Cero créditos) -> BORRADO DEFINITIVO
+        if (creditos.length === 0) {
+            if (confirm("🗑️ Este cliente NO tiene historial de créditos ni deudas.\n\n¿Seguro que deseas ELIMINARLO permanentemente del sistema?")) {
+                
+                const { error } = await supabaseClient
+                    .from('clientes')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                if (typeof idClienteEditando !== 'undefined' && idClienteEditando === id) {
+                    limpiarFormularioClientes();
+                }
+                
+                alert("✅ Cliente eliminado definitivamente (Sin impacto contable).");
+                cargarClientes(); 
+            }
+        } 
+        // 3. RUTA B: CLIENTE CON HISTORIAL -> ARCHIVADO LÓGICO
+        else {
+            if (confirm(`📂 Este cliente tiene ${creditos.length} crédito(s) en su historial.\n\nPara proteger los cuadres de tu caja matriz, no se puede destruir su registro.\n\n¿Deseas ARCHIVARLO (Inactivarlo) para que desaparezca de tu lista principal?`)) {
+                
+                // Actualizamos el estado a 'inactivo' en lugar de borrar la fila
+                const { error } = await supabaseClient
+                    .from('clientes')
+                    .update({ estado: 'inactivo' })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                if (typeof idClienteEditando !== 'undefined' && idClienteEditando === id) {
+                    limpiarFormularioClientes();
+                }
+                
+                alert("✅ Cliente archivado exitosamente. Tu contabilidad está a salvo.");
+                cargarClientes(); 
+            }
+        }
+    } catch (error) {
+        console.error("Error en eliminación inteligente:", error);
+        alert("❌ Hubo un error al procesar la solicitud: " + error.message);
+    }
+}
+
+
+
+/**
+ * Filtra en vivo la lista interna según texto tipeado en el buscador.
+ */
+function filtrarClientes() {
+    // Captura las letras escritas en el input del buscador convirtiéndolas a minúsculas
+    const texto = document.getElementById('input-buscar-cliente').value.toLowerCase();
+    
+    // Filtra la caché local comparando nombres, apellidos o la cédula con el término escrito
+    const filtrados = listaClientesGlobal.filter(c => 
+        c.nombres.toLowerCase().includes(texto) || 
+        c.apellidos.toLowerCase().includes(texto) || 
+        c.cedula.includes(texto)
+    );
+    
+    // Obliga al sistema a regresar a la página 1 para evitar desborde visual en los filtros
+    paginaActual = 1;
+    
+    // Envía la sublista filtrada a renderizarse con la matemática de paginación activa
+    renderizarLista(filtrados);
+}
+
+function verCliente(id) {
+    // Rastrea en la caché al cliente seleccionado por medio de su identificador único
+    const cliente = listaClientesGlobal.find(c => c.id === id);
+    // Cancela la operación de inmediato si la coincidencia no existe en memoria
+    if (!cliente) return;
+
+    // Establece el texto por defecto para clientes directos sin obligaciones de garantía
+    let nombreGarante = "🚫 Sin Garante / Cliente Directo";
+    // Valida si la fila del cliente cuenta con una ID de garante vinculada en Supabase
+    if (cliente.garante_id) {
+        // Busca al garante dentro de nuestra misma lista global para obtener su identidad
+        const garante = listaClientesGlobal.find(c => c.id === cliente.garante_id);
+        // Si el garante fue localizado con éxito en el arreglo local
+        if (garante) {
+            // Reescribe la variable dándole el formato visual de usuario con nombres y cédula
+            nombreGarante = `👤 ${garante.nombres.toUpperCase()} ${garante.apellidos.toUpperCase()} (C.I: ${garante.cedula})`;
+        }
+    }
+
+    // Calcula el número de folio secuencial con ceros de empaque para el modal informativo
+    const codigoSecuencial = 'CLI-' + String(cliente.id).padStart(6, '0');
+    
+    // --- SOLUCIÓN DE BLOQUEO: Forzamos scroll interno y tamaño máximo en el contenedor ---
+    const cuerpo = document.getElementById('modal-cuerpo-detalles');
+    if (cuerpo) {
+        cuerpo.style.maxHeight = "70vh"; // Limita el alto al 70% de la pantalla para que no tape los botones
+        cuerpo.style.overflowY = "auto"; // Activa la barra de desplazamiento vertical si el contenido es largo
+        cuerpo.style.paddingRight = "10px"; // Evita que el scroll tape el texto
+    }
+    
+    // --- AJUSTE DE IMÁGENES CONTROLADAS (MÁXIMO 100PX / 140PX) ---
+    const HTMLFotoCliente = cliente.url_foto_cliente 
+        ? `<div class="detalle-foto-contenedor" style="text-align: center; margin-bottom: 15px;">
+             <p style="font-weight: 500; margin-bottom: 5px; color: var(--azul-premium); font-size: 14px;">📸 Foto del Cliente:</p>
+             <img src="${cliente.url_foto_cliente}" alt="Foto Perfil" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--azul-premium); object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+           </div>`
+        : `<div class="detalle-fila"><span class="detalle-label">📸 Foto Perfil:</span><span class="detalle-valor" style="font-style: italic; color:#94a3b8;">No cargada en sistema</span></div>`;
+
+    const HTMLFotoCedula = cliente.url_foto_cedula 
+        ? `<div class="detalle-foto-contenedor" style="text-align: center; margin-top: 15px; margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+             <p style="font-weight: 500; margin-bottom: 5px; color: #334155; font-size: 14px;">🪪 Documento de Cédula:</p>
+             <img src="${cliente.url_foto_cedula}" alt="Foto Cédula" style="max-width: 100%; max-height: 140px; border-radius: 6px; object-fit: contain; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+             <br>
+             <a href="${cliente.url_foto_cedula}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 8px; font-size: 12px; color: #0284c7; text-decoration: none; font-weight: 500;">👁️ Ver en pestaña nueva (Pantalla Completa)</a>
+           </div>`
+        : `<div class="detalle-fila"><span class="detalle-label">🪪 Foto Cédula:</span><span class="detalle-valor" style="font-style: italic; color:#94a3b8;">No cargada en sistema</span></div>`;
+
+    // Inyectamos de forma limpia los campos mapeados dentro de la estructura interna del modal
+    cuerpo.innerHTML = `
+        ${HTMLFotoCliente}
+
+        <div class="detalle-fila"><span class="detalle-label">Código:</span><span class="detalle-valor" style="font-weight:bold; color:var(--azul-premium);">${codigoSecuencial}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Nombres completos:</span><span class="detalle-valor">${cliente.nombres.toUpperCase()} ${cliente.apellidos.toUpperCase()}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Cédula / RUC:</span><span class="detalle-valor">${cliente.cedula}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">WhatsApp:</span><span class="detalle-valor">${cliente.whatsapp || 'No registrado'}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Correo:</span><span class="detalle-valor">${cliente.correo || 'No registrado'}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Garante Asociado:</span><span class="detalle-valor" style="color: #0369a1; font-weight: 500;">${nombreGarante}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Sector:</span><span class="detalle-valor">${cliente.sector}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Ruta de Cobro:</span><span class="detalle-valor">${cliente.ruta}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Dirección Exacta:</span><span class="detalle-valor">${cliente.direccion || 'No registrada'}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Referencia Física:</span><span class="detalle-valor">${cliente.referencia || 'No registrada'}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Teléf. Referencia:</span><span class="detalle-valor">${cliente.tel_referencia || 'No registrado'}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Categoría Perfil:</span><span class="detalle-valor">${cliente.nivel}</span></div>
+        <div class="detalle-fila"><span class="detalle-label">Observaciones:</span><span class="detalle-valor" style="font-style: italic; color:#64748b;">"${cliente.observaciones || 'Sin observaciones particulares'}"</span></div>
+        
+        ${HTMLFotoCedula}
+
+        <div class="detalle-fila" style="border-top: 1px solid #e2e8f0; margin-top: 10px; padding-top: 10px;">
+            <span class="detalle-label" style="color: #64748b;">📅 Ingresado el:</span>
+            <span class="detalle-valor" style="font-weight: 600; color: #64748b;">${cliente.fecha_ingreso || 'Sin fecha registrada'}</span>
+        </div>
+        <div class="detalle-fila" style="border-bottom: none;">
+            <span class="detalle-label" style="color: #64748b;">👤 Por:</span>
+            <span class="detalle-valor" style="font-weight: 600; color: #64748b;">${cliente.usuario_registro || 'Administrador'}</span>
+        </div>
+    `;
+
+    // Añade la clase activa para encender visualmente la ventana modal sobre la pantalla
+    document.getElementById('modal-ver-cliente').classList.add('active');
+}
+
+/**
+ * Remueve la clase activa para ocultar de nuevo el cuadro flotante de detalles.
+ */
+function cerrarModal() {
+    // Quita la clase activa apagando por completo el modal de la vista del navegador
+    document.getElementById('modal-ver-cliente').classList.remove('active');
+}
+/**
+ * Detecta el cambio en el selector de nivel y asigna automáticamente
+ * el límite de créditos correspondiente al campo 'cli-limite'.
+ */
+function actualizarLimite() {
+    // Captura el valor seleccionado actualmente en el menú de niveles
+    const nivel = document.getElementById('cli-nivel').value;
+    // Captura el elemento del campo de texto donde se muestra el límite
+    const campoLimite = document.getElementById('cli-limite');
+
+    // Define los límites según la categoría elegida
+    let limite = 2; // Por defecto empezamos con Bronce
+
+    if (nivel === "🥉 Bronce(Nuevo)") {
+        limite = 2;
+    } else if (nivel === "🥈 Plata(Cumplidor)") {
+        limite = 4;
+    } else if (nivel === "🥇 Oro(Excelente)") {
+        limite = 6;
+    } else if (nivel === "💎 Platino(Vip)") {
+        limite = 8;
+    } else if (nivel === "👑 Diamante(Inversionista)") {
+        limite = 15;
+    }
+
+    // Asigna el valor calculado al campo de entrada del formulario
+    campoLimite.value = limite;
+}
+/**
+ * Genera un reporte en Excel limpio y estructurado de la lista global de clientes.
+ * Limpia los emojis de los niveles para permitir filtros contables exactos.
+ */
+// =========================================================================
+// 📄 MOTORES DE REPORTES EXCEL Y PDF (CLIENTES CON FILTRO DE TIEMPO)
+// =========================================================================
+// =========================================================================
+// 📄 MOTORES DE REPORTES EXCEL Y PDF (CLIENTES CON FILTRO INFALIBLE)
+// =========================================================================
+
+/**
+ * Genera un reporte en Excel limpio y filtrado por mes.
+ */
+/**
+ * Genera un reporte en Excel limpio y filtrado por mes (Con formato de fecha VIP).
+ */
+function exportarExcelClientes() {
+    if (!listaClientesGlobal || listaClientesGlobal.length === 0) {
+        alert("⚠️ No hay datos de clientes para exportar en este momento.");
+        return;
+    }
+
+    // 🔥 EL CEREBRO DEL FILTRO (USANDO CREATED_AT) 🔥
+    const filtroElegido = document.getElementById('filtro-mes-reportes') ? document.getElementById('filtro-mes-reportes').value : 'todos';
+    let datosAExportar = listaClientesGlobal;
+
+    if (filtroElegido !== 'todos') {
+        let mesFiltro, anioFiltro;
+        if (filtroElegido === 'actual') {
+            mesFiltro = new Date().getMonth();
+            anioFiltro = new Date().getFullYear();
+        } else {
+            const partes = filtroElegido.split('-');
+            anioFiltro = parseInt(partes[0]);
+            mesFiltro = parseInt(partes[1]);
+        }
+
+        datosAExportar = listaClientesGlobal.filter(c => {
+            // USAMOS LA COLUMNA INFALIBLE DE SUPABASE
+            if (!c.created_at) return false; 
+            const f = new Date(c.created_at);
+            return f.getMonth() === mesFiltro && f.getFullYear() === anioFiltro;
+        });
+    }
+
+    if (datosAExportar.length === 0) {
+        alert("⚠️ No se registraron clientes nuevos en el mes que seleccionó.");
+        return;
+    }
+
+    // Mapeamos y limpiamos los datos filtrados
+    const datosLimpios = datosAExportar.map(c => {
+        let nivelLimpio = c.nivel || "Bronce (Nuevo)";
+        nivelLimpio = nivelLimpio.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, "").trim();
+        
+        // 🔥 EL NUEVO FORMATEADOR DE FECHAS (Ej: lunes 25/julio/2026) 🔥
+        let fechaBonita = 'Sin fecha';
+        if (c.created_at) {
+            const f = new Date(c.created_at);
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const diaSemana = dias[f.getDay()];
+            const diaNumero = String(f.getDate()).padStart(2, '0');
+            const mesNombre = meses[f.getMonth()];
+            const anio = f.getFullYear();
+            
+            fechaBonita = `${diaSemana} ${diaNumero}/${mesNombre}/${anio}`;
+        }
+
+        return {
+            "CÓDIGO": 'CLI-' + String(c.id).padStart(6, '0'),
+            "NOMBRES": c.nombres.toUpperCase(),
+            "APELLIDOS": c.apellidos.toUpperCase(),
+            "CÉDULA / RUC": c.cedula,
+            "WHATSAPP": c.whatsapp || 'No registrado',
+            "CORREO": c.correo || 'No registrado',
+            "SECTOR": c.sector || 'Sin sector',
+            "RUTA": c.ruta || 'Sin ruta',
+            "CATEGORÍA": nivelLimpio,
+            "FECHA INGRESO": fechaBonita  // Aquí aplicamos el nuevo formato
+        };
+    });
+
+    const hoja = XLSX.utils.json_to_sheet(datosLimpios);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Clientes Filtrados");
+
+    // Ajuste de ancho de columnas para que la fecha nueva quepa perfecto
+    const anchos = [
+        { wch: 12 }, // Código
+        { wch: 25 }, // Nombres
+        { wch: 25 }, // Apellidos
+        { wch: 15 }, // Cédula
+        { wch: 15 }, // WhatsApp
+        { wch: 25 }, // Correo
+        { wch: 25 }, // Sector
+        { wch: 20 }, // Ruta
+        { wch: 20 }, // Categoría
+        { wch: 25 }  // Fecha Ingreso (Ancho ampliado para el nuevo formato)
+    ];
+    hoja['!cols'] = anchos;
+
+    XLSX.writeFile(libro, `REPORTE_CLIENTES_${filtroElegido.toUpperCase()}.xlsx`);
+}
+
+/**
+ * Genera un PDF Ejecutivo filtrado por mes.
+ */
+function generarPdfClientes() {
+    if (!listaClientesGlobal || listaClientesGlobal.length === 0) {
+        alert("⚠️ No hay datos para generar el PDF.");
+        return;
+    }
+
+    // 🔥 EL CEREBRO DEL FILTRO (USANDO CREATED_AT) 🔥
+    const filtroElegido = document.getElementById('filtro-mes-reportes') ? document.getElementById('filtro-mes-reportes').value : 'todos';
+    let datosAExportar = listaClientesGlobal;
+    let tituloPeriodo = "HISTORIAL COMPLETO DE CLIENTES";
+
+    if (filtroElegido !== 'todos') {
+        let mesFiltro, anioFiltro;
+        if (filtroElegido === 'actual') {
+            mesFiltro = new Date().getMonth();
+            anioFiltro = new Date().getFullYear();
+            tituloPeriodo = `CLIENTES REGISTRADOS EN EL MES ACTUAL`;
+        } else {
+            const partes = filtroElegido.split('-');
+            anioFiltro = parseInt(partes[0]);
+            mesFiltro = parseInt(partes[1]);
+            const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            tituloPeriodo = `NUEVOS CLIENTES: ${nombresMeses[mesFiltro].toUpperCase()} ${anioFiltro}`;
+        }
+
+        datosAExportar = listaClientesGlobal.filter(c => {
+            // USAMOS LA COLUMNA INFALIBLE DE SUPABASE
+            if (!c.created_at) return false;
+            const f = new Date(c.created_at);
+            return f.getMonth() === mesFiltro && f.getFullYear() === anioFiltro;
+        });
+    }
+
+    if (datosAExportar.length === 0) {
+        alert("⚠️ No se registraron clientes nuevos en el mes que seleccionó.");
+        return;
+    }
+
+    const elementoTemporal = document.createElement('div');
+    elementoTemporal.style.padding = '20px';
+    elementoTemporal.style.fontFamily = "'Segoe UI', Helvetica, Arial, sans-serif";
+    elementoTemporal.style.color = '#334155';
+
+    const fechaHoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const totalClientes = datosAExportar.length;
+    const excelentes = datosAExportar.filter(c => String(c.nivel).toUpperCase().includes('ORO') || String(c.nivel).toUpperCase().includes('DIAMANTE')).length;
+
+    elementoTemporal.innerHTML = `
+        <div style="border-bottom: 3px solid #0284c7; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0; color: #0f172a; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">SISTEMA ALPHA V5</h1>
+                <p style="margin: 3px 0 0 0; color: #64748b; font-size: 13px; font-weight: 500;">📋 ${tituloPeriodo}</p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; font-size: 11px; color: #64748b;"><b>Generado el:</b> ${fechaHoy}</p>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #0284c7; font-weight: 600;">Estado: Auditoría Interna</p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+            <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 8px;">
+                <span style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Total Registrados en Periodo</span>
+                <h3 style="margin: 5px 0 0 0; font-size: 20px; color: #0f172a; font-weight: 700;">${totalClientes} Clientes</h3>
+            </div>
+            <div style="flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 15px; border-radius: 8px;">
+                <span style="font-size: 11px; color: #166534; font-weight: 600; text-transform: uppercase;">Clientes de Alto Rendimiento</span>
+                <h3 style="margin: 5px 0 0 0; font-size: 20px; color: #15803d; font-weight: 700;">${excelentes} VIP / Excelentes</h3>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
+            <thead>
+                <tr style="background: #0f172a; color: white;">
+                    <th style="padding: 8px; border: 1px solid #1e293b;">CÓDIGO</th>
+                    <th style="padding: 8px; border: 1px solid #1e293b;">NOMBRES Y APELLIDOS</th>
+                    <th style="padding: 8px; border: 1px solid #1e293b;">CÉDULA / RUC</th>
+                    <th style="padding: 8px; border: 1px solid #1e293b;">WHATSAPP</th>
+                    <th style="padding: 8px; border: 1px solid #1e293b;">SECTOR / RUTA</th>
+                    <th style="padding: 8px; border: 1px solid #1e293b;">PERFIL DE CLIENTE</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${datosAExportar.map((c, index) => `
+                    <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'}; border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px; font-weight: bold; color: #0284c7;">CLI-${String(c.id).padStart(6, '0')}</td>
+                        <td style="padding: 8px; font-weight: 500; color: #1e293b;">${c.nombres.toUpperCase()} ${c.apellidos.toUpperCase()}</td>
+                        <td style="padding: 8px; color: #334155;">${c.cedula}</td>
+                        <td style="padding: 8px; color: #334155;">${c.whatsapp || 'No registrado'}</td>
+                        <td style="padding: 8px; color: #475569;">${c.sector} (${c.ruta})</td>
+                        <td style="padding: 8px; font-weight: 600; color: #0f172a;">${c.nivel || '🥉 Bronce (Nuevo)'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; text-align: center; font-size: 10px; color: #94a3b8;">
+            Este documento es un reporte oficial emitido de forma automatizada por el Sistema de Control de Créditos Alpha V5 enlazado con bases seguras de Supabase.
+        </div>
+    `;
+
+    const opcionesConfig = {
+        margin: 10,
+        filename: `REPORTE_CLIENTES_${filtroElegido}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, logging: false, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opcionesConfig).from(elementoTemporal).save();
+}
