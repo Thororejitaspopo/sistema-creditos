@@ -787,3 +787,45 @@ main {
     border-radius: 6px;
     text-align: center;
 }
+
+/* ========================================================================= */
+/* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO CELULAR)                */
+/* ========================================================================= */
+@media screen and (max-width: 768px) {
+    /* 1. El contenedor general pasa de fila a columna */
+    body, .contenedor-principal, #app-container {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* 2. El menú lateral negro pasa a la parte superior (o inferior) y toma el 100% */
+    .sidebar, .menu-lateral, nav {
+        width: 100% !important;
+        height: auto !important;
+        position: relative !important;
+        display: flex !important;
+        overflow-x: auto !important; /* Menú deslizable con el dedo */
+        white-space: nowrap !important;
+        z-index: 1000;
+    }
+
+    /* 3. El área blanca de contenido ocupa el 100% del ancho */
+    .main-content, .contenido-central, main {
+        width: 100% !important;
+        margin-left: 0 !important;
+        padding: 10px !important;
+    }
+
+    /* 4. Las tarjetas que están en cuadrícula (grid) se apilan una debajo de otra */
+    .grid, .grid-3, .tarjetas-container, div[style*="grid-template-columns"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+
+    /* Ajuste de botones para tocarlos con el dedo fácilmente */
+    button, select, input {
+        min-height: 45px !important; 
+        font-size: 16px !important; /* Evita que el iPhone haga zoom automático */
+    }
+}
