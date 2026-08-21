@@ -791,130 +791,96 @@ main {
 /* ========================================================================= */
 /* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO CELULAR)                */
 /* ========================================================================= */
+/* ========================================================================= */
+/* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO WHATSAPP)               */
+/* ========================================================================= */
 @media screen and (max-width: 768px) {
-    /* ----------------------------------------------------------------- */
-    /* 1. ARREGLO DEL LOGIN (PUERTA DE SEGURIDAD)                        */
-    /* ----------------------------------------------------------------- */
-    #pantalla-seguridad {
-        padding: 20px !important; /* Da aire a los lados */
-        box-sizing: border-box !important;
-    }
-    
-    #pantalla-seguridad h1 {
-        font-size: 24px !important; /* Achica el título principal */
-        text-align: center !important;
-        margin-bottom: 10px !important;
-    }
-    
-    #pantalla-seguridad p {
-        font-size: 12px !important;
-        text-align: center !important;
-    }
-
-    #pantalla-seguridad input {
-        width: 100% !important; /* El input tomará el ancho disponible, sin salirse */
-        max-width: 300px !important; 
-        font-size: 18px !important;
-        letter-spacing: 2px !important; /* Menos espacio entre letras para que quepa */
-    }
-
-    #pantalla-seguridad button {
-        width: 100% !important;
-        max-width: 300px !important;
-        font-size: 14px !important;
-    }
-
-    /* ----------------------------------------------------------------- */
-    /* 2. ESTRUCTURA GENERAL DEL SISTEMA                                 */
-    /* ----------------------------------------------------------------- */
-    body, .contenedor-principal, #app-container {
+    /* Forzar que el cuerpo se adapte al celular */
+    body {
         display: flex !important;
         flex-direction: column !important;
-        height: 100vh !important; /* Ocupa exactamente el alto de la pantalla */
-        overflow: hidden !important; /* Evita que la página entera haga scroll raro */
+        overflow-x: hidden !important;
+        background-color: #f8fafc !important;
     }
 
-    /* ----------------------------------------------------------------- */
-    /* 3. EL MENÚ NEGRO (PASA A SER UNA BARRA DE NAVEGACIÓN INFERIOR)    */
-    /* ----------------------------------------------------------------- */
-    aside, .sidebar {
+    /* 1. EL MENÚ NEGRO PASA A SER LA BARRA INFERIOR (TIPO APP BANCARIA) */
+    aside {
         width: 100% !important;
-        height: 70px !important; /* Alto fijo tipo barra de WhatsApp */
-        min-height: 70px !important;
+        height: 70px !important;
         position: fixed !important;
         bottom: 0 !important;
         left: 0 !important;
-        z-index: 1000 !important;
-        display: flex !important;
-        flex-direction: row !important;
+        background: #0f172a !important;
+        z-index: 9999 !important;
         padding: 0 !important;
-        background-color: #0f172a !important;
-        box-shadow: 0 -4px 10px rgba(0,0,0,0.2) !important;
+        display: flex !important;
+        align-items: center !important;
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.3) !important;
     }
 
-    /* Ocultar el Logo y la Configuración de Tasa en el menú móvil para ahorrar espacio */
+    /* Esconder lo que no sirve en el celular (logo, tasas, textos) para ahorrar espacio */
     .logo-sistema, .config-rapida, .menu-categoria {
         display: none !important;
     }
 
-    /* El contenedor de los botones se vuelve horizontal y deslizable */
-    nav, .menu-nav {
+    /* Hacer que los botones del menú se deslicen horizontalmente con el dedo */
+    .menu-nav {
         display: flex !important;
         flex-direction: row !important;
         width: 100% !important;
-        overflow-x: auto !important; /* Permite deslizar los botones con el dedo */
-        white-space: nowrap !important; /* Evita que los botones se caigan a otra línea */
-        align-items: center !important;
-        padding: 0 10px !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        padding: 0 15px !important;
         gap: 10px !important;
-        scroll-snap-type: x mandatory !important; /* Efecto imán suave al deslizar */
-        -webkit-overflow-scrolling: touch !important; /* Fluidez en iPhone */
+        align-items: center !important;
+        height: 100% !important;
+        margin: 0 !important;
     }
 
-    nav::-webkit-scrollbar, .menu-nav::-webkit-scrollbar {
-        display: none !important; /* Esconde la barrita fea de scroll abajo */
+    .menu-nav::-webkit-scrollbar {
+        display: none !important; /* Esconde la barra de scroll de PC */
     }
 
-    /* Arreglo de los botones del menú para celular */
     .btn-menu {
-        flex: 0 0 auto !important; /* Evita que el botón se aplaste */
-        padding: 10px 15px !important;
-        font-size: 13px !important;
+        flex: 0 0 auto !important;
+        margin: 0 !important;
+        padding: 12px 18px !important;
+        font-size: 14px !important;
         border-radius: 8px !important;
-        scroll-snap-align: center !important;
+        background: rgba(255,255,255,0.05) !important;
+    }
+    
+    .btn-menu.active {
+        background: #0284c7 !important;
     }
 
-    /* ----------------------------------------------------------------- */
-    /* 4. EL ÁREA DE CONTENIDO (MÓDULOS)                                 */
-    /* ----------------------------------------------------------------- */
-    main, .main-content, .contenido-central {
+    /* 2. EL CONTENIDO PRINCIPAL OCUPA TODO EL ESPACIO */
+    main {
         width: 100% !important;
         margin-left: 0 !important;
         padding: 15px !important;
-        margin-bottom: 70px !important; /* Deja espacio para que el menú de abajo no tape cosas */
-        height: calc(100vh - 70px) !important; /* Toma el alto de la pantalla menos el menú */
-        overflow-y: auto !important; /* Permite hacer scroll vertical solo en el contenido */
-        box-sizing: border-box !important;
+        margin-bottom: 75px !important; /* Deja espacio para la barra inferior */
     }
 
-    /* ----------------------------------------------------------------- */
-    /* 5. AJUSTES FINOS PARA TARJETAS Y CUADRÍCULAS (GRIDS)              */
-    /* ----------------------------------------------------------------- */
-    .grid, .grid-3, .tarjetas-container, div[style*="grid-template-columns"], .fila-campos {
+    /* 3. ARREGLO DEL LOGIN (PUERTA DE SEGURIDAD) */
+    #pantalla-seguridad {
+        padding: 25px !important;
+        box-sizing: border-box !important;
+    }
+    #pantalla-seguridad h1 { font-size: 26px !important; text-align: center !important; }
+    #pantalla-seguridad input { width: 100% !important; max-width: 100% !important; font-size: 18px !important; }
+    #pantalla-seguridad button { width: 100% !important; max-width: 100% !important; }
+
+    /* 4. APILAR LAS TARJETAS UNA DEBAJO DE OTRA */
+    div[style*="grid-template-columns"], .fila-campos, div[style*="display: flex; gap: 20px;"] {
         display: flex !important;
         flex-direction: column !important;
         gap: 15px !important;
     }
-
-    /* Los elementos que tengan flex-wrap ahora se apilan bonito */
-    div[style*="flex-wrap: wrap"] > div {
-        min-width: 100% !important; /* Obliga a que ocupen todo el ancho en celular */
-        margin-bottom: 10px !important;
-    }
-
-    /* Ajuste de botones grandes para tocarlos con el dedo fácilmente */
-    button, select, input {
-        min-height: 45px !important; 
-        font-size: 16px !important; /* Evita que el iPhone haga zoom automático */
+    
+    /* Que todos los contenedores tomen el 100% del ancho del celular */
+    div[style*="flex: 1"] {
+        min-width: 100% !important;
+        width: 100% !important;
     }
 }
