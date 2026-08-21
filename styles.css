@@ -792,38 +792,127 @@ main {
 /* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO CELULAR)                */
 /* ========================================================================= */
 @media screen and (max-width: 768px) {
-    /* 1. El contenedor general pasa de fila a columna */
+    /* ----------------------------------------------------------------- */
+    /* 1. ARREGLO DEL LOGIN (PUERTA DE SEGURIDAD)                        */
+    /* ----------------------------------------------------------------- */
+    #pantalla-seguridad {
+        padding: 20px !important; /* Da aire a los lados */
+        box-sizing: border-box !important;
+    }
+    
+    #pantalla-seguridad h1 {
+        font-size: 24px !important; /* Achica el título principal */
+        text-align: center !important;
+        margin-bottom: 10px !important;
+    }
+    
+    #pantalla-seguridad p {
+        font-size: 12px !important;
+        text-align: center !important;
+    }
+
+    #pantalla-seguridad input {
+        width: 100% !important; /* El input tomará el ancho disponible, sin salirse */
+        max-width: 300px !important; 
+        font-size: 18px !important;
+        letter-spacing: 2px !important; /* Menos espacio entre letras para que quepa */
+    }
+
+    #pantalla-seguridad button {
+        width: 100% !important;
+        max-width: 300px !important;
+        font-size: 14px !important;
+    }
+
+    /* ----------------------------------------------------------------- */
+    /* 2. ESTRUCTURA GENERAL DEL SISTEMA                                 */
+    /* ----------------------------------------------------------------- */
     body, .contenedor-principal, #app-container {
         display: flex !important;
         flex-direction: column !important;
+        height: 100vh !important; /* Ocupa exactamente el alto de la pantalla */
+        overflow: hidden !important; /* Evita que la página entera haga scroll raro */
     }
 
-    /* 2. El menú lateral negro pasa a la parte superior (o inferior) y toma el 100% */
-    .sidebar, .menu-lateral, nav {
+    /* ----------------------------------------------------------------- */
+    /* 3. EL MENÚ NEGRO (PASA A SER UNA BARRA DE NAVEGACIÓN INFERIOR)    */
+    /* ----------------------------------------------------------------- */
+    aside, .sidebar {
         width: 100% !important;
-        height: auto !important;
-        position: relative !important;
+        height: 70px !important; /* Alto fijo tipo barra de WhatsApp */
+        min-height: 70px !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        z-index: 1000 !important;
         display: flex !important;
-        overflow-x: auto !important; /* Menú deslizable con el dedo */
-        white-space: nowrap !important;
-        z-index: 1000;
+        flex-direction: row !important;
+        padding: 0 !important;
+        background-color: #0f172a !important;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.2) !important;
     }
 
-    /* 3. El área blanca de contenido ocupa el 100% del ancho */
-    .main-content, .contenido-central, main {
+    /* Ocultar el Logo y la Configuración de Tasa en el menú móvil para ahorrar espacio */
+    .logo-sistema, .config-rapida, .menu-categoria {
+        display: none !important;
+    }
+
+    /* El contenedor de los botones se vuelve horizontal y deslizable */
+    nav, .menu-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100% !important;
+        overflow-x: auto !important; /* Permite deslizar los botones con el dedo */
+        white-space: nowrap !important; /* Evita que los botones se caigan a otra línea */
+        align-items: center !important;
+        padding: 0 10px !important;
+        gap: 10px !important;
+        scroll-snap-type: x mandatory !important; /* Efecto imán suave al deslizar */
+        -webkit-overflow-scrolling: touch !important; /* Fluidez en iPhone */
+    }
+
+    nav::-webkit-scrollbar, .menu-nav::-webkit-scrollbar {
+        display: none !important; /* Esconde la barrita fea de scroll abajo */
+    }
+
+    /* Arreglo de los botones del menú para celular */
+    .btn-menu {
+        flex: 0 0 auto !important; /* Evita que el botón se aplaste */
+        padding: 10px 15px !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+        scroll-snap-align: center !important;
+    }
+
+    /* ----------------------------------------------------------------- */
+    /* 4. EL ÁREA DE CONTENIDO (MÓDULOS)                                 */
+    /* ----------------------------------------------------------------- */
+    main, .main-content, .contenido-central {
         width: 100% !important;
         margin-left: 0 !important;
-        padding: 10px !important;
+        padding: 15px !important;
+        margin-bottom: 70px !important; /* Deja espacio para que el menú de abajo no tape cosas */
+        height: calc(100vh - 70px) !important; /* Toma el alto de la pantalla menos el menú */
+        overflow-y: auto !important; /* Permite hacer scroll vertical solo en el contenido */
+        box-sizing: border-box !important;
     }
 
-    /* 4. Las tarjetas que están en cuadrícula (grid) se apilan una debajo de otra */
-    .grid, .grid-3, .tarjetas-container, div[style*="grid-template-columns"] {
+    /* ----------------------------------------------------------------- */
+    /* 5. AJUSTES FINOS PARA TARJETAS Y CUADRÍCULAS (GRIDS)              */
+    /* ----------------------------------------------------------------- */
+    .grid, .grid-3, .tarjetas-container, div[style*="grid-template-columns"], .fila-campos {
         display: flex !important;
         flex-direction: column !important;
         gap: 15px !important;
     }
 
-    /* Ajuste de botones para tocarlos con el dedo fácilmente */
+    /* Los elementos que tengan flex-wrap ahora se apilan bonito */
+    div[style*="flex-wrap: wrap"] > div {
+        min-width: 100% !important; /* Obliga a que ocupen todo el ancho en celular */
+        margin-bottom: 10px !important;
+    }
+
+    /* Ajuste de botones grandes para tocarlos con el dedo fácilmente */
     button, select, input {
         min-height: 45px !important; 
         font-size: 16px !important; /* Evita que el iPhone haga zoom automático */
