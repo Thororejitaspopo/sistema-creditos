@@ -632,7 +632,67 @@
         
         
         
-        <div id="mod-gastos" class="modulo-contenido"><h3>💸 Control de Egresos y Gastos Varios</h3></div>
+        <div id="mod-gastos" class="modulo-contenido" style="padding: 20px; background: #f8fafc; border-radius: 12px;">
+    
+    <div style="margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
+        <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 700;">
+            💸 Registro de Gastos y Egresos Diarios
+        </h2>
+        <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+            Atención: Estos gastos se deducirán de la recaudación física del día en el Cierre de Caja.
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        
+        <!-- Formulario de Registro -->
+        <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; color: #334155; margin-bottom: 8px;">Categoría del Gasto:</label>
+                <select id="gasto-categoria" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; background: #f8fafc; outline: none;">
+                    <option value="" disabled selected>-- Seleccione una Categoría --</option>
+                    <option value="⛽ Combustible / Gasolina">⛽ Combustible / Gasolina</option>
+                    <option value="🔧 Mantenimiento / Repuestos">🔧 Mantenimiento / Repuestos Moto</option>
+                    <option value="🍔 Alimentación">🍔 Alimentación</option>
+                    <option value="🏢 Suministros de Oficina">🏢 Suministros de Oficina / Papelería</option>
+                    <option value="💼 Pago de Personal">💼 Pago de Personal / Viáticos</option>
+                    <option value="📦 Gastos Varios / Otros">📦 Gastos Varios / Otros (Especificar)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; color: #334155; margin-bottom: 8px;">Monto del Gasto ($):</label>
+                <input type="number" id="gasto-monto" step="0.01" placeholder="Ej: 50.00" style="width: 100%; padding: 12px; border: 2px solid #ef4444; border-radius: 8px; font-size: 18px; font-weight: bold; box-sizing: border-box; outline: none; color: #b91c1c;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; color: #334155; margin-bottom: 8px;">Concepto / Detalle Exacto:</label>
+                <input type="text" id="gasto-concepto" placeholder="Ej: Compra de llanta trasera moto 1" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; box-sizing: border-box; outline: none; text-transform: uppercase;">
+            </div>
+
+            <button onclick="registrarGastoDiario()" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                📉 REGISTRAR GASTO HOY
+            </button>
+        </div>
+
+        <!-- Resumen Rápido -->
+        <div style="flex: 1; min-width: 300px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column;">
+            
+            <h3 style="margin: 0 0 15px 0; color: #0f172a; font-size: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">📋 Últimos Gastos Registrados Hoy</h3>
+            
+            <div id="lista-gastos-hoy" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; max-height: 300px;">
+                <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 13px;">Buscando gastos del día...</div>
+            </div>
+
+            <div style="margin-top: 15px; background: #fef2f2; padding: 15px; border-radius: 8px; border: 1px solid #fca5a5; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold; color: #991b1b; font-size: 14px;">Total Gastado Hoy:</span>
+                <span id="total-gastos-hoy-txt" style="font-weight: 900; color: #b91c1c; font-size: 22px;">$0.00</span>
+            </div>
+        </div>
+
+    </div>
+</div>
         <div id="mod-capital" class="modulo-contenido">
             <h2>💰 Control y Gestión de Capital</h2>
             <p class="subtitulo">Inyección de fondos, distribución de cajas y saldos en vivo.</p>
@@ -709,7 +769,149 @@
         </div>
 
         <div id="mod-interes" class="modulo-contenido"></div>
-        <div id="mod-cierre" class="modulo-contenido"><h3>🔒 Cierre de Caja Definitivo</h3></div>
+        <div id="mod-cierre" class="modulo-contenido" style="padding: 20px; background: #f1f5f9; border-radius: 12px; min-height: 80vh;">
+    
+    <div style="margin-bottom: 25px; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h2 style="color: #0f172a; margin: 0; font-size: 24px; font-weight: 900;">
+                ⚖️ Auditoría y Cierre de Caja Diario
+            </h2>
+            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">
+                Cruce automático de fondos físicos vs. contabilidad del sistema.
+            </p>
+        </div>
+        <button onclick="ejecutarCierreDiario()" style="background: #0284c7; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: transform 0.2s;">
+            🔄 CALCULAR CIERRE DE HOY
+        </button>
+    </div>
+
+    <!-- PANEL 1: MOVIMIENTOS BRUTOS DEL DÍA -->
+    <h3 style="color: #334155; font-size: 16px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">1. Movimientos Registrados Hoy</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 30px;">
+        
+        <!-- Entradas -->
+        <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="color: #64748b; font-size: 12px; font-weight: bold; margin-bottom: 5px;">📥 TOTAL RECAUDADO (ABONOS)</div>
+            <div id="cierre-total-ingresos" style="font-size: 26px; font-weight: 900; color: #064e3b;">$0.00</div>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #475569;">
+                <span>A Capital: <strong id="cierre-ingreso-cap">$0.00</strong></span>
+                <span>A Interés: <strong id="cierre-ingreso-int">$0.00</strong></span>
+            </div>
+        </div>
+
+        <!-- Salidas: Gastos -->
+        <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #ef4444; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="color: #64748b; font-size: 12px; font-weight: bold; margin-bottom: 5px;">📉 GASTOS VARIOS DEL DÍA</div>
+            <div id="cierre-total-gastos" style="font-size: 26px; font-weight: 900; color: #7f1d1d;">$0.00</div>
+            <div style="margin-top: 10px; font-size: 11px; color: #ef4444; font-weight: bold;">
+                ⚠️ Este dinero salió físicamente de la calle.
+            </div>
+        </div>
+
+        <!-- Salidas: Préstamos Nuevos -->
+        <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div style="color: #64748b; font-size: 12px; font-weight: bold; margin-bottom: 5px;">💸 PRÉSTAMOS ENTREGADOS HOY</div>
+            <div id="cierre-total-prestamos" style="font-size: 26px; font-weight: 900; color: #78350f;">$0.00</div>
+            <div style="margin-top: 10px; font-size: 11px; color: #f59e0b; font-weight: bold;">
+                El dinero físico se entregó a nuevos clientes.
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL 2: EL EFECTIVO FÍSICO QUE DEBE ESTAR EN LA MALETA -->
+    <div style="background: #0f172a; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="color: #94a3b8; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px;">💵 Efectivo Físico que debe tener en su mano</h3>
+        <div id="cierre-efectivo-mano" style="font-size: 45px; font-weight: 900; color: #38bdf8; letter-spacing: -1px;">$0.00</div>
+        <p style="color: #64748b; font-size: 13px; margin: 10px 0 0 0;">Fórmula: (Recaudación) - (Gastos) - (Préstamos en Efectivo)</p>
+    </div>
+
+    <!-- PANEL 3: DISTRIBUCIÓN DE BÓVEDAS (LA REGLA DE ORO) -->
+    <h3 style="color: #334155; font-size: 16px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">2. Instrucciones de Separación de Cajas y Bancos</h3>
+    
+    <div style="background: white; padding: 25px; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        
+        <p style="margin-top: 0; color: #475569; font-size: 14px; margin-bottom: 20px;">
+            De los <strong><span id="txt-efectivo-repartir">$0.00</span></strong> físicos que tiene, guárdelos de la siguiente manera, y verifique los ingresos bancarios:
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            
+            <!-- Guardar en Capital (Físico) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🏦</span>
+                    <div>
+                        <div style="font-weight: bold; color: #0369a1; font-size: 15px;">Caja Fuerte de Capital (Efectivo)</div>
+                        <div style="font-size: 12px; color: #0284c7;">Supervivencia de la empresa (Intocable)</div>
+                    </div>
+                </div>
+                <div id="cierre-guardar-capital" style="font-size: 22px; font-weight: 900; color: #0369a1;">$0.00</div>
+            </div>
+
+            <!-- Guardar en Interés (Físico) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fffdf5; border: 1px solid #fef08a; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">💼</span>
+                    <div>
+                        <div style="font-weight: bold; color: #a16207; font-size: 15px;">Caja Fuerte de Intereses (Efectivo)</div>
+                        <div style="font-size: 12px; color: #ca8a04;">Ganancia neta del día (Ya descontó gastos)</div>
+                    </div>
+                </div>
+                <div id="cierre-guardar-interes" style="font-size: 22px; font-weight: 900; color: #a16207;">$0.00</div>
+            </div>
+
+            <div style="height: 1px; background: #cbd5e1; margin: 5px 0;"></div> <!-- Separador visual -->
+
+            <!-- Capital en Bancos (Transferencias) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">💳</span>
+                    <div>
+                        <div style="font-weight: bold; color: #6d28d9; font-size: 15px;">Capital en Bancos</div>
+                        <div style="font-size: 12px; color: #8b5cf6;">Recaudación de capital vía Transferencia</div>
+                    </div>
+                </div>
+                <div id="cierre-banco-capital" style="font-size: 22px; font-weight: 900; color: #6d28d9;">$0.00</div>
+            </div>
+
+             <!-- Intereses en Bancos (Transferencias) -->
+             <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fdf4ff; border: 1px solid #f5d0fe; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">📈</span>
+                    <div>
+                        <div style="font-weight: bold; color: #a21caf; font-size: 15px;">Intereses en Bancos</div>
+                        <div style="font-size: 12px; color: #c026d3;">Ganancia del día vía Transferencia</div>
+                    </div>
+                </div>
+                <div id="cierre-banco-interes" style="font-size: 22px; font-weight: 900; color: #a21caf;">$0.00</div>
+            </div>
+
+        </div>
+
+        <!-- ALERTA DE CRUCE DE BÓVEDAS (Oculto por defecto) -->
+        <div id="alerta-cruce-bovedas" style="display: none; margin-top: 20px; padding: 20px; background: #fee2e2; border: 2px dashed #ef4444; border-radius: 8px;">
+            <h4 style="color: #b91c1c; margin: 0 0 10px 0; font-size: 16px;">⚠️ ATENCIÓN: REPOSICIÓN DE FONDOS REQUERIDA</h4>
+            <p id="txt-alerta-cruce" style="color: #991b1b; font-size: 14px; margin: 0 0 15px 0;">
+                Los gastos o préstamos físicos superaron los ingresos en efectivo de hoy. Se usó dinero de otra caja para cubrirlo.
+            </p>
+            <button style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);">
+                ✅ Aplicar Ajuste Automático en Sistema
+            </button>
+        </div>
+
+    </div>
+    <!-- PANEL 4: EL REPORTE DETALLADO (LA RADIOGRAFÍA) -->
+    <h3 style="color: #334155; font-size: 16px; margin-top: 40px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">3. Detalle de Auditoría (Radiografía del Día)</h3>
+    
+    <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 400px; overflow-y: auto;">
+        <div id="cierre-detalle-lista" style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 14px;">
+                Presione "Calcular Cierre de Hoy" para generar el reporte detallado de los movimientos.
+            </div>
+        </div>
+    </div>
+</div>
         <div id="mod-supervisores" class="modulo-contenido"><h3>👔 Control de Personal Supervisor</h3></div>
         <div id="mod-cobradores" class="modulo-contenido"><h3>🏍️ Control de Rutas de Cobradores</h3></div>
         
@@ -948,5 +1150,9 @@
     <script src="modulos/mora.js"></script>
     <!-- Conexión del Módulo de interes-->
     <script src="modulos/interes.js"></script>
+    <!-- Conexión del Módulo de gastos-->
+    <script src="modulos/gastos.js"></script>
+    <!-- Conexión del Módulo de cierre-->
+    <script src="modulos/cierre.js"></script>
 </body>
 </html>
