@@ -194,6 +194,11 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
     const modalPrevio = document.getElementById(modalId);
     if (modalPrevio) modalPrevio.remove();
 
+    // 📲 EL NUEVO BOTÓN DE AVISO DE GRACIA (SMS INTERNACIONAL) - CORREGIDO
+    const btnAvisoGraciaHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #fef08a; color: #a16207; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>📱 Enviar Aviso SMS (BLOQUEADO)</span></button>`
+        : `<button onclick="enviarAvisoGraciaSMS(${idCredito}, '${nombreCliente.replace(/'/g, "\\'")}', ${saldoNum}, '${etiquetaCRE}', '${refBancaria}')" style="padding: 12px; background: #eab308; color: #422006; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(234, 179, 8, 0.2); transition: 0.2s;" onmouseover="this.style.background='#ca8a04'" onmouseout="this.style.background='#eab308'"><span>📱 Enviar Aviso SMS</span><span style="background: rgba(255,255,255,0.4); padding: 3px 8px; border-radius: 4px; font-size: 11px;">Periodo de Gracia</span></button>`;
+
     const btnCapitalHTML = esCongelado 
         ? `<button disabled style="padding: 12px; background: #fca5a5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🚨 Mora s/ Capital (BLOQUEADO)</span></button>`
         : `<button onclick="aplicarMoraSobreCapital(${idCredito}, ${multaSobreCapital}, ${saldoNum}, '${etiquetaCRE}')" style="padding: 12px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);"><span>🚨 Mora s/ Capital</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Sumar $${multaSobreCapital.toFixed(2)}</span></button>`;
@@ -210,13 +215,12 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
         ? `<button disabled style="padding: 12px; background: #86efac; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🛡️ Perdonar este mes (BLOQUEADO)</span></button>`
         : `<button onclick="perdonarMoraEsteMes(${idCredito}, '${etiquetaCRE}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"><span>🛡️ Perdonar este mes</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Pausar 30 días</span></button>`;
 
-    // 🔥 EL NUEVO BOTÓN MAESTRO DE SILICON VALLEY (REFINANCIAMIENTO) 🔥
-    // 🔥 EL NUEVO BOTÓN MAESTRO DE SILICON VALLEY (REFINANCIAMIENTO) 🔥
     const btnRolloverHTML = esCongelado
         ? `<button disabled style="padding: 12px; background: #d8b4fe; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🔄 Renovar Plazo (BLOQUEADO)</span></button>`
         : `<button onclick="renovarPlazoCredito(${idCredito}, '${etiquetaCRE}')" style="padding: 12px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); transition: 0.2s;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'"><span>🔄 Renovar Plazo (Solo pagó Interés)</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Recalcular</span></button>`;
+    
     const btnHistorialHTML = `<button onclick="verHistorialMoras(${idCredito}, '${nombreCliente.replace(/'/g, "\\'")}')" style="margin-top: 5px; padding: 10px; background: #f8fafc; color: #334155; border: 1px dashed #94a3b8; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'"><span>📜 Ver Historial de Moras y Perdones</span></button>`;
-   
+    
     const modalHTML = `
     <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; backdrop-filter: blur(4px);">
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;">
@@ -242,11 +246,12 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
                 </div>
             </div>
             <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                ${btnAvisoGraciaHTML}
                 ${btnCapitalHTML}
                 ${btnSaldoHTML}
                 ${btnCongelarHTML}
                 ${btnPerdonarHTML}
-                ${btnRolloverHTML} <!-- AQUÍ YA ESTÁ PEGADO EL BOTÓN NUEVO -->
+                ${btnRolloverHTML}
                 ${btnHistorialHTML} 
             </div>
             <div style="padding: 15px 20px; background: #f1f5f9; text-align: center;">
@@ -1035,7 +1040,89 @@ window.verHistorialMoras = async function(idCredito, nombreCliente) {
         alert("Ocurrió un error al cargar el historial de moras.");
     }
 };
+// =========================================================================
+// ⚙️ PANEL VISUAL DE SANCIONES Y CONEXIÓN A BASE DE DATOS
+// =========================================================================
+window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, saldo, tasaOriginal, estadoActual, etiquetaCRE, refBancaria) {
+    const capitalNum = parseFloat(capital) || 1;
+    const saldoNum = parseFloat(saldo) || 0; 
+    const interesPorcentaje = parseFloat(tasaOriginal) || 20;
+    const esCongelado = estadoActual === 'congelado';
+    
+    const multaSobreCapital = capitalNum * (interesPorcentaje / 100);
+    const multaSobreSaldo = saldoNum * (interesPorcentaje / 100);
 
+    const modalId = 'modal-sancion-alpha';
+    const modalPrevio = document.getElementById(modalId);
+    if (modalPrevio) modalPrevio.remove();
+
+    // 📲 EL NUEVO BOTÓN DE AVISO DE GRACIA (SMS INTERNACIONAL) - CORREGIDO
+    const btnAvisoGraciaHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #fef08a; color: #a16207; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>📱 Enviar Aviso SMS (BLOQUEADO)</span></button>`
+        : `<button onclick="enviarAvisoGraciaSMS(${idCredito}, '${nombreCliente.replace(/'/g, "\\'")}', ${saldoNum}, '${etiquetaCRE}', '${refBancaria}')" style="padding: 12px; background: #eab308; color: #422006; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(234, 179, 8, 0.2); transition: 0.2s;" onmouseover="this.style.background='#ca8a04'" onmouseout="this.style.background='#eab308'"><span>📱 Enviar Aviso SMS</span><span style="background: rgba(255,255,255,0.4); padding: 3px 8px; border-radius: 4px; font-size: 11px;">Periodo de Gracia</span></button>`;
+
+    const btnCapitalHTML = esCongelado 
+        ? `<button disabled style="padding: 12px; background: #fca5a5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🚨 Mora s/ Capital (BLOQUEADO)</span></button>`
+        : `<button onclick="aplicarMoraSobreCapital(${idCredito}, ${multaSobreCapital}, ${saldoNum}, '${etiquetaCRE}')" style="padding: 12px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);"><span>🚨 Mora s/ Capital</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Sumar $${multaSobreCapital.toFixed(2)}</span></button>`;
+
+    const btnSaldoHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #fdba74; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>⚡ Mora s/ Saldo (BLOQUEADO)</span></button>`
+        : `<button onclick="aplicarMoraSobreSaldo(${idCredito}, ${multaSobreSaldo}, ${saldoNum}, '${etiquetaCRE}')" style="padding: 12px; background: #ea580c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(234, 88, 12, 0.2);"><span>⚡ Mora s/ Saldo</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Sumar $${multaSobreSaldo.toFixed(2)}</span></button>`;
+
+    const btnCongelarHTML = esCongelado
+        ? `<button onclick="alternarCongelamiento(${idCredito}, 'activo', '${etiquetaCRE}', ${saldoNum})" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);"><span>🔥 Descongelar Cuenta</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Reactivar recargos</span></button>`
+        : `<button onclick="alternarCongelamiento(${idCredito}, 'congelado', '${etiquetaCRE}', ${saldoNum})" style="padding: 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);"><span>🧊 Congelar Cuenta</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Pausar recargos</span></button>`;
+
+    const btnPerdonarHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #86efac; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🛡️ Perdonar este mes (BLOQUEADO)</span></button>`
+        : `<button onclick="perdonarMoraEsteMes(${idCredito}, '${etiquetaCRE}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);"><span>🛡️ Perdonar este mes</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Pausar 30 días</span></button>`;
+
+    const btnRolloverHTML = esCongelado
+        ? `<button disabled style="padding: 12px; background: #d8b4fe; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed; display: flex; justify-content: space-between; align-items: center;"><span>🔄 Renovar Plazo (BLOQUEADO)</span></button>`
+        : `<button onclick="renovarPlazoCredito(${idCredito}, '${etiquetaCRE}')" style="padding: 12px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2); transition: 0.2s;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'"><span>🔄 Renovar Plazo (Solo pagó Interés)</span><span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px;">Recalcular</span></button>`;
+    
+    const btnHistorialHTML = `<button onclick="verHistorialMoras(${idCredito}, '${nombreCliente.replace(/'/g, "\\'")}')" style="margin-top: 5px; padding: 10px; background: #f8fafc; color: #334155; border: 1px dashed #94a3b8; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'"><span>📜 Ver Historial de Moras y Perdones</span></button>`;
+    
+    const modalHTML = `
+    <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; backdrop-filter: blur(4px);">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;">
+            <div style="background: #0f172a; padding: 20px; text-align: center;">
+                <h3 style="margin: 0; color: white; font-size: 18px;">⚖️ Panel de Resolución de Cartera</h3>
+                <p style="margin: 8px 0 2px 0; color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">ID: ${idCredito} | ${refBancaria || 'REF: NO-DATA'}</p>
+                <p style="margin: 0 0 5px 0; color: #ca8a04; font-weight: bold; font-size: 16px;">${etiquetaCRE || 'CRE #'}</p>
+                <p style="margin: 5px 0 0 0; color: #f8fafc; font-size: 14px; text-transform: uppercase;">${nombreCliente}</p>
+                ${esCongelado ? '<div style="margin-top: 10px; display: inline-block; background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">🧊 CUENTA CONGELADA Y PROTEGIDA</div>' : ''}
+            </div>
+            <div style="padding: 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 13px; font-weight: bold;">Capital Protegido:</span>
+                    <span style="color: #0f172a; font-weight: 900; font-size: 13px;">$${capitalNum.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 13px; font-weight: bold;">Interés del Contrato Original:</span>
+                    <span style="color: #0f172a; font-weight: 900; font-size: 13px;">${interesPorcentaje}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px dashed #cbd5e1;">
+                    <span style="color: #ef4444; font-weight: bold; font-size: 15px;">Saldo Pendiente Actual:</span>
+                    <span style="color: #ef4444; font-weight: 900; font-size: 20px;">$${saldoNum.toFixed(2)}</span>
+                </div>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                ${btnAvisoGraciaHTML}
+                ${btnCapitalHTML}
+                ${btnSaldoHTML}
+                ${btnCongelarHTML}
+                ${btnPerdonarHTML}
+                ${btnRolloverHTML}
+                ${btnHistorialHTML} 
+            </div>
+            <div style="padding: 15px 20px; background: #f1f5f9; text-align: center;">
+                <button onclick="document.getElementById('${modalId}').remove()" style="padding: 10px 25px; background: white; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">Cancelar y Cerrar</button>
+            </div>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+};
 // este codigo de aqui a bajo es para enviar mensajes cuando al cliente se le aplica mora 
 // =========================================================================
 // 🚨 LÓGICA INTELIGENTE DE ENVÍO DE SMS (NOTIFICACIÓN DE MORA)
@@ -1097,5 +1184,60 @@ window.notificarMoraSMS = async function(clienteObj, etiquetaCRE, multaAplicada,
 
     } catch (errorSMS) {
         console.error(`❌ Falló el armado o envío del SMS de Mora: ${errorSMS.message}`);
+    }
+};
+
+// =========================================================================
+// 📲 MOTOR DE AVISO DE GRACIA (SMS INTERNACIONAL)
+// =========================================================================
+window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActual, etiquetaCRE, refBancaria) {
+    if (!confirm(`📲 ¿Desea enviar el Aviso de Periodo de Gracia por SMS a ${nombreCliente}?\n\nSe le notificará que tiene pocos días para evitar recargos.`)) return;
+
+    try {
+        const { data: credito, error: errBusq } = await supabaseClient
+            .from('creditos')
+            .select('fecha_vencimiento_actual, fecha_emision, clientes(whatsapp)')
+            .eq('id', idCredito).single();
+
+        if (errBusq) throw errBusq;
+
+        const cli = credito.clientes || {};
+        if (!cli.whatsapp) {
+            alert("❌ Imposible enviar SMS: Este cliente no tiene número de WhatsApp registrado.");
+            return;
+        }
+
+        // Formateo de fechas estilo internacional
+        const fechaRef = credito.fecha_vencimiento_actual ? new Date(credito.fecha_vencimiento_actual) : new Date(credito.fecha_emision);
+        const opcionesFecha = { weekday: 'long', day: 'numeric', month: 'long' };
+        let fechaVenceTxt = fechaRef.toLocaleDateString('es-ES', opcionesFecha);
+        fechaVenceTxt = fechaVenceTxt.charAt(0).toUpperCase() + fechaVenceTxt.slice(1);
+
+        const ahora = new Date();
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        
+        let horas = ahora.getHours();
+        let minutos = String(ahora.getMinutes()).padStart(2, '0');
+        const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+        horas = horas % 12; horas = horas ? horas : 12;
+        
+        const fechaHoraSMS = `${dias[ahora.getDay()]} ${String(ahora.getDate()).padStart(2, '0')}/${meses[ahora.getMonth()]}/${String(ahora.getFullYear()).slice(-2)} | ${String(horas).padStart(2, '0')}:${minutos} ${ampm}`;
+
+        // El Mensaje Internacional
+        const msjAviso = `=== SISTEMA ALPHA (Aviso) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refBancaria} | ${etiquetaCRE}\n👤 Cliente: ${nombreCliente}\n\nHola, este es un recordatorio automático. Su crédito por el saldo de $${saldoActual} venció el pasado ${fechaVenceTxt}.\n\n🛡️ Estado actual: PERIODO DE GRACIA.\n\nPara evitar que el sistema le aplique multas y recargos financieros, le invitamos a realizar su pago en los próximos días. ¡Agradecemos su puntualidad!\n\n🚫 NO RESPONDER A ESTE MENSAJE AUTOMÁTICO.`;
+
+        if (typeof enviarSMSAutomatico === 'function') {
+            await enviarSMSAutomatico(cli.whatsapp.toString(), msjAviso);
+            alert(`✅ Mensaje de Aviso de Gracia enviado exitosamente a ${nombreCliente}.`);
+            // Se cierra el modal automáticamente tras el éxito
+            if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        } else {
+            alert("❌ La conexión con MacroDroid no se encontró.");
+        }
+
+    } catch (error) {
+        console.error("Error al enviar Aviso de Gracia:", error);
+        alert("❌ Error interno al procesar el SMS: " + error.message);
     }
 };
