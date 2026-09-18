@@ -81,7 +81,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// 🔎 BUSCADOR INTELIGENTE POR MENÚ DESPLEGABLE (ALPHA V5 - MULTICRÉDITO)
+// 🔎 BUSCADOR INTELIGENTE POR MENÚ DESPLEGABLE (CON ETIQUETAS DE ACCIÓN V5)
 // =========================================================================
 let listaCreditosActivosCliente = [];
 
@@ -94,7 +94,6 @@ async function buscarCreditoParaCobro() {
     }
 
     try {
-        // 🔥 EL CAMBIO MAESTRO: Ahora el cajero puede ver créditos 'activos' y 'congelados' (acuerdos verbales)
         const { data: creditos, error } = await supabaseClient
             .from('creditos')
             .select(`id, monto_capital, total_pagar, monto_mora, valor_cuota, frecuencia_pago, estado, fecha_emision, cliente_id, num_cuotas, clientes (nombres, apellidos, cedula)`)
@@ -113,7 +112,7 @@ async function buscarCreditoParaCobro() {
             return;
         }
 
-        // 🌟 TRAMOS EL HISTORIAL COMPLETO PARA SABER QUÉ NÚMERO DE CRÉDITO ES CADA UNO
+        // TRAMOS EL HISTORIAL COMPLETO PARA SABER QUÉ NÚMERO DE CRÉDITO ES CADA UNO
         const idDelCliente = creditosDelCliente[0].cliente_id;
         const { data: todosCreditosCliente } = await supabaseClient
             .from('creditos')
@@ -127,6 +126,13 @@ async function buscarCreditoParaCobro() {
             .from('historial_pagos')
             .select('id_credito, abono_total')
             .in('id_credito', idsActivos);
+
+        // 🔥 NUEVO: Traemos la memoria de sanciones y perdones para poner las etiquetas 🔥
+        const { data: morasCliente } = await supabaseClient
+            .from('historial_moras')
+            .select('credito_id, tipo_accion')
+            .in('credito_id', idsActivos)
+            .order('id', { ascending: true });
 
         listaCreditosActivosCliente = creditosDelCliente;
 
@@ -151,7 +157,9 @@ async function buscarCreditoParaCobro() {
                 const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
 
                 const cli = c.clientes || {};
-                const prestamo = parseFloat(c.total_pagar).toFixed(0);
+                
+                // MAGIA VISUAL: Calculamos el préstamo del periodo actual (Cuota x N° Cuotas)
+                const prestamo = (parseFloat(c.valor_cuota) * (parseInt(c.num_cuotas) || 1)).toFixed(0);
                 
                 const moraCredito = parseFloat(c.monto_mora) || 0;
                 let textoMoraExtra = "";
@@ -166,13 +174,31 @@ async function buscarCreditoParaCobro() {
                         });
                     }
                     const deudaTotalCalc = (parseFloat(c.total_pagar) - totalPagadoHastaHoy) + moraCredito;
-                    textoMoraExtra = ` | Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalCalc.toFixed(2)}`;
+                    textoMoraExtra = ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalCalc.toFixed(2)}`;
+                }
+
+                // 🔥 MAGIA DE ETIQUETAS: Detectar Botón Morado o Verde 🔥
+                let etiquetaAccion = "";
+                if (morasCliente) {
+                    // Filtramos solo las acciones de este crédito específico
+                    const morasEsteCredito = morasCliente.filter(m => m.credito_id === c.id);
+                    if (morasEsteCredito.length > 0) {
+                        // Tomamos siempre la ÚLTIMA acción que usted hizo
+                        const ultimaAccion = morasEsteCredito[morasEsteCredito.length - 1].tipo_accion || '';
+                        
+                        if (ultimaAccion.includes('Refinanciamiento') || ultimaAccion.includes('Renovación')) {
+                            etiquetaAccion = " | 🔄 RENOVADO";
+                        } else if (ultimaAccion.includes('Perdón')) {
+                            etiquetaAccion = " | 🛡️ PERDONADO";
+                        }
+                    }
                 }
                 
-                // 🔥 Etiqueta visual si es un acuerdo verbal (Congelado)
+                // Etiqueta visual si es un acuerdo verbal (Congelado)
                 const alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
                 
-                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}${textoMoraExtra}`;
+                // Armado del texto final para la secretaria
+                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}${textoMoraExtra}${etiquetaAccion}`;
                 
                 selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
             });
@@ -389,7 +415,9 @@ async function cargarEstadoCuentaCredito(idCredito) {
     
     const etiquetaMora = moraGuardada > 0 ? `<span style="margin-left: 10px; color: #ef4444; font-size: 12px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">+ Mora $${moraGuardada.toFixed(2)}</span>` : '';
     
-    document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+    // 🌟 MAGIA VISUAL: Mostramos el total de este periodo, no el acumulado histórico
+const totalVisual = parseFloat(encontrado.valor_cuota) * (parseInt(encontrado.num_cuotas) || 1);
+document.getElementById('lbl-recaudacion-total').innerText = `$${totalVisual.toFixed(2)}`;
     document.getElementById('lbl-recaudacion-saldo').innerHTML = `$${saldoFinalMora.toFixed(2)} ${etiquetaMora}`;
 
     // El input sugiere cobrar la cuota del acuerdo, o la cuota normal si no hay acuerdo

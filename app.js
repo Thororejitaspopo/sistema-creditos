@@ -172,7 +172,7 @@ window.cambiarModulo = cambiarModulo;
 // 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: BUSCADOR RELÁMPAGO Y FILTROS)
 // =========================================================================
 // =========================================================================
-// 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: CONECTADO AL CALENDARIO MÓVIL)
+// 🤖 ROBOT DEL DASHBOARD (VERSIÓN DEFINITIVA: CÁLCULO EXACTO POR MODALIDAD)
 // =========================================================================
 window.despertarRobotDashboard = async function() {
     try {
@@ -203,10 +203,10 @@ window.despertarRobotDashboard = async function() {
             });
         }
 
-        // 🛑 CIRUGÍA 1: Agregamos 'fecha_vencimiento_actual' al final del select
+        // 🛑 CIRUGÍA 1: Agregamos 'frecuencia_pago' para que el Robot sepa si es Semanal o Quincenal
         const { data: creditos } = await supabaseClient
             .from('creditos')
-            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, estado, fecha_emision, num_cuotas, clientes(nombres, apellidos, cedula, perfil_cobro), historial_pagos(abono_total), fecha_vencimiento_actual')
+            .select('id, monto_capital, total_pagar, monto_mora, valor_cuota, total_interes, estado, fecha_emision, num_cuotas, frecuencia_pago, clientes(nombres, apellidos, cedula, perfil_cobro), historial_pagos(abono_total), fecha_vencimiento_actual')
             .in('estado', ['activo', 'congelado']);
 
         if (creditos && creditos.length > 0) {
@@ -236,16 +236,27 @@ window.despertarRobotDashboard = async function() {
 
                 if (c.estado === 'activo') {
                     const fechaEmision = c.fecha_emision ? new Date(c.fecha_emision) : new Date();
-                    const diasCredito = parseInt(c.num_cuotas) || 30;
                     
-                    // 🛑 CIRUGÍA 2: El Robot lee la fecha móvil. Si no hay, usa la lógica original.
+                    // 🛑 CIRUGÍA 2: EL MOTOR MULTIPLICADOR DE TIEMPO
+                    const numeroCuotas = parseInt(c.num_cuotas) || 30;
+                    const frecuencia = (c.frecuencia_pago || '').toLowerCase();
+                    
+                    let multiplicador = 1; // Por defecto diario
+                    if (frecuencia.includes('semanal')) multiplicador = 7;
+                    else if (frecuencia.includes('quincenal')) multiplicador = 15;
+                    else if (frecuencia.includes('mensual')) multiplicador = 30;
+                    
+                    // Calculamos los días reales (Ej: 6 cuotas Semanales = 42 días)
+                    const diasTotalesCredito = numeroCuotas * multiplicador;
+                    
                     let fechaVence;
                     if (c.fecha_vencimiento_actual) {
                         const partes = c.fecha_vencimiento_actual.split('-');
                         fechaVence = new Date(partes[0], partes[1] - 1, partes[2]);
                     } else {
                         fechaVence = new Date(fechaEmision.getFullYear(), fechaEmision.getMonth(), fechaEmision.getDate());
-                        fechaVence.setDate(fechaVence.getDate() + diasCredito);
+                        // Sumamos los días exactos
+                        fechaVence.setDate(fechaVence.getDate() + diasTotalesCredito);
                     }
                     
                     const hoyLimpiado = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), fechaHoy.getDate());
@@ -271,7 +282,7 @@ window.despertarRobotDashboard = async function() {
                     let venceTxt = fechaVence.toLocaleDateString('es-ES', opcionesFecha);
                     venceTxt = venceTxt.charAt(0).toUpperCase() + venceTxt.slice(1);
 
-                    // 🔥 EL AJUSTE MAESTRO: Si la diferenciaDias es 0 (vence hoy) o negativa (ya venció) SIEMPRE LO MUESTRA
+                    // Si la diferenciaDias es 0 o negativa, recién ahí está vencido
                     if (diferenciaDias <= 0) {
                         alertasVencimiento.push({
                             idCredito: c.id,
@@ -279,7 +290,8 @@ window.despertarRobotDashboard = async function() {
                             etiquetaCRE: etiquetaCRE,
                             nombre: `${c.clientes?.nombres} ${c.clientes?.apellidos}`.toUpperCase(),
                             capital: capitalPrestado,
-                            cuotas: diasCredito,
+                            cuotas: numeroCuotas,
+                            frecuenciaTxt: c.frecuencia_pago ? c.frecuencia_pago.replace(/Cobro/i, '').trim() : 'Diario',
                             saldo: saldoPendiente,
                             abonado: totalAbonado,
                             mora: moraActual,
@@ -340,7 +352,7 @@ window.despertarRobotDashboard = async function() {
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1;">
                                 <div>
                                     <div style="color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: bold;">Capital Prestado</div>
-                                    <div style="color: #0f172a; font-weight: 900; font-size: 13px;">$${alerta.capital.toFixed(2)} <span style="font-size:10px; font-weight:normal; color:#64748b;">(${alerta.cuotas} cuotas)</span></div>
+                                    <div style="color: #0f172a; font-weight: 900; font-size: 13px;">$${alerta.capital.toFixed(2)} <span style="font-size:10px; font-weight:normal; color:#64748b;">(${alerta.cuotas} cuotas ${alerta.frecuenciaTxt})</span></div>
                                 </div>
                                 <div style="text-align: right;">
                                     <div style="color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: bold;">Saldo Deuda Actual</div>

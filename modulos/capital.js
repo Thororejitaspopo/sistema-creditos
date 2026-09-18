@@ -1,122 +1,78 @@
 // =========================================================================
-// 6. MOTOR MASTER DEL MÓDULO DE CAPITAL (SISTEMA ALPHA V5 - FILTRADO)
+// 6. MOTOR MASTER DEL MÓDULO DE CAPITAL (SISTEMA ALPHA V5)
 // =========================================================================
 
 /**
  * CARGAR SALDOS EN VIVO Y CALCULAR EL CAPITAL GENERAL
- * CORE DEL SISTEMA: Descarga el estado de todas las cajas en Supabase,
- * suma absolutamente todo para hallar el "Capital General" e inyecta
- * los desgloses de Efectivo y Banco en las tarjetas correspondientes.
- * NOTA: Filtrado estricto para mostrar solo Banco Principal y Efectivo Matriz.
  */
 async function inicializarModuloCapital() {
     try {
-        // 1. CONEXIÓN: Descargamos todas las fuentes de capital usando tu conector oficial
-        const { data: cajas, error } = await supabaseClient
-            .from('cajas_capital')
-            .select('*');
-
+        const { data: cajas, error } = await supabaseClient.from('cajas_capital').select('*');
         if (error) throw error;
 
-        // 2. COMPROBACIÓN: Validamos si el selector de destino está disponible en el HTML
         const selector = document.getElementById('cap-caja-destino');
-        if (!selector) {
-            console.warn("Aviso: El elemento 'cap-caja-destino' no está renderizado en esta pestaña.");
-            return;
-        }
+        if (!selector) return;
 
-        // 3. LIMPIEZA DE INTERFAZ: Reseteamos el selector con su primera opción deshabilitada
         selector.innerHTML = '<option value="" selected disabled>-- Seleccione Caja o Banco --</option>';
 
-        // 4. VERIFICACIÓN DE REGISTROS: Si la base de datos está vacía, emitimos alerta de control
         if (!cajas || cajas.length === 0) {
             alert("Aviso de Auditoría: No existen cajas configuradas en la tabla 'cajas_capital'.");
             return;
         }
 
-        // 5. MATEMÁTICA CONTABLE: Inicializamos los acumuladores originales en cero
-        let capitalGeneralAcumulado = 0; // -> Suma absoluta de todo el dinero del sistema
-        let capitalEfectivo = 0;         // -> Suma exclusiva de dinero físico (Cajas)
-        let capitalBanco = 0;            // -> Suma exclusiva de dinero digital (Transferencias)
+        let capitalGeneralAcumulado = 0; 
+        let capitalEfectivo = 0;         
+        let capitalBanco = 0;            
 
-        // 6. ITERACIÓN DE CAJAS: Procesamos registro por registro en tiempo real
         cajas.forEach(caja => {
-            // Pasamos el nombre a minúsculas para evaluar sin importar tildes o mayúsculas erróneas
             const nombreLimpio = caja.nombre_caja.toLowerCase();
             const saldoMonto = parseFloat(caja.saldo_actual || 0);
 
-            // FILTRO ESTRICTO: Solo dejamos pasar las dos cuentas autorizadas por Miguel
             if (nombreLimpio.includes('matriz') || nombreLimpio.includes('central') || nombreLimpio.includes('banco principal')) {
-                
-                // Regla Absoluta: Toda caja autorizada suma directamente al Capital General del negocio
                 capitalGeneralAcumulado += saldoMonto;
+                if (caja.tipo === 'efectivo') capitalEfectivo += saldoMonto;
+                else if (caja.tipo === 'banco') capitalBanco += saldoMonto;
 
-                // Clasificación interna por tipos para llenar los tableros secundarios (Usando tus variables de siempre)
-                if (caja.tipo === 'efectivo') {
-                    capitalEfectivo += saldoMonto;
-                } else if (caja.tipo === 'banco') {
-                    capitalBanco += saldoMonto;
-                }
-
-                // Inyección en el combobox de la interfaz (Muestra el nombre y su saldo disponible)
                 const option = document.createElement('option');
                 option.value = caja.id;
                 option.textContent = `${caja.nombre_caja} ($${saldoMonto.toFixed(2)})`;
                 selector.appendChild(option);
             }
-            // Las cajas de rutas o cobradores se omiten en silencio para mantener limpia la pantalla
         });
 
-        // 7. INYECCIÓN VISUAL EN LAS TARJETAS (Pintado con las variables originales del sistema)
-        // Tarjeta Master: Capital General (Suma de Efectivo + Banco)
         const txtGeneral = document.getElementById('saldo-general-txt');
         if (txtGeneral) txtGeneral.textContent = `$${capitalGeneralAcumulado.toFixed(2)}`;
 
-        // Tarjeta Secundaria A: Capital Real en Bóveda (Dinero físico)
         const txtEfectivo = document.getElementById('saldo-efectivo-txt');
         if (txtEfectivo) txtEfectivo.textContent = `$${capitalEfectivo.toFixed(2)}`;
 
-        // Tarjeta Secundaria B: Capital en Banco (Transferencias)
         const txtBancos = document.getElementById('saldo-bancos-txt');
         if (txtBancos) txtBancos.textContent = `$${capitalBanco.toFixed(2)}`;
 
-       // =========================================================================
-        // BLOQUE DE ARRANQUE GENERAL: INICIALIZACIÓN DE LA PANTALLA
-        // =========================================================================
-
-        // 8. RENDERIZADO DEL LOG: Cargamos el historial detallado de movimientos a la derecha
         await cargarHistorialCapital();
 
-        // 🚀 CONTROL DE SELECTORES DE CRÉDITO: Carga los saldos entre paréntesis al iniciar
-        // Ejecuta la lectura de dinero en vivo para que el operador vea los saldos desde el segundo uno.
         if (typeof cargarSaldosEnSelectorCredito === 'function') {
             await cargarSaldosEnSelectorCredito();
         }
 
     } catch (error) {
         console.error('Error crítico en la sincronización de capital:', error.message);
-        alert('Supabase rechazó la sincronización de fondos: ' + error.message);
     }
 }
+
 /**
  * EJECUTAR TRANSACCIÓN DE CAPITAL (INGRESOS Y RETIROS)
- * ACCIÓN DINÁMICA: Procesa de forma segura la entrada o salida de capital.
- * Valida campos obligatorios, modifica balances y genera auditoría con signo.
- * @param {string} tipoAccion - Recibe 'INGRESAR' o 'RETIRAR' para definir el flujo matemático.
  */
 async function procesarTransaccionCapital(tipoAccion) {
-    // 1. CAPTURA: Extraemos los valores del formulario lateral de la interfaz
     const cajaId = document.getElementById('cap-caja-destino').value;
     const montoInput = document.getElementById('cap-monto').value;
     const concepto = document.getElementById('cap-concepto').value.trim();
 
-    // 2. AUDITORÍA PREVENTIVA: Si falta seleccionar destino, monto o el detalle descriptivo, frena el script
     if (!cajaId || !montoInput || !concepto) {
-        alert('Error: Todos los campos (Caja destino, Monto y Concepto/Detalle) son estrictamente obligatorios.');
+        alert('Error: Todos los campos son estrictamente obligatorios.');
         return;
     }
 
-    // Convertimos la entrada de texto en número flotante puro
     let montoFlotante = parseFloat(montoInput);
     if (montoFlotante <= 0 || isNaN(montoFlotante)) {
         alert('Por favor, digite un monto numérico válido y mayor a cero.');
@@ -124,7 +80,6 @@ async function procesarTransaccionCapital(tipoAccion) {
     }
 
     try {
-        // 3. CONSULTA SÍNCRONA: Leemos el saldo actual de la caja elegida antes de operar
         const { data: caja, error: errorFetch } = await supabaseClient
             .from('cajas_capital')
             .select('saldo_actual, nombre_caja')
@@ -136,33 +91,23 @@ async function procesarTransaccionCapital(tipoAccion) {
         let saldoActualizado = parseFloat(caja.saldo_actual || 0);
         let montoParaHistorial = montoFlotante;
 
-        // 4. LOGIC ENGINE (Matemática de transacciones):
         if (tipoAccion === 'INGRESAR') {
-            // Incrementamos fondos en la caja destino
             saldoActualizado += montoFlotante;
         } else if (tipoAccion === 'RETIRAR') {
-            // Validación de fondos: Previene que la caja quede en saldo negativo si no es permitido
             if (montoFlotante > saldoActualizado) {
-                alert(`Fondos Insuficientes: No puede retirar $${montoFlotante.toFixed(2)} de la caja "${caja.nombre_caja}" porque solo dispone de $${saldoActualizado.toFixed(2)}.`);
+                alert(`Fondos Insuficientes: No puede retirar $${montoFlotante.toFixed(2)} de la caja "${caja.nombre_caja}".`);
                 return;
             }
-            // Decrementamos fondos y guardamos el monto con signo negativo para las auditorías del historial
             saldoActualizado -= montoFlotante;
             montoParaHistorial = -montoFlotante; 
         }
 
-        // 5. REGISTRO EN HISTORIAL: Inyectamos la fila contable para la auditoría diaria
         const { error: errorHistorial } = await supabaseClient
             .from('historial_capital')
-            .insert([{ 
-                caja_id: parseInt(cajaId), 
-                monto: montoParaHistorial, 
-                concepto: concepto 
-            }]);
+            .insert([{ caja_id: parseInt(cajaId), monto: montoParaHistorial, concepto: concepto }]);
 
         if (errorHistorial) throw errorHistorial;
 
-        // 6. ACTUALIZACIÓN DE BALANCE: Sobreescribimos el balance final de la caja modificada en Supabase
         const { error: errorUpdate } = await supabaseClient
             .from('cajas_capital')
             .update({ saldo_actual: saldoActualizado })
@@ -170,106 +115,187 @@ async function procesarTransaccionCapital(tipoAccion) {
 
         if (errorUpdate) throw errorUpdate;
 
-        // 7. CONCLUSIÓN EXITOSA: Notificamos al operador y limpiamos la pantalla de datos sensibles
         alert(`¡Transacción de ${tipoAccion === 'INGRESAR' ? 'ingreso' : 'retiro'} ejecutada correctamente!`);
         document.getElementById('cap-monto').value = '';
         document.getElementById('cap-concepto').value = '';
 
-        // 8. REFRESCAR SISTEMA: Invocamos el recálculo masivo para pintar los nuevos totales
-        await inicializarModuloCapital();
-        
-        // 🚀 NUEVA LÍNEA: Actualiza la tabla de auditoría con los 10 registros nuevos en vivo
-        await cargarHistorialCapital();
+        limpiarFiltros(); 
+        await inicializarModuloCapital(); 
 
     } catch (error) {
-        console.error('Error crítico al procesar la transacción:', error.message);
-        alert('La operation fue cancelada por seguridad: ' + error.message);
+        console.error('Error al procesar la transacción:', error.message);
+        alert('La operación fue cancelada por seguridad: ' + error.message);
     }
 }
 
+// =========================================================================
+// MÁQUINA DEL TIEMPO Y FILTROS INTELIGENTES
+// =========================================================================
+window.diasAtrasCapital = 0; 
+window.modoFiltroCapital = 'DIARIO';
+
+window.cambiarFiltroCapital = async function(valor) {
+    window.modoFiltroCapital = valor;
+    window.diasAtrasCapital = 0; 
+    await cargarHistorialCapital();
+};
+
 /**
- * RENDERIZAR HISTORIAL DETALLADO DE MOVIMIENTOS
- * AUDITORÍA VISUAL: Forzado horizontal estricto de extremo a extremo.
- * Montos positivos en verde, montos negativos en rojo alineados a la derecha.
+ * RENDERIZAR HISTORIAL DETALLADO
  */
 async function cargarHistorialCapital() {
-    // BLOQUE PREVENTIVO: VERIFICACIÓN DEL CONTENEDOR HTML
     const contenedorHistorial = document.getElementById('historial-capital-lista');
     if (!contenedorHistorial) return; 
 
     try {
-        // BLOQUE 1: CÁLCULO DE RANGOS DINÁMICOS
-        const desde = (paginaActualHistorial - 1) * filasPorPaginaHistorial;
-        const hasta = desde + filasPorPaginaHistorial - 1;
+        let inicioISO, finISO, nombreDiaMostrado;
+        const hoy = new Date();
+        const dNombres = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+        const mNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-        // BLOQUE 2: CONSULTA A SUPABASE
-        const { data: movimientos, error, count } = await supabaseClient
+        if (window.modoFiltroCapital === 'DIARIO') {
+            const fechaObjetivo = new Date();
+            fechaObjetivo.setDate(fechaObjetivo.getDate() - window.diasAtrasCapital);
+            fechaObjetivo.setHours(0, 0, 0, 0);
+            inicioISO = fechaObjetivo.toISOString();
+            
+            const fechaFin = new Date(fechaObjetivo);
+            fechaFin.setHours(23, 59, 59, 999);
+            finISO = fechaFin.toISOString();
+            
+            nombreDiaMostrado = `${dNombres[fechaObjetivo.getDay()].toUpperCase()} ${String(fechaObjetivo.getDate()).padStart(2,'0')} DE ${mNombres[fechaObjetivo.getMonth()].toUpperCase()} DEL ${fechaObjetivo.getFullYear()}`;
+        
+        } else if (window.modoFiltroCapital === 'MES_ACTUAL') {
+            const fIni = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            fIni.setHours(0,0,0,0);
+            inicioISO = fIni.toISOString();
+            
+            const fFin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+            fFin.setHours(23,59,59,999);
+            finISO = fFin.toISOString();
+            
+            nombreDiaMostrado = `TODO EL MES DE ${mNombres[hoy.getMonth()].toUpperCase()} ${hoy.getFullYear()}`;
+        
+        } else if (window.modoFiltroCapital === 'MES_ANTERIOR') {
+            let mAnt = hoy.getMonth() - 1;
+            let aAnt = hoy.getFullYear();
+            if(mAnt < 0) { mAnt = 11; aAnt--; }
+            
+            const fIni = new Date(aAnt, mAnt, 1);
+            fIni.setHours(0,0,0,0);
+            inicioISO = fIni.toISOString();
+            
+            const fFin = new Date(aAnt, mAnt + 1, 0);
+            fFin.setHours(23,59,59,999);
+            finISO = fFin.toISOString();
+            
+            nombreDiaMostrado = `TODO EL MES DE ${mNombres[mAnt].toUpperCase()} ${aAnt}`;
+        
+        } else {
+            inicioISO = new Date(2020, 0, 1).toISOString();
+            finISO = new Date(2050, 11, 31).toISOString();
+            nombreDiaMostrado = `TODO EL HISTORIAL ACUMULADO`;
+        }
+
+        const { data: movimientos, error } = await supabaseClient
             .from('historial_capital')
-            .select(`
-                id,
-                created_at,
-                monto,
-                concepto,
-                cajas_capital ( nombre_caja )
-            `, { count: 'exact' })
-            .order('id', { ascending: false })
-            .range(desde, hasta); 
+            .select(`id, created_at, monto, concepto, cajas_capital ( nombre_caja )`)
+            .gte('created_at', inicioISO)
+            .lte('created_at', finISO)
+            .order('created_at', { ascending: false }); 
 
         if (error) throw error;
 
-        // BLOQUE 3: LIMPIEZA DE CONTENEDOR
-        contenedorHistorial.innerHTML = '';
+        const contadorDiv = document.getElementById('contador-movimientos-capital');
+        if (contadorDiv) {
+            contadorDiv.innerText = `Movimientos: ${movimientos ? movimientos.length : 0}`;
+            contadorDiv.style.background = '#f1f5f9';
+            contadorDiv.style.color = '#475569';
+        }
 
         if (!movimientos || movimientos.length === 0) {
-            contenedorHistorial.innerHTML = '<p class="text-muted text-center py-3">No existen movimientos registrados en la bóveda.</p>';
-            renderizarPaginacionHistorial(0); 
+            let emoji = window.modoFiltroCapital === 'DIARIO' ? '😴' : '📭';
+            contenedorHistorial.innerHTML = `
+                <div style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed #374151; text-align: center; padding: 40px 0; margin-top: 10px;">
+                    <span style="font-size: 24px;">${emoji}</span><br>
+                    <span style="color: #9ca3af; font-weight: bold; font-size: 13px;">No se registraron movimientos en ${nombreDiaMostrado.toLowerCase()}.</span>
+                </div>`;
+            renderizarPaginacionHistorial(nombreDiaMostrado); 
             return;
         }
 
-        // BLOQUE 4: MAQUETACIÓN INLINE RIGUROSA (CON MEDIDA JUSTA A 12PX)
+        contenedorHistorial.innerHTML = `
+            <div style="display: flex; padding: 15px 20px; background: #1f2937; border-bottom: 2px solid #374151; color: #9ca3af; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border-radius: 8px 8px 0 0;">
+                <div style="flex: 2; min-width: 250px;">DESCRIPCIÓN DE LA OPERACIÓN</div>
+                <div style="flex: 1; text-align: center; min-width: 180px;">FECHA EXACTA</div>
+                <div style="flex: 1; text-align: center; min-width: 120px;">CAJA AFECTADA</div>
+                <div style="flex: 1; text-align: right; min-width: 100px;">VALOR NETO ($)</div>
+            </div>
+        `;
+
         movimientos.forEach(mov => {
             const numMonto = parseFloat(mov.monto);
             const esIngreso = numMonto >= 0;
-            
             const signo = esIngreso ? '+' : '-';
-            const montoAbsoluto = Math.abs(numMonto).toFixed(2);
-            const montoFormateado = `$${signo}${montoAbsoluto}`;
-            
-            const colorActual = esIngreso ? '#10b981' : '#ef4444'; 
+            const montoFormateado = `$${signo}${Math.abs(numMonto).toFixed(2)}`;
+            const colorMonto = esIngreso ? '#10b981' : '#ef4444'; 
 
             const fechaObjeto = new Date(mov.created_at || new Date()); 
-            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
-            const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            let h = fechaObjeto.getHours(), min = String(fechaObjeto.getMinutes()).padStart(2, '0');
+            const ampm = h >= 12 ? 'p. m.' : 'a. m.';
+            h = h % 12; h = h ? h : 12;
+            const fechaTXT = `${dNombres[fechaObjeto.getDay()].toLowerCase()} ${String(fechaObjeto.getDate()).padStart(2,'0')} ${mNombres[fechaObjeto.getMonth()]} ${fechaObjeto.getFullYear()}`;
+            const horaTXT = `${String(h).padStart(2,'0')}:${min} ${ampm}`;
 
-            // TEMPLATE OPTIMIZADO: 12px estricto y espacio de protección para el scroll (padding-right: 15px)
+            let textoConcepto = mov.concepto || 'MOVIMIENTO MANUAL';
+            let partes = textoConcepto.split('|');
+            let tituloPrincipal = "OPERACIÓN DE CAPITAL";
+            let subTitulo = textoConcepto;
+            
+            if (partes.length > 1) {
+                tituloPrincipal = partes[partes.length - 1].trim().toUpperCase(); 
+                subTitulo = partes.slice(0, partes.length - 1).join(' | ').trim(); 
+            } else {
+                tituloPrincipal = textoConcepto.toUpperCase();
+                subTitulo = "MOVIMIENTO DIRECTO";
+            }
+
+            let nombreCaja = (mov.cajas_capital?.nombre_caja || 'CAJA DESCONOCIDA').toUpperCase();
+            let esBanco = nombreCaja.includes('BANCO') || nombreCaja.includes('TRANSF');
+            let bgCaja = esBanco ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+            let textCaja = esBanco ? '#38bdf8' : '#e5e7eb';
+            let labelCaja = esBanco ? 'TRANSFERENCIA' : 'EFECTIVO';
+
             const itemHTML = `
-                <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 15px 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 15px;">
-                    
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px !important; line-height: 1.3;">
-                        
-                        <span style="height: 8px; width: 8px; background-color: ${colorActual}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${colorActual}; flex-shrink: 0;"></span>
-                        
-                        <span class="text-muted" style="font-size: 12px !important;">${fFormateada}, ${hFormateada} M.</span>
-                        <span class="text-muted">|</span>
-                        
-                        <strong style="font-size: 12px !important; color: #ffffff; letter-spacing: 0.3px;">${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
-                        <span class="text-muted">|</span>
-                        
-                        <span class="text-light" style="font-size: 12px !important; opacity: 0.95;">${mov.concepto}</span>
+                <div class="movimiento-item" style="display: flex !important; align-items: center !important; padding: 16px 20px; border-bottom: 1px solid #374151; background: transparent; transition: background 0.2s; width: 100%; gap: 15px;" onmouseover="this.style.background='#1f2937'" onmouseout="this.style.background='transparent'">
+                    <div style="flex: 2; display: flex; align-items: center; gap: 12px; min-width: 250px;">
+                        <span style="height: 10px; width: 10px; background-color: ${colorMonto}; border-radius: 50%; box-shadow: 0 0 6px ${colorMonto}; flex-shrink: 0;"></span>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <strong style="color: #f3f4f6; font-size: 13px; font-weight: 900;">ID #${mov.id} - ${tituloPrincipal}</strong>
+                            <div style="display: inline-block; background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; width: fit-content; border: 1px solid rgba(56, 189, 248, 0.2); letter-spacing: 0.5px;">
+                                ${subTitulo}
+                            </div>
+                        </div>
                     </div>
-
-                    <div style="white-space: nowrap !important; flex-shrink: 0; text-align: right; padding-right: 5px;">
-                        <span class="fw-bold" style="color: ${colorActual}; font-size: 1.05rem; letter-spacing: 0.5px;">${montoFormateado}</span>
+                    <div style="flex: 1; color: #9ca3af; font-size: 12px; font-weight: 600; min-width: 180px; text-align: center; white-space: nowrap;">
+                        ${fechaTXT} | ${horaTXT}
                     </div>
-                    
+                    <div style="flex: 1; display: flex; justify-content: center; min-width: 120px;">
+                        <span style="background: ${bgCaja}; color: ${textCaja}; padding: 5px 12px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px;">
+                            ${labelCaja}
+                        </span>
+                    </div>
+                    <div style="flex: 1; text-align: right; min-width: 100px;">
+                        <span style="color: ${colorMonto}; font-size: 17px; font-weight: 900;">${montoFormateado}</span>
+                    </div>
                 </div>
             `;
             contenedorHistorial.insertAdjacentHTML('beforeend', itemHTML);
         });
 
-        // BLOQUE 5: PAGINACIÓN
-        renderizarPaginacionHistorial(count);
+        renderizarPaginacionHistorial(nombreDiaMostrado);
+        
+        if (window.filtroMemoriaCapital !== "") aplicarFiltroAlHistorial();
 
     } catch (error) {
         console.error('Error al pintar el log de auditoría:', error.message);
@@ -277,190 +303,105 @@ async function cargarHistorialCapital() {
 }
 
 /**
- * RENDERIZAR BOTONES DE PAGINACIÓN DEL HISTORIAL
- * Calcula las páginas totales en base a los bloques de 10 registros
- * e inyecta los botones de navegación deshabilitándolos en los límites contables.
+ * BOTONES INFERIORES SEGÚN EL FILTRO
  */
-function renderizarPaginacionHistorial(totalRegistros) {
-    const totalPaginas = Math.ceil(totalRegistros / filasPorPaginaHistorial);
+function renderizarPaginacionHistorial(fechaMostradaTexto) {
     const contenedorPaginas = document.getElementById('paginacion-historial-controles');
     if (!contenedorPaginas) return;
 
-    // Pintamos los botones usando estilos limpios alineados a tu diseño
+    if (window.modoFiltroCapital !== 'DIARIO') {
+        contenedorPaginas.innerHTML = `
+            <div style="text-align: center; margin-top: 20px; padding: 15px 20px; background: #1f2937; border-radius: 8px; border: 1px solid #374151;">
+                <span style="color: #38bdf8; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 10px rgba(56,189,248,0.3);">
+                    📅 MOSTRANDO: ${fechaMostradaTexto}
+                </span>
+            </div>
+        `;
+        return;
+    }
+
+    const esHoy = window.diasAtrasCapital === 0;
+
     contenedorPaginas.innerHTML = `
-        <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
-            <button class="btn btn-sm btn-secondary" ${paginaActualHistorial === 1 ? 'disabled' : ''} onclick="cambiarPaginaHistorial(-1)">
-                Anterior
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px 20px; background: #1f2937; border-radius: 8px; border: 1px solid #374151;">
+            <button onclick="cambiarPaginaHistorial(1)" style="background: #374151; color: white; border: 1px solid #4b5563; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background='#4b5563'" onmouseout="this.style.background='#374151'">
+                ⬅️ Día Anterior
             </button>
-            <span class="fw-bold small text-muted"> 
-                Página ${paginaActualHistorial} de ${totalPaginas || 1} 
+            <span style="color: #38bdf8; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 10px rgba(56,189,248,0.3);">
+                📅 MOSTRANDO: ${fechaMostradaTexto}
             </span>
-            <button class="btn btn-sm btn-secondary" ${paginaActualHistorial >= totalPaginas ? 'disabled' : ''} onclick="cambiarPaginaHistorial(1)">
-                Siguiente
+            <button ${esHoy ? 'disabled style="background: #111827; color: #4b5563; border: 1px dashed #374151; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: not-allowed; display: flex; align-items: center; gap: 8px;"' : 'onclick="cambiarPaginaHistorial(-1)" style="background: #374151; color: white; border: 1px solid #4b5563; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background=\'#4b5563\'" onmouseout="this.style.background=\'#374151\'"'}>
+                Día Siguiente ➡️
             </button>
         </div>
     `;
 }
 
-/**
- * EVENTO CAMBIO DE PÁGINA DEL HISTORIAL
- * Suma o resta una página a la vista y vuelve a llamar al motor de carga fusionado.
- */
 async function cambiarPaginaHistorial(direccion) {
-    paginaActualHistorial += direccion;
+    if (typeof window.diasAtrasCapital === 'undefined') window.diasAtrasCapital = 0;
+    window.diasAtrasCapital += direccion;
+    if (window.diasAtrasCapital < 0) window.diasAtrasCapital = 0;
     await cargarHistorialCapital();
 }
 
-
-
-/**
- * BUSCAR MOVIMIENTO INDIVIDUAL POR ID EN CALIENTE
- * AUDITORÍA DETALLADA: Busca un ID secuencial único de la tabla 'historial_capital'
- * y dibuja el resultado alineado de extremo a extremo usando el diseño de anoche.
- */
-async function buscarPorId() {
-    // 1. CAPTURA: Extraemos el valor digitado en el buscador
-    const idBuscado = document.getElementById('input-buscar-id').value.trim();
-    const contenedorHistorial = document.getElementById('historial-capital-lista');
-    if (!contenedorHistorial) return;
-
-    // Si el operador borra el buscador y le da a buscar, recargamos el listado tradicional de 10 en 10
-    if (!idBuscado) {
-        paginaActualHistorial = 1; // Reseteamos a la página 1
-        await cargarHistorialCapital();
-        return;
-    }
-
-    try {
-        // 2. CONEXIÓN A SUPABASE: Solicitamos el registro con filtro exacto .eq()
-        const { data: mov, error } = await supabaseClient
-            .from('historial_capital')
-            .select(`
-                id,
-                monto,
-                concepto,
-                cajas_capital ( nombre_caja )
-            `)
-            .eq('id', parseInt(idBuscado))
-            .maybeSingle(); // Usamos maybeSingle para que no bote excepción si el ID no existe
-
-        if (error) throw error;
-
-        // Limpiamos la lista para preparar la pantalla
-        contenedorHistorial.innerHTML = '';
-
-        // 3. CONTROL DE EXISTENCIA: Si el ID no existe en Supabase, avisamos al operador
-        if (!mov) {
-            contenedorHistorial.innerHTML = `
-                <div class="text-center py-3">
-                    <span style="color: #ef4444; font-weight: bold; font-size: 0.95rem;">
-                        ❌ El ID de movimiento #${idBuscado} no existe en la base de datos de la bóveda.
-                    </span>
-                </div>
-            `;
-            // Dejamos la paginación vacía
-            const contenedorPaginas = document.getElementById('paginacion-historial-controles');
-            if (contenedorPaginas) contenedorPaginas.innerHTML = '';
-            return;
-        }
-
-        // 4. MAQUETACIÓN VISUAL DE EXTREMO A EXTREMO
-        const numMonto = parseFloat(mov.monto);
-        const esIngreso = numMonto >= 0;
-        
-        // Ajuste de formato: $+100.00 o $-100.00
-        const signo = esIngreso ? '+' : '-';
-        const montoAbsoluto = Math.abs(numMonto).toFixed(2);
-        const montoFormateado = `$${signo}${montoAbsoluto}`;
-        
-        // Colores: Verde para entradas y Rojo brillante para retiros
-        const colorActual = esIngreso ? '#10b981' : '#ef4444';
-
-        // Usamos la fecha del sistema actual de forma segura para evitar roturas
-        const fechaObjeto = new Date();
-        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const fFormateada = fechaObjeto.toLocaleDateString('es-ES', opcionesFecha);
-        const hFormateada = fechaObjeto.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
-        const itemHTML = `
-            <div class="movimiento-item" style="display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); width: 100%; gap: 20px; background-color: rgba(37, 99, 235, 0.05); border-radius: 4px;">
-                
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <span style="height: 10px; width: 10px; background-color: ${colorActual}; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px ${colorActual}; flex-shrink: 0;"></span>
-                    
-                    <strong style="color: #3b82f6; font-size: 0.9rem;">#${mov.id}</strong>
-                    <span class="text-muted small">|</span>
-                    
-                    <span class="text-muted small">${fFormateada}, ${hFormateada} M.</span>
-                    <span class="text-muted small">|</span>
-                    
-                    <strong>${mov.cajas_capital?.nombre_caja || 'Caja Desconocida'}</strong>
-                    <span class="text-muted">|</span>
-                    
-                    <span class="text-light">${mov.concepto}</span>
-                </div>
-
-                <div style="white-space: nowrap !important; flex-shrink: 0; text-align: right;">
-                    <span class="fw-bold" style="color: ${colorActual}; font-size: 1.05rem; letter-spacing: 0.5px;">${montoFormateado}</span>
-                </div>
-                
-            </div>
-        `;
-
-        contenedorHistorial.insertAdjacentHTML('beforeend', itemHTML);
-
-        // Apagamos los controles de la paginación ordinaria durante una consulta específica
-        const contenedorPaginas = document.getElementById('paginacion-historial-controles');
-        if (contenedorPaginas) {
-            contenedorPaginas.innerHTML = `
-                <div class="d-flex justify-content-center mt-3">
-                    <button class="btn btn-sm btn-secondary" onclick="document.getElementById('input-buscar-id').value=''; buscarPorId();">
-                        🔄 Mostrar todos los movimientos
-                    </button>
-                </div>
-            `;
-        }
-
-    } catch (error) {
-        console.error('Error al ejecutar la búsqueda por ID:', error.message);
-    }
-}
-
 // =========================================================================
-// BLOQUE: CONTROL TOTAL DEL HISTORIAL (CORREGIDO DE RAÍZ)
+// 🔍 BUSCADOR UNIVERSAL INTELIGENTE (NIVEL INTERNACIONAL)
 // =========================================================================
-let filtroMemoria = "";
 
-// Función para filtrar al hacer clic en las tarjetas
-function filtrarHistorial(termino) {
-    filtroMemoria = termino;
+// Usamos window para blindarlo contra errores si se pega dos veces
+window.filtroMemoriaCapital = "";
+
+window.filtrarHistorial = function(termino) {
+    window.filtroMemoriaCapital = termino.trim();
     aplicarFiltroAlHistorial();
 }
 
-// Función para limpiar filtros y mostrar todo ordenado
-function limpiarFiltros() {
-    filtroMemoria = ""; // Borramos el filtro
-    aplicarFiltroAlHistorial();
+window.limpiarFiltros = function() {
+    window.filtroMemoriaCapital = ""; 
+    window.diasAtrasCapital = 0; 
+    window.modoFiltroCapital = 'DIARIO';
+    
+    const selectFiltro = document.getElementById('filtro-tiempo-capital');
+    if(selectFiltro) selectFiltro.value = 'DIARIO';
+    
+    // Intentamos limpiar ambos inputs por si acaso
+    const buscadorGeneral = document.getElementById('input-buscar-general');
+    if (buscadorGeneral) buscadorGeneral.value = ''; 
+    const buscadorViejo = document.getElementById('input-buscar-id');
+    if (buscadorViejo) buscadorViejo.value = ''; 
+    
+    cargarHistorialCapital();
 }
 
-// Función que aplica la lógica visual sin romper las columnas de dinero
 function aplicarFiltroAlHistorial() {
     const contenedor = document.getElementById('historial-capital-lista');
     if (!contenedor) return;
 
-    // 🛑 CORRECCIÓN CLAVE: Seleccionamos la fila entera (.movimiento-item), NO los sub-divs internos
     const items = contenedor.querySelectorAll('.movimiento-item');
-    
+    let registrosVisibles = 0;
+
     items.forEach(item => {
-        const texto = item.innerText.toUpperCase();
-        
-        // Si el filtro está vacío o la fila completa contiene la palabra (ej: MATRIZ o BANCO)
-        if (filtroMemoria === "" || texto.includes(filtroMemoria.toUpperCase())) {
-            // Guardamos el diseño original (Flex) para que el texto vaya a la izquierda y el dinero a la derecha
+        const textoFila = item.innerText.toUpperCase();
+        const terminoBuscado = window.filtroMemoriaCapital.toUpperCase();
+
+        if (terminoBuscado === "" || textoFila.includes(terminoBuscado)) {
             item.style.setProperty('display', 'flex', 'important');
+            registrosVisibles++;
         } else {
-            // Si no coincide, ocultamos la fila completa con todo su contenido
             item.style.setProperty('display', 'none', 'important');
         }
     });
+
+    const contadorDiv = document.getElementById('contador-movimientos-capital');
+    if (contadorDiv) {
+        if (window.filtroMemoriaCapital !== "") {
+            contadorDiv.innerText = `Búsqueda: ${registrosVisibles} resultados`;
+            contadorDiv.style.background = '#e0f2fe'; 
+            contadorDiv.style.color = '#0369a1';
+        } else {
+            contadorDiv.innerText = `Movimientos: ${registrosVisibles}`;
+            contadorDiv.style.background = '#f1f5f9'; 
+            contadorDiv.style.color = '#475569';
+        }
+    }
 }

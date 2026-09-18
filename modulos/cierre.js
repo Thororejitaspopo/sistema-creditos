@@ -222,6 +222,9 @@ window.ejecutarCierreDiario = async function() {
         // ========================================================
         // 🔥 NUEVO: D. INYECCIONES DE CAPITAL (EL BOTÓN ROJO) 🔥
         // ========================================================
+        // ========================================================
+        // 🔥 NUEVO: D. INYECCIONES DE CAPITAL (EL BOTÓN ROJO)
+        // ========================================================
         const { data: movsCapital, error: errCapital } = await supabaseClient
             .from('historial_capital')
             .select('monto, concepto, fecha_movimiento')
@@ -239,10 +242,17 @@ window.ejecutarCierreDiario = async function() {
 
             movsCapital.forEach(mov => {
                 let monto = parseFloat(mov.monto || 0);
-                // Si el monto es mayor a 0, significa que entró dinero físico a la maleta
                 if (monto > 0) {
                     huboInyeccion = true;
-                    totalInyeccionesCapitalHoy += monto;
+                    
+                    // 💡 LA REGLA DE ORO: Verificamos si es un abono automático
+                    let conceptoTexto = (mov.concepto || '').toUpperCase();
+                    let esRecuperacion = conceptoTexto.includes('RECUPERACIÓN');
+
+                    // SOLO sumamos a la caja si NO es un abono automático (informativo)
+                    if (!esRecuperacion) {
+                        totalInyeccionesCapitalHoy += monto;
+                    }
                     
                     let hora = new Date(mov.fecha_movimiento).toLocaleTimeString('es-EC', { hour: '2-digit', minute:'2-digit' });
                     let fechaLarga = new Date(mov.fecha_movimiento).toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
@@ -270,7 +280,56 @@ window.ejecutarCierreDiario = async function() {
             }
         }
 
-        if (pagos.length === 0 && gastos.length === 0 && creditos.length === 0 && totalInyeccionesCapitalHoy === 0) {
+        // ========================================================
+        // 🔥 NUEVO: D.2 INYECCIONES DE INTERÉS / UTILIDAD (INFORMATIVO)
+        // ========================================================
+        const { data: movsInteres, error: errInteres } = await supabaseClient
+            .from('movimientos_utilidad')
+            .select('monto, concepto, fecha, tipo')
+            .gte('fecha', inicioISO)
+            .lte('fecha', finISO)
+            .order('fecha', { ascending: false });
+
+        if (!errInteres && movsInteres && movsInteres.length > 0) {
+            let htmlInteres = '';
+            let huboInyeccionInteres = false;
+
+            movsInteres.forEach(mov => {
+                let monto = parseFloat(mov.monto || 0);
+                // Mostrar solo ingresos (ignoramos los retiros de ajuste)
+                if (monto > 0 && mov.tipo !== 'RETIRO') {
+                    huboInyeccionInteres = true;
+                    
+                    let hora = new Date(mov.fecha).toLocaleTimeString('es-EC', { hour: '2-digit', minute:'2-digit' });
+                    let fechaLarga = new Date(mov.fecha).toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+
+                    htmlInteres += `
+                    <div style="display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px dashed #cbd5e1; font-size: 13px; background: #fefce8;">
+                        <div style="flex: 1;">
+                            <strong style="color: #a16207; text-transform: uppercase;">INYECCIÓN / INTERÉS</strong>
+                            <div style="color: #ca8a04; font-size: 11px; font-weight: bold; margin-top: 4px;">🏦 Efectivo Central (Matriz)</div>
+                            <div style="color: #64748b; font-size: 11px; margin-top: 4px; font-style: italic;">
+                                CONCEPTO: ${mov.concepto || 'MOVIMIENTO AUTOMÁTICO'}
+                            </div>
+                        </div>
+                        <div style="text-align: right; min-width: 100px;">
+                            <span style="font-weight: 900; color: #a16207; font-size: 15px;">+$${monto.toFixed(2)}</span>
+                            <div style="color: #94a3b8; font-size: 10px; margin-top: 4px; text-transform: capitalize;">📅 ${fechaLarga}</div>
+                            <div style="color: #94a3b8; font-size: 10px;">🕒 ${hora}</div>
+                        </div>
+                    </div>`;
+                }
+            });
+
+            if (huboInyeccionInteres) {
+                htmlDetalle += `<div style="background: #fef9c3; padding: 8px; border-radius: 5px; font-weight: bold; color: #a16207; margin-top: 15px;">🔄 MOVIMIENTOS DIRECTOS A INTERÉS</div>` + htmlInteres;
+            }
+        }
+
+        // ========================================================
+        // IMPRESIÓN DEL DETALLE EN PANTALLA
+        // ========================================================
+        if (pagos.length === 0 && gastos.length === 0 && creditos.length === 0 && totalInyeccionesCapitalHoy === 0 && (!movsInteres || movsInteres.length === 0)) {
             htmlDetalle = `<div style="text-align: center; color: #64748b; padding: 20px;">No se registraron movimientos en efectivo el día de hoy.</div>`;
         }
 

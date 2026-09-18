@@ -1,21 +1,12 @@
 // =========================================================================
-// 💎 MÓDULO DE BÓVEDA DE INTERESES Y UTILIDADES (VERSIÓN INTERNACIONAL)
-// =========================================================================
-// =========================================================================
-// 💎 MÓDULO DE BÓVEDA DE INTERESES Y UTILIDADES (VERSIÓN INTERNACIONAL V2)
+// 💎 MÓDULO DE BÓVEDA DE INTERESES Y UTILIDADES (VERSIÓN SILICON VALLEY)
 // =========================================================================
 
-// =========================================================================
-// 💎 MÓDULO DE BÓVEDA DE INTERESES Y UTILIDADES (VERSIÓN NASA V3)
-// =========================================================================
-
-// Memoria de trabajo ultrarrápida (Nivel NASA)
-// =========================================================================
-// 💎 MÓDULO DE BÓVEDA DE INTERESES Y UTILIDADES (VERSIÓN NASA V6 - CON # DE PAGO)
-// =========================================================================
-
+// VARIABLES GLOBALES (MEMORIA Y MÁQUINA DEL TIEMPO)
 let memoriaBovedaAlpha = [];
-let mesSeleccionadoBoveda = 'actual'; 
+let mesSeleccionadoBoveda = 'diario'; // Arranca por defecto en "HOY"
+window.diasAtrasBoveda = 0;
+window.filtroMemoriaBoveda = "";
 
 window.cargarModuloInteres = async function() {
     const contenedor = document.getElementById('mod-interes'); 
@@ -31,7 +22,6 @@ window.cargarModuloInteres = async function() {
         </div>`;
 
     try {
-        // 1. Traemos el mapa de créditos para el CRE
         const { data: historialTodos } = await supabaseClient.from('creditos').select('id, cliente_id').order('id', { ascending: true });
         const mapNumCreditoLocal = {};
         if (historialTodos) {
@@ -42,13 +32,11 @@ window.cargarModuloInteres = async function() {
             });
         }
 
-        // 2. Extracción de ingresos por cobros a clientes (🔥 AHORA TRAE EL numero_pago 🔥)
         const { data: ingresos } = await supabaseClient
             .from('historial_pagos')
             .select(`id, numero_pago, fecha_pago, monto_interes, abono_total, forma_pago, id_credito, creditos (id, cliente_id, clientes (nombres, apellidos, cedula))`)
             .gt('monto_interes', 0);
 
-        // 3. Extracción de retiros e ingresos manuales
         const { data: movimientosManuales, error: errManuales } = await supabaseClient
             .from('movimientos_utilidad')
             .select('*');
@@ -57,7 +45,6 @@ window.cargarModuloInteres = async function() {
 
         memoriaBovedaAlpha = [];
 
-        // --- Empaquetar Pagos de Clientes ---
         if (ingresos) {
             ingresos.forEach(ing => {
                 const f = new Date(ing.fecha_pago);
@@ -73,8 +60,6 @@ window.cargarModuloInteres = async function() {
 
                 const rawMetodo = (ing.forma_pago || 'EFECTIVO').toUpperCase();
                 const metodoOficial = (rawMetodo.includes('TRANSF') || rawMetodo.includes('BANCO') || rawMetodo.includes('DEP')) ? 'BANCO' : 'EFECTIVO';
-
-                // 🔥 Aquí armamos la etiqueta agregando el Pago #X 🔥
                 const numPagoTxt = ing.numero_pago ? `PAGO #${ing.numero_pago} | ` : '';
                 
                 memoriaBovedaAlpha.push({
@@ -85,7 +70,7 @@ window.cargarModuloInteres = async function() {
                     anioNum: f.getFullYear(),
                     fechaTxt: fechaTxt,
                     nombre: nombreCompleto,
-                    ref: `${numPagoTxt}REF: ${iN}${iA}-${u4}`, // Inyectamos el Pago #X al inicio de la etiqueta azul
+                    ref: `${numPagoTxt}REF: ${iN}${iA}-${u4}`, 
                     etiquetaCRE: creCifrado ? `CRE #${numLocal} [${creCifrado}]` : `CRE #${numLocal}`,
                     metodo: metodoOficial, 
                     metodoVisual: rawMetodo, 
@@ -94,7 +79,6 @@ window.cargarModuloInteres = async function() {
             });
         }
 
-        // --- Empaquetar Movimientos Manuales (Gastos / Devoluciones) ---
         if (movimientosManuales) {
             movimientosManuales.forEach(mov => {
                 const f = new Date(mov.fecha);
@@ -122,9 +106,7 @@ window.cargarModuloInteres = async function() {
             });
         }
 
-        // 4. Ordenar todo de más nuevo a más viejo
         memoriaBovedaAlpha.sort((a, b) => b.fechaRealObj - a.fechaRealObj);
-        mesSeleccionadoBoveda = 'actual';
         renderizarBovedaVisual();
 
     } catch (error) {
@@ -133,7 +115,6 @@ window.cargarModuloInteres = async function() {
     }
 };
 
-// Función auxiliar para fechas perfectas
 function formatearFechaNasa(f) {
     const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -145,13 +126,12 @@ function formatearFechaNasa(f) {
 }
 
 // =========================================================================
-// 🚀 MOTOR VISUAL: EL DASHBOARD CON 3 TARJETAS (EFECTIVO, BANCOS, TOTAL)
+// 🚀 MOTOR VISUAL: EL DASHBOARD CON BÚSQUEDA Y MÁQUINA DEL TIEMPO
 // =========================================================================
 window.renderizarBovedaVisual = function() {
     const contenedor = document.getElementById('mod-interes'); 
     if (!contenedor) return;
 
-    // 1. MÁQUINA DEL TIEMPO (Selector de Meses)
     const mesesNombresLargos = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const mesActualJS = new Date().getMonth();
     const anioActualJS = new Date().getFullYear();
@@ -167,21 +147,37 @@ window.renderizarBovedaVisual = function() {
         return mesB - mesA;
     });
 
-    let opcionesSelectorHTML = `<option value="actual" ${mesSeleccionadoBoveda === 'actual' ? 'selected' : ''}>📅 Mes Actual (${mesesNombresLargos[mesActualJS]} ${anioActualJS})</option>`;
+    // SELECTOR DE TIEMPO
+    let opcionesSelectorHTML = `<option value="diario" ${mesSeleccionadoBoveda === 'diario' ? 'selected' : ''}>📅 Por Día (Máquina del Tiempo)</option>`;
+    opcionesSelectorHTML += `<option value="actual" ${mesSeleccionadoBoveda === 'actual' ? 'selected' : ''}>🗓️ Mes Actual (${mesesNombresLargos[mesActualJS]} ${anioActualJS})</option>`;
     
     historialMeses.forEach(codigoMes => {
         const [anio, mes] = codigoMes.split('-');
         if (parseInt(anio) === anioActualJS && parseInt(mes) === mesActualJS) return;
         opcionesSelectorHTML += `<option value="${codigoMes}" ${mesSeleccionadoBoveda === codigoMes ? 'selected' : ''}>🗓️ ${mesesNombresLargos[mes]} ${anio}</option>`;
     });
-
     opcionesSelectorHTML += `<option value="todos" ${mesSeleccionadoBoveda === 'todos' ? 'selected' : ''}>🌍 Ver Todo el Historial</option>`;
 
-    // 2. FILTRADO
+    // FILTRADO LÓGICO
     let datosFiltrados = [];
     let tituloFiltro = "";
 
-    if (mesSeleccionadoBoveda === 'actual') {
+    if (mesSeleccionadoBoveda === 'diario') {
+        const fechaObj = new Date();
+        fechaObj.setDate(fechaObj.getDate() - window.diasAtrasBoveda);
+        const dStr = fechaObj.getDate();
+        const mStr = fechaObj.getMonth();
+        const yStr = fechaObj.getFullYear();
+        
+        datosFiltrados = memoriaBovedaAlpha.filter(item => {
+            const f = item.fechaRealObj;
+            return f.getDate() === dStr && f.getMonth() === mStr && f.getFullYear() === yStr;
+        });
+        
+        const dNombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        tituloFiltro = `${dNombres[fechaObj.getDay()].toUpperCase()} ${String(dStr).padStart(2,'0')} DE ${mesesNombresLargos[mStr].toUpperCase()} DEL ${yStr}`;
+    }
+    else if (mesSeleccionadoBoveda === 'actual') {
         datosFiltrados = memoriaBovedaAlpha.filter(item => item.mesNum === mesActualJS && item.anioNum === anioActualJS);
         tituloFiltro = `Balance generado en ${mesesNombresLargos[mesActualJS]}`;
     } else if (mesSeleccionadoBoveda === 'todos') {
@@ -193,14 +189,13 @@ window.renderizarBovedaVisual = function() {
         tituloFiltro = `Balance de ${mesesNombresLargos[mesFiltro]} ${anioFiltro}`;
     }
 
-    // 3. MATEMÁTICA PURA (TOTALES Y SUB-CAJAS)
     const utilidadNetaGeneral = memoriaBovedaAlpha.reduce((sum, item) => sum + item.ganancia, 0);
     const utilidadFiltradaTotal = datosFiltrados.reduce((sum, item) => sum + item.ganancia, 0);
     const utilidadFiltradaEfectivo = datosFiltrados.filter(i => i.metodo === 'EFECTIVO').reduce((sum, item) => sum + item.ganancia, 0);
     const utilidadFiltradaBanco = datosFiltrados.filter(i => i.metodo === 'BANCO').reduce((sum, item) => sum + item.ganancia, 0);
     const transaccionesReales = datosFiltrados.filter(item => !item.esManual).length;
 
-    // 4. GENERACIÓN DE LA TABLA INTELIGENTE
+    // GENERACIÓN DE TABLA CON CLASE "movimiento-boveda-item" PARA EL BUSCADOR
     let filasTablaHTML = '';
     if (datosFiltrados.length > 0) {
         datosFiltrados.forEach(item => {
@@ -211,7 +206,7 @@ window.renderizarBovedaVisual = function() {
                 const icono = esRetiro ? '📉' : '📈';
 
                 filasTablaHTML += `
-                    <tr style="background: ${colorFondo}; border-bottom: 1px solid #f1f5f9;">
+                    <tr class="movimiento-boveda-item" style="background: ${colorFondo}; border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 16px 15px;">
                             <div style="font-weight: 900; color: ${colorTexto}; margin-bottom: 6px; font-size: 13px;">${icono} ${item.nombre}</div>
                             <div style="font-size: 11px; color: #475569; font-weight: bold;">
@@ -234,7 +229,7 @@ window.renderizarBovedaVisual = function() {
                     : 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;';
 
                 filasTablaHTML += `
-                    <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <tr class="movimiento-boveda-item" style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <td style="padding: 16px 15px;">
                             <div style="font-weight: 900; color: #0f172a; margin-bottom: 6px; font-size: 13px;">${item.nombre}</div>
                             <div style="font-size: 10px; background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; display: inline-block; font-weight: bold; border: 1px solid #bae6fd; letter-spacing: 0.5px;">
@@ -252,10 +247,37 @@ window.renderizarBovedaVisual = function() {
             }
         });
     } else {
-        filasTablaHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: #94a3b8; font-weight: 600; font-size: 14px;">No hay registros en este periodo.</td></tr>`;
+        filasTablaHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: #94a3b8; font-weight: 600; font-size: 14px;">No hay registros en esta fecha.</td></tr>`;
     }
 
-    // 5. INYECCIÓN DEL DOM (CON 3 TARJETAS AL ESTILO CAPITAL)
+    // BOTONES DE TIEMPO
+    let botonesTiempoHTML = '';
+    if (mesSeleccionadoBoveda === 'diario') {
+        const esHoy = window.diasAtrasBoveda === 0;
+        botonesTiempoHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <button onclick="cambiarDiaBoveda(1)" style="background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+                    ⬅️ Día Anterior
+                </button>
+                <span style="color: #0369a1; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                    📅 MOSTRANDO: ${tituloFiltro}
+                </span>
+                <button ${esHoy ? 'disabled style="background: #f1f5f9; color: #94a3b8; border: 1px dashed #cbd5e1; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: not-allowed; display: flex; align-items: center; gap: 8px;"' : 'onclick="cambiarDiaBoveda(-1)" style="background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background=\'#cbd5e1\'" onmouseout="this.style.background=\'#e2e8f0\'"'}>
+                    Día Siguiente ➡️
+                </button>
+            </div>
+        `;
+    } else {
+        botonesTiempoHTML = `
+            <div style="text-align: center; padding: 15px 25px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <span style="color: #0369a1; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+                    📅 MOSTRANDO: ${tituloFiltro}
+                </span>
+            </div>
+        `;
+    }
+
+    // INYECCIÓN DEL DOM
     contenedor.innerHTML = `
         <div style="animation: fadeIn 0.4s ease-in-out; padding-bottom: 40px;">
             
@@ -328,18 +350,26 @@ window.renderizarBovedaVisual = function() {
                     </select>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <span style="background: #f1f5f9; color: #475569; font-weight: bold; font-size: 12px; padding: 8px 15px; border-radius: 8px; border: 1px solid #cbd5e1;">Abonos cobrados: ${transaccionesReales}</span>
-                    <button onclick="cargarModuloInteres()" style="background: #0f172a; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <span id="contador-abonos-boveda" style="background: #f1f5f9; color: #475569; font-weight: bold; font-size: 12px; padding: 8px 15px; border-radius: 8px; border: 1px solid #cbd5e1;">Abonos cobrados: ${transaccionesReales}</span>
+                    <button onclick="sincronizarYLimpiarBoveda()" style="background: #0f172a; border: none; color: white; padding: 8px 15px; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 14px;">🔄</span> Sincronizar
                     </button>
                 </div>
             </div>
 
             <div style="background: white; border: 1px solid #cbd5e1; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); overflow: hidden;">
+                
                 <div style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 20px 25px; display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 18px;">📊</span>
-                    <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 900;">Auditoría de Entradas y Salidas (${tituloFiltro})</h3>
+                    <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 900;">Auditoría de Entradas y Salidas</h3>
                 </div>
+                
+                <!-- 🔍 EL NUEVO BUSCADOR UNIVERSAL INCRUSTADO -->
+                <div style="padding: 15px 25px; border-bottom: 1px solid #e2e8f0; background: #ffffff; display: flex; gap: 10px;">
+                    <input type="text" id="input-buscar-interes" onkeyup="filtrarBovedaEnVivo(this.value)" value="${window.filtroMemoriaBoveda}" placeholder="🔍 Buscar cliente, crédito (CRE #[Y]), efectivo, fecha..." style="padding: 10px 15px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; width: 100%; max-width: 550px; outline: none; font-size: 13px; font-weight: bold;">
+                    <button onclick="filtrarBovedaEnVivo(document.getElementById('input-buscar-interes').value)" style="background: #0ea5e9; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Buscar</button>
+                </div>
+
                 <div style="overflow-x: auto; max-height: 600px; overflow-y: auto;">
                     <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
                         <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
@@ -350,21 +380,84 @@ window.renderizarBovedaVisual = function() {
                                 <th style="padding: 15px; font-size: 11px; color: #475569; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; border-bottom: 2px solid #e2e8f0; text-align: right;">VALOR NETO ($)</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbody-auditoria-boveda">
                             ${filasTablaHTML}
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- BOTONES DE MÁQUINA DEL TIEMPO -->
+                ${botonesTiempoHTML}
+
             </div>
             
         </div>
     `;
+
+    // Si había un filtro escrito antes de dibujar, lo vuelve a aplicar para no perderlo
+    if (window.filtroMemoriaBoveda !== "") {
+        window.filtrarBovedaEnVivo(window.filtroMemoriaBoveda);
+    }
 };
+
+// =========================================================================
+// CONTROLES DE LA BÓVEDA (BÚSQUEDA Y NAVEGACIÓN)
+// =========================================================================
 
 window.cambiarFiltroBoveda = function(valor) {
     mesSeleccionadoBoveda = valor;
-    renderizarBovedaVisual();
+    window.diasAtrasBoveda = 0;
+    window.renderizarBovedaVisual();
 };
+
+window.cambiarDiaBoveda = function(direccion) {
+    window.diasAtrasBoveda += direccion;
+    if (window.diasAtrasBoveda < 0) window.diasAtrasBoveda = 0;
+    window.renderizarBovedaVisual();
+}
+
+window.sincronizarYLimpiarBoveda = function() {
+    window.filtroMemoriaBoveda = "";
+    window.diasAtrasBoveda = 0;
+    mesSeleccionadoBoveda = 'diario';
+    cargarModuloInteres();
+}
+
+window.filtrarBovedaEnVivo = function(termino) {
+    window.filtroMemoriaBoveda = termino.trim().toUpperCase();
+    const tbody = document.getElementById('tbody-auditoria-boveda');
+    if (!tbody) return;
+
+    const filas = tbody.querySelectorAll('.movimiento-boveda-item');
+    let visibles = 0;
+
+    filas.forEach(fila => {
+        const texto = fila.innerText.toUpperCase();
+        if (window.filtroMemoriaBoveda === "" || texto.includes(window.filtroMemoriaBoveda)) {
+            fila.style.display = ''; 
+            visibles++;
+        } else {
+            fila.style.display = 'none';
+        }
+    });
+
+    const contador = document.getElementById('contador-abonos-boveda');
+    if (contador) {
+        if (window.filtroMemoriaBoveda !== "") {
+            contador.innerText = `Búsqueda: ${visibles} resultados`;
+            contador.style.background = '#e0f2fe';
+            contador.style.color = '#0369a1';
+        } else {
+            contador.innerText = `Mostrando: ${visibles} registros`;
+            contador.style.background = '#f1f5f9';
+            contador.style.color = '#475569';
+        }
+    }
+}
+
+// =========================================================================
+// INGRESOS MANUALES Y EXPORTACIÓN (EXCEL / PDF)
+// =========================================================================
 
 window.procesarMovimientoUtilidad = async function(tipo) {
     const monto = parseFloat(document.getElementById('input-monto-utilidad').value);
@@ -397,7 +490,6 @@ window.procesarMovimientoUtilidad = async function(tipo) {
         if (error) throw error;
 
         alert(`✅ Operación exitosa. ${tipo} de $${monto.toFixed(2)} procesado correctamente en su utilidad de ${origen}.`);
-        
         cargarModuloInteres();
         
     } catch(error) {
@@ -417,10 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 });
-
-// =========================================================================
-// 📄 MOTORES DE REPORTES EXCEL Y PDF (BÓVEDA DE UTILIDADES CON FILTRO)
-// =========================================================================
 
 window.exportarUtilidadesExcel = async function() {
     alert("⏳ Generando archivo Excel... Por favor, espere.");
@@ -551,9 +639,6 @@ window.exportarUtilidadesPDF = async function() {
     } catch (error) { console.error("Error al exportar PDF:", error); alert("❌ Error: " + error.message); }
 };
 
-// ======================================================
-// CARGA EN SEGUNDO PLANO
-// ======================================================
 async function cargarModuloInteresEnSegundoPlano() {
     try {
         const { data: historialTodos } = await supabaseClient.from('creditos').select('id, cliente_id').order('id', { ascending: true });
