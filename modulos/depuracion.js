@@ -1,6 +1,9 @@
 /* ==========================================================================
    MÓDULO DE DEPURACIÓN (PAPELERA GLOBAL)
    ========================================================================== */
+/* ==========================================================================
+   MÓDULO DE DEPURACIÓN (PAPELERA GLOBAL)
+   ========================================================================== */
 async function cargarPapelera(categoria) {
     const contenedor = document.getElementById('contenedor-papelera');
     
@@ -49,14 +52,15 @@ async function cargarPapelera(categoria) {
         } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`; }
     } 
     // =====================================================================
-    // 🌟 SECCIÓN B: CRÉDITOS ANULADOS
+    // 🌟 SECCIÓN B: CRÉDITOS ANULADOS (AHORA CON DISEÑO VIP TIPO "FINALIZADOS")
     // =====================================================================
     else if (categoria === 'creditos') {
-        contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda de auditoría de créditos...</p>';
+        contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda de auditoría de créditos anulados...</p>';
         try {
+            // 1. Ampliamos la consulta para traer todos los datos financieros necesarios
             const { data: anulados, error } = await supabaseClient
                 .from('creditos')
-                .select(`id, monto_capital, total_pagar, forma_entrega, fecha_emision, clientes!inner(nombres, apellidos, cedula)`)
+                .select(`id, monto_capital, tasa_interes, total_pagar, valor_cuota, num_cuotas, frecuencia_pago, forma_entrega, fecha_emision, cliente_id, clientes!inner(nombres, apellidos, cedula)`)
                 .eq('estado', 'inactivo')
                 .order('id', { ascending: false });
 
@@ -66,24 +70,98 @@ async function cargarPapelera(categoria) {
                 return;
             }
 
-            contenedor.innerHTML = anulados.map(cre => {
-                const nombreCliente = `${cre.clientes.nombres} ${cre.clientes.apellidos}`.toUpperCase();
-                const textoBusqueda = `${nombreCliente} ${cre.clientes.cedula} ${cre.id} ${cre.monto_capital}`.toLowerCase(); // 🔑 DATO INVISIBLE
+            // 2. Traemos el historial para calcular el número exacto del crédito
+            const { data: todosLosCreditos } = await supabaseClient
+                .from('creditos')
+                .select('id, cliente_id')
+                .order('id', { ascending: true });
+                
+            let mapaNumeroCredito = {};
+            if (todosLosCreditos) {
+                let conteos = {};
+                todosLosCreditos.forEach(c => {
+                    if (!conteos[c.cliente_id]) conteos[c.cliente_id] = 0;
+                    conteos[c.cliente_id]++;
+                    mapaNumeroCredito[c.id] = conteos[c.cliente_id];
+                });
+            }
 
+            // 3. Formateador de Fechas Fórmula Alpha
+            const formatearFechaAlpha = (fechaISO) => {
+                if (!fechaISO) return 'N/A';
+                const f = new Date(fechaISO);
+                if (isNaN(f.getTime())) return 'Fecha inválida';
+                const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                let hora = f.getHours();
+                const ampm = hora >= 12 ? 'pm' : 'am';
+                hora = hora % 12 || 12; 
+                const min = f.getMinutes().toString().padStart(2, '0');
+                return `${dias[f.getDay()]} ${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()} | h ${hora}:${min} ${ampm}`;
+            };
+
+            contenedor.innerHTML = anulados.map(cre => {
+                const cli = cre.clientes || {};
+                const nombreCliente = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+                const iN = (cli.nombres || 'X').trim().charAt(0).toUpperCase();
+                const iA = (cli.apellidos || 'X').trim().charAt(0).toUpperCase();
+                const u4 = (cli.cedula || '0000').trim().slice(-4);
+                const refFinal = `REF: ${iN}${iA}-${u4}`;
+
+                // Cálculo del Código CRE
+                let numeroCredito = mapaNumeroCredito[cre.id] || '?';
+                let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
+                let etiquetaCRE = `CRE #${numeroCredito} [${creCifrado}]`;
+
+                // Variables financieras
+                const capital = parseFloat(cre.monto_capital) || 0;
+                const total = parseFloat(cre.total_pagar) || 0;
+                const interesPorcentaje = ~~cre.tasa_interes ? cre.tasa_interes : 0;
+                const cuota = parseFloat(cre.valor_cuota) || 0;
+                const fechaEmisionTxt = formatearFechaAlpha(cre.fecha_emision);
+
+                const textoBusqueda = `${nombreCliente} ${cli.cedula} ${refFinal} ${cre.id} ${capital}`.toLowerCase();
+
+                // 4. EL NUEVO DISEÑO VIP PARA ANULADOS
                 return `
-                <div class="item-papelera-global" data-busqueda="${textoBusqueda}" style="background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <span style="background: #ffe4e6; color: #e11d48; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">CRÉDITO ANULADO #${cre.id}</span>
-                            <h3 style="margin: 8px 0 4px 0; font-size: 14px; color: #1e293b;">${nombreCliente}</h3>
-                            <p style="margin: 0; font-size: 12px; color: #475569;">Capital Original: <b>$${cre.monto_capital}</b></p>
+                <div class="item-papelera-global" data-busqueda="${textoBusqueda}" style="background: #fff; border: 1px solid #cbd5e1; border-left: 6px solid #ef4444; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                    
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                        <span style="background: #f1f5f9; color: #334155; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #cbd5e1;">${refFinal}</span>
+                        <span style="background: #fee2e2; color: #b91c1c; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #fecaca;">CRÉDITO #${cre.id}</span>
+                        <span style="background: #fef08a; color: #854d0e; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px solid #fde047;">${etiquetaCRE}</span>
+                        <span style="background: #fef2f2; color: #ef4444; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 900; border: 1px dashed #ef4444;">🚫 ANULADO</span>
+                        <span style="margin-left: auto; font-size: 18px;" title="Caja origen: ${cre.forma_entrega}">💸</span>
+                    </div>
+                    
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #0f172a; font-weight: 900;">👤 ${nombreCliente}</h3>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #64748b;">🆔 Cédula: ${cli.cedula}</p>
+                    
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #94a3b8; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 13px; color: #334155;"><strong>Capital:</strong> $${capital.toFixed(2)}</span>
+                            <span style="font-size: 13px; color: #334155;"><strong>Interés:</strong> ${interesPorcentaje}%</span>
+                            <span style="font-size: 13px; color: #334155;"><strong>Cuota:</strong> $${cuota.toFixed(2)}</span>
+                            <span style="font-size: 14px; color: #b91c1c; font-weight: 900;">💰 Total a Pagar: $${total.toFixed(2)}</span>
                         </div>
-                        <span style="font-size: 20px;" title="Caja origen: ${cre.forma_entrega}">💸</span>
+                        <div style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                            <span style="font-size: 12px; color: #475569;">🔄 <strong>Frecuencia de Pago:</strong> ${cre.frecuencia_pago || 'No especificada'}</span>
+                            <span style="font-size: 12px; color: #475569;">🔢 <strong>N° de Cuotas:</strong> ${cre.num_cuotas || '0'}</span>
+                        </div>
                     </div>
-                    <div style="margin-top: 15px; display: flex; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
-                        <button onclick="reactivarCreditoDesdePapelera(${cre.id}, ${cre.monto_capital}, '${cre.forma_entrega}', '${nombreCliente}')" style="flex: 1; padding: 8px; background: #0284c7; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">♻️ Re-Activar</button>
-                        <button onclick="forzarEliminacionCredito(${cre.id})" style="padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">💥</button>
+
+                    <div style="background: #fef2f2; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; border-left: 3px solid #ef4444; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 14px;">🗓️</span>
+                            <p style="margin: 0; font-size: 12px; color: #7f1d1d; font-weight: 600;">Fecha de emisión original: <span style="color: #991b1b; font-weight: bold;">${fechaEmisionTxt}</span></p>
+                        </div>
                     </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="reactivarCreditoDesdePapelera(${cre.id}, ${cre.monto_capital}, '${cre.forma_entrega}', '${nombreCliente.replace(/'/g, "\\'")}')" style="flex: 1; padding: 10px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">♻️ Restaurar Crédito</button>
+                        <button onclick="forzarEliminacionCredito(${cre.id})" style="padding: 10px 15px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" title="Destruir Registro">💥</button>
+                    </div>
+
                 </div>`;
             }).join('');
         } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`; }
@@ -163,9 +241,6 @@ async function cargarPapelera(categoria) {
             }).join('');
         } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error de Bóveda: ${error.message}</p>`; }
     }
-    // =====================================================================
-    // 🏆 SECCIÓN D: CRÉDITOS FINALIZADOS (CON BOTÓN DE HISTORIAL)
-    // =====================================================================
     // =====================================================================
     // 🏆 SECCIÓN D: CRÉDITOS FINALIZADOS (CON BOTÓN DE HISTORIAL)
     // =====================================================================
@@ -509,6 +584,9 @@ async function forzarEliminacionCliente(id, nombre) {
 /**
  * RE-ACTIVACIÓN FINANCIERA: Devuelve el crédito a la vida, resta el capital, actualiza auditoría y envía SMS de restauración.
  */
+/**
+ * RE-ACTIVACIÓN FINANCIERA: Devuelve el crédito a la vida, resta el capital, actualiza auditoría y envía SMS de restauración.
+ */
 async function reactivarCreditoDesdePapelera(idCredito, capital, formaEntrega, nombreCliente) {
     if (!confirm(`♻️ ¿Deseas RE-ACTIVAR el crédito #${idCredito} de [${nombreCliente}]?\n\nAl hacerlo, se volverá a descontar los $${capital} de la caja fuerte correspondiente y se notificará al cliente.`)) return;
 
@@ -590,10 +668,23 @@ async function reactivarCreditoDesdePapelera(idCredito, capital, formaEntrega, n
         if (cliente.whatsapp && typeof enviarSMSAutomatico === 'function') {
             const modalidadNombre = (credito.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
             
+            // 🔥 FÓRMULA ALPHA SMS COMPACTA 🔥
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
             const ahora = new Date();
-            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-            const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-            const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+            const diaSemanaA = dias[ahora.getDay()];
+            const numDiaA = String(ahora.getDate()).padStart(2, '0');
+            const mesNombreA = meses[ahora.getMonth()];
+            const anioA = ahora.getFullYear();
+
+            let horasA = ahora.getHours();
+            let minutosA = String(ahora.getMinutes()).padStart(2, '0');
+            const ampmA = horasA >= 12 ? 'p.m.' : 'a.m.'; // Sin espacios
+            horasA = horasA % 12; horasA = horasA ? horasA : 12;
+            horasA = String(horasA).padStart(2, '0');
+
+            const fechaHoraSMS = `${diaSemanaA} ${numDiaA}/${mesNombreA}/${anioA} | ${horasA}:${minutosA} ${ampmA}`;
 
             // MENSAJE DE IMPACTO POSITIVO: Se centra en la restauración exitosa
             const msjReactivacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreLimpio}\n\nHola, te informamos que tu credito ha sido RESTAURADO exitosamente y se encuentra ACTIVO en nuestro sistema.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Cuotas: ${credito.num_cuotas}\n\nEste es tu soporte oficial. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;

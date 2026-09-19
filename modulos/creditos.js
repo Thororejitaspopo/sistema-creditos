@@ -134,18 +134,23 @@ window.addEventListener('DOMContentLoaded', () => {
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
 // =========================================================================
+// =========================================================================
+// 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+// =========================================================================
+// =========================================================================
+// 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+// =========================================================================
 async function guardarNuevoCredito() {
     // BLOCK 1: CAPTURA DE DATOS DESDE LA INTERFAZ HTML
     const selectorCliente = document.getElementById('cred-cliente-id');
     const clienteId = selectorCliente.value;
     
-    // TRUCO DE ORO: Captura el Nombre y Apellido tal como aparece escrito en el selector de la pantalla
     const nombreCliente = selectorCliente.options[selectorCliente.selectedIndex].text;
 
     const monto = parseFloat(document.getElementById('cred-monto').value);
     const tasa = parseFloat(document.getElementById('cred-tasa-interes').value);
     const cuotas = parseInt(document.getElementById('cred-cuotas').value);
-    const cajaId = document.getElementById('cred-forma-entrega').value; // Retorna "1" o "2"
+    const cajaId = document.getElementById('cred-forma-entrega').value;
 
     // BLOCK 2: VALIDACIÓN DE SEGURIDAD PREVENTIVA
     if (!clienteId || !monto || isNaN(monto) || !cuotas || !cajaId) {
@@ -153,7 +158,6 @@ async function guardarNuevoCredito() {
         return;
     }
 
-    // BLOCK 2.5: CONTROL DE MONTOS EN NEGATIVO O CERO
     if (monto <= 0) {
         alert("⚠️ Error: El monto del crédito debe ser un valor positivo mayor a cero.");
         return;
@@ -174,13 +178,11 @@ async function guardarNuevoCredito() {
 
         if (errorCaja) throw errorCaja;
 
-        // BLOCK 4.5: VALIDACIÓN DE FONDOS INSUFICIENTES
         if (monto > parseFloat(caja.saldo_actual)) {
             alert(`❌ Operación Cancelada: Fondos insuficientes en [${caja.nombre_caja}].\n\nSaldo disponible actual: $${parseFloat(caja.saldo_actual).toFixed(2)}\nMonto que intenta prestar: $${monto.toFixed(2)}`);
             return;
         }
 
-        // BLOCK 4.7: OBTENER DATOS COMPLETOS DEL CLIENTE PARA EL CÓDIGO BANCARIO
         const { data: infoCliente, error: errorCliente } = await supabaseClient
             .from('clientes')
             .select('nivel, limite_creditos, whatsapp, nombres, apellidos, cedula') 
@@ -204,7 +206,6 @@ async function guardarNuevoCredito() {
             return;
         }
 
-        // === MAGIA CONTABLE: CÁLCULO DEL NÚMERO DE CRÉDITO ===
         const numeroCredito = creditosCliente.length + 1; 
 
         // BLOCK 5: REGISTRO DEL CRÉDITO EN SUPABASE
@@ -231,7 +232,6 @@ async function guardarNuevoCredito() {
 
         if (error) throw error;
 
-        // 🌟 EXTRAEMOS EL ID RECIÉN GENERADO POR SUPABASE
         const nuevoCreditoId = resultadoCredito && resultadoCredito.length > 0 ? resultadoCredito[0].id : null;
 
         // BLOCK 6: DESCUENTO DE DINERO DE LA CAJA SELECCIONADA
@@ -244,22 +244,17 @@ async function guardarNuevoCredito() {
 
         if (errorUpdateCaja) throw errorUpdateCaja;
 
-        // === GENERACIÓN DEL CÓDIGO BANCARIO ÚNICO ===
         const inicialN = infoCliente.nombres.charAt(0).toUpperCase();
         const inicialA = infoCliente.apellidos.charAt(0).toUpperCase();
         const ultimos4 = infoCliente.cedula.slice(-4);
-        const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`; // Ej: MA-5760
+        const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`;
         
-        // 🔑 CIFRADO DE SEGURIDAD PARA EL NUEVO CRÉDITO
         const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
 
-        // 🛡️ SEPARACIÓN DE CÓDIGOS (INTERNO VS CLIENTE)
-        // Para uso interno (Auditoría): Muestra número y letra
         const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`;
-        // Para el cliente (SMS): Muestra SOLO la letra
         const codigoCreditoSMS = `${codigoClienteBancario} | CRE #${codigoCifrado}`;
 
-        // BLOCK 7: REGISTRO DE AUDITORÍA EN EL HISTORIAL DE CAPITAL
+        // BLOCK 7: REGISTRO DE AUDITORÍA
         const nombreCompletoHistorial = `${infoCliente.nombres.toUpperCase()} ${infoCliente.apellidos.toUpperCase()}`;
         const { error: errorHistorial } = await supabaseClient
             .from('historial_capital')
@@ -272,7 +267,6 @@ async function guardarNuevoCredito() {
 
         if (errorHistorial) throw errorHistorial;
 
-        // BLOCK 8: MENSAJE DE ÉXITO AL OPERADOR
         alert(`🚀 ¡${codigoCreditoOficial} aprobado, registrado y descontado con éxito!`);
         
         // =========================================================================
@@ -285,27 +279,36 @@ async function guardarNuevoCredito() {
             let modalidadNombre = modalidadSelect ? modalidadSelect.options[modalidadSelect.selectedIndex].text : "Fija";
             modalidadNombre = modalidadNombre.replace(/.*Cobro\s+/i, "");
 
-            // GENERAR FECHA Y HORA EXACTA CON DÍA DE LA SEMANA
+            // 🔥 FORMULA ALPHA SMS COMPACTA (Sábado 19/septiembre/2026 | 10:56 a.m.)
             const ahora = new Date();
-            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-            const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            const diaSemana = dias[ahora.getDay()];
+            const numDia = String(ahora.getDate()).padStart(2, '0');
+            const mesNombre = meses[ahora.getMonth()];
+            const anio = ahora.getFullYear();
+            
+            let horas = ahora.getHours();
+            let minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const ampm = horas >= 12 ? 'p.m.' : 'a.m.'; // <-- SIN ESPACIO PARA QUE NO SALTE LA LÍNEA
+            horas = horas % 12; horas = horas ? horas : 12;
+            horas = String(horas).padStart(2, '0');
+            
+            const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anio} | ${horas}:${minutos} ${ampm}`;
 
-            // 🎓 Diseño final con Fecha y Código Bancario (SOLO LETRA PARA EL CLIENTE)
-            const mensajeVoucher = `=== SISTEMA ALPHA ===\n${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreLimpio}\n\n💰 Monto: $${monto.toFixed(2)}\n💵 Cuota: $${valorCuota.toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${totalPagar.toFixed(2)}\n🔢 Cuotas: ${cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+            const mensajeVoucher = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreLimpio}\n\n💰 Monto: $${monto.toFixed(2)}\n💵 Cuota: $${valorCuota.toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${totalPagar.toFixed(2)}\n🔢 Cuotas: ${cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
             
             enviarSMSAutomatico(infoCliente.whatsapp, mensajeVoucher);
         }
         
-        // =========================================================================
-        // 🔥 CORRECCIÓN CIRUGÍA: Llamamos a la versión global blindada
-        // =========================================================================
         if (typeof window.cargarHistorialCreditos === 'function') {
             window.cargarHistorialCreditos();
         } else if (typeof cargarHistorialCreditos === 'function') {
             cargarHistorialCreditos();
         }
         
-        // BLOCK 9: LIMPIEZA DE FORMULARIO DE INTERFAZ
+        // BLOCK 9: LIMPIEZA
         document.getElementById('cred-cliente-id').value = '';
         document.getElementById('cred-monto').value = '';
         document.getElementById('cred-cuotas').value = '1';
@@ -315,18 +318,9 @@ async function guardarNuevoCredito() {
         document.getElementById('lbl-interes-total').innerText = '$0.00';
         document.getElementById('lbl-pagar-total').innerText = '$0.00';
 
-        // BLOCK 10: ACTUALIZACIÓN EN VIVO
-        if (typeof inicializarModuloCapital === 'function') {
-            await inicializarModuloCapital();
-        }
-
-        if (typeof cargarSaldosEnSelectorCredito === 'function') {
-            await cargarSaldosEnSelectorCredito();
-        }
-
-        if (typeof cargarHistorialCapital === 'function') {
-            cargarHistorialCapital();
-        }
+        if (typeof inicializarModuloCapital === 'function') await inicializarModuloCapital();
+        if (typeof cargarSaldosEnSelectorCredito === 'function') await cargarSaldosEnSelectorCredito();
+        if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
 
     } catch (error) {
         console.error("Error al registrar crédito:", error);
@@ -547,6 +541,12 @@ if (contenedorHistorial) {
 // =========================================================================
 // 1. CARGAR EL HISTORIAL DE CRÉDITOS (CON BUSCADOR, PAGINACIÓN Y RESTA DE ABONOS)
 // =========================================================================
+// =========================================================================
+// 1. CARGAR EL HISTORIAL DE CRÉDITOS (CON BUSCADOR, PAGINACIÓN Y RESTA DE ABONOS)
+// =========================================================================
+// =========================================================================
+// 1. CARGAR EL HISTORIAL DE CRÉDITOS (CON BUSCADOR, PAGINACIÓN Y RESTA DE ABONOS)
+// =========================================================================
 window.cargarHistorialCreditos = async function() {
     const contenedor = document.getElementById('lista-creditos-derecha');
     if (!contenedor) return;
@@ -631,8 +631,29 @@ window.cargarHistorialCreditos = async function() {
             
             const esEditable = (ahora - fechaObj.getTime()) < 86400000; 
 
-            const formatoFecha = fechaObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' });
-            const horaFormateada = fechaObj.toLocaleTimeString('es-ES', { hour12: false });
+            // ==========================================
+            // 🔥 FÓRMULA ALPHA: PRECISIÓN TOTAL 🔥
+            // Formato exacto: sábado, 19/septiembre/2026 | 10:03:11 a. m.
+            // ==========================================
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            const nombreDia = dias[fechaObj.getDay()];
+            const numDia = String(fechaObj.getDate()).padStart(2, '0');
+            const mesNombre = meses[fechaObj.getMonth()];
+            const anio = fechaObj.getFullYear();
+            
+            let horas = fechaObj.getHours();
+            let minutos = String(fechaObj.getMinutes()).padStart(2, '0');
+            let segundos = String(fechaObj.getSeconds()).padStart(2, '0');
+            const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+            horas = horas % 12; 
+            horas = horas ? horas : 12;
+            horas = String(horas).padStart(2, '0');
+            
+            const formatoFecha = `${nombreDia}, ${numDia}/${mesNombre}/${anio}`;
+            const horaFormateada = `${horas}:${minutos}:${segundos} ${ampm}`;
+            // ==========================================
             
             const nombre = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}`.toUpperCase() : 'SIN NOMBRE';
 
@@ -642,7 +663,6 @@ window.cargarHistorialCreditos = async function() {
             const etiquetaMora = moraExtra > 0 ? `<span style="color: #ef4444; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap;">Mora $${moraExtra.toFixed(2)}</span>` : '';
             const etiquetaDeuda = moraExtra > 0 ? `<span style="margin-left: 6px; color: #854d0e; font-size: 11px; font-weight: bold; background: #fef08a; padding: 2px 6px; border-radius: 4px; border: 1px dashed #ca8a04; white-space: nowrap;">👉 Deuda Total: $${deudaTotalCalculada.toFixed(2)}</span>` : '';
 
-            // 🔥 Diseño especial para distinguir créditos congelados
             const esCongelado = c.estado === 'congelado';
             const badgeCongelado = esCongelado ? `<span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">🧊 CONGELADO</span>` : '';
 
@@ -656,13 +676,13 @@ window.cargarHistorialCreditos = async function() {
                         🆔 ${c.codigoOficial}
                     </span> 
                     <span style="color: #cbd5e1;">|</span> 
-                    <span style="color: #64748b; font-weight: normal; font-size: 11px;">${formatoFecha}, ${horaFormateada}</span>
+                    <span style="color: #64748b; font-weight: normal; font-size: 11px;">${formatoFecha} | ${horaFormateada}</span>
                     
                     <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
                         <button onclick="reenviarVoucher(${c.id})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Reenviar Soporte ($0.50)">📩</button>
                         ${esEditable ? `
                             <button onclick="abrirModalEdicion(${c.id})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Editar crédito">✏️</button>
-                            <button onclick="intentarAnularCredito(${c.id}, ${c.monto_capital})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Eliminar crédito">🚫</button>
+                            <button onclick="intentarAnularCredito(${c.id},${c.monto_capital})" style="cursor:pointer; border:none; background:none; font-size: 14px; padding: 0;" title="Eliminar crédito">🚫</button>
                         ` : ''}
                     </div>
                 </div>
@@ -714,7 +734,6 @@ window.cargarHistorialCreditos = async function() {
         }
     }
 };
-
 
 
 // 🔥 Función global 100% blindada para cambiar de página (AQUÍ ESTÁ LA SOLUCIÓN DEL BOTÓN)
@@ -914,6 +933,9 @@ async function guardarEdicion() {
 // =========================================================================
 // MÓDULO DE SEGURIDAD: ANULACIÓN CON ARCHIVADO CONTABLE Y SMS DE EVIDENCIA
 // =========================================================================
+// =========================================================================
+// MÓDULO DE SEGURIDAD: ANULACIÓN CON ARCHIVADO CONTABLE Y SMS DE EVIDENCIA
+// =========================================================================
 async function intentarAnularCredito(idCredito, capitalPrestado) {
     const confirmacion = confirm(`⚠️ ATENCIÓN ⚠️\n\n¿Estás seguro de anular el crédito #${idCredito}?\n\nEl sistema devolverá automáticamente los $${capitalPrestado} a su caja de origen y lo enviará al Centro de Depuración.`);
     if (!confirmacion) return;
@@ -993,10 +1015,23 @@ async function intentarAnularCredito(idCredito, capitalPrestado) {
         if (infoCliente && infoCliente.whatsapp && typeof enviarSMSAutomatico === 'function') {
             const modalidad = (credito.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
             
+            // 🔥 FÓRMULA ALPHA SMS COMPACTA 🔥
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
             const ahora = new Date();
-            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-            const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-            const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+            const diaSemanaA = dias[ahora.getDay()];
+            const numDiaA = String(ahora.getDate()).padStart(2, '0');
+            const mesNombreA = meses[ahora.getMonth()];
+            const anioA = ahora.getFullYear();
+
+            let horasA = ahora.getHours();
+            let minutosA = String(ahora.getMinutes()).padStart(2, '0');
+            const ampmA = horasA >= 12 ? 'p.m.' : 'a.m.';
+            horasA = horasA % 12; horasA = horasA ? horasA : 12;
+            horasA = String(horasA).padStart(2, '0');
+
+            const fechaHoraSMS = `${diaSemanaA} ${numDiaA}/${mesNombreA}/${anioA} | ${horasA}:${minutosA} ${ampmA}`;
 
             // 🎓 AQUÍ SE APLICA EL CÓDIGO OCULTO PARA EL CLIENTE
             const msjAnulacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n\nHola, tu credito ha sido ANULADO con exito.\n\n💰 Monto devuelto: $${parseFloat(capitalPrestado).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n\nEste es tu soporte oficial. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
@@ -1058,22 +1093,28 @@ async function enviarSMSAutomatico(numeroCliente, textoMensaje) {
 // =========================================================================
 // MÓDULO DE SERVICIO EXTRA: REENVÍO INTELIGENTE (COBRO O GRATIS)
 // =========================================================================
+// =========================================================================
+// MÓDULO DE SERVICIO EXTRA: REENVÍO INTELIGENTE (COBRO O GRATIS)
+// =========================================================================
+// =========================================================================
+// MÓDULO DE SERVICIO EXTRA: REENVÍO INTELIGENTE (COBRO O GRATIS)
+// =========================================================================
+// =========================================================================
+// MÓDULO DE SERVICIO EXTRA: REENVÍO INTELIGENTE (COBRO O GRATIS)
+// =========================================================================
 async function reenviarVoucher(idCredito) {
     try {
-        // 1. Buscar datos del crédito y cliente
         const { data: credito, error: errCred } = await supabaseClient.from('creditos').select('*').eq('id', idCredito).single();
         if (errCred) throw errCred;
 
         const { data: cliente, error: errCli } = await supabaseClient.from('clientes').select('*').eq('id', credito.cliente_id).single();
         if (errCli) throw errCli;
 
-        // === MAGIA CONTABLE: CÁLCULO DEL CÓDIGO BANCARIO Y NÚMERO DE CRÉDITO ===
         const inicialN = cliente.nombres.charAt(0).toUpperCase();
         const inicialA = cliente.apellidos.charAt(0).toUpperCase();
         const ultimos4 = cliente.cedula.slice(-4);
         const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`;
 
-        // Buscar qué número de crédito es este en la historia exacta del cliente
         const { data: todosCreditos } = await supabaseClient
             .from('creditos')
             .select('id')
@@ -1086,29 +1127,23 @@ async function reenviarVoucher(idCredito) {
             if (index !== -1) numeroCredito = index + 1;
         }
         
-        // 🔑 CIFRADO DE SEGURIDAD PARA EL REENVÍO
         const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
 
-        // 🛡️ SEPARACIÓN DE CÓDIGOS (INTERNO VS CLIENTE)
-        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`; // Para tu auditoría y el prompt
-        const codigoCreditoSMS = `${codigoClienteBancario} | CRE #${codigoCifrado}`; // 🎓 SOLO LA LETRA para el cliente
+        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`; 
+        const codigoCreditoSMS = `${codigoClienteBancario} | CRE #${codigoCifrado}`; 
 
         const nombreCompleto = `${cliente.nombres.toUpperCase()} ${cliente.apellidos.toUpperCase()}`;
-        // =========================================================================
 
-        // 2. Confirmar número (Tú verás el código completo aquí)
         let numeroGuardado = cliente.whatsapp || "";
         let numeroEnvio = prompt(`📱 REENVÍO DE RESPALDO (${codigoCreditoOficial})\n\nTeléfono registrado:\nSi cambió de chip, pon el nuevo número aquí:`, numeroGuardado);
         
         if (!numeroEnvio || numeroEnvio.trim() === "") return; 
 
-        // 3. LA PREGUNTA DEL MILLÓN (Cobrar o No Cobrar)
         let cobrar = confirm(`💰 TIPO DE REENVÍO\n\n¿Deseas cobrar los $0.50 de penalidad?\n\n🟢 ACEPTAR = Cobrar $0.50 (Perdió el chip)\n🔴 CANCELAR = Envío GRATIS (Fallo de internet)`);
 
         let etiquetaMensaje = ""; 
 
         if (cobrar) {
-            // LOGICA DE COBRO
             const { data: cajaData } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
             const nuevoSaldoCaja = parseFloat(cajaData.saldo_actual) + 0.50;
             await supabaseClient.from('cajas_capital').update({ saldo_actual: nuevoSaldoCaja }).eq('id', 1);
@@ -1122,31 +1157,62 @@ async function reenviarVoucher(idCredito) {
             if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
             if (typeof cargarHistorialCapital === 'function') cargarHistorialCapital();
 
-            // Sello de copia cobrada
             etiquetaMensaje = "[COPIA DE RESPALDO] val 0.50ctv\n";
         }
 
-        // 4. Armar el mensaje con el diseño bancario oficial
         const modalidad = (credito.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
         
+        // 🔥 FÓRMULA ALPHA SMS COMPACTA 🔥
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
         // 🕒 FECHA 1: CUÁNDO SE ESTÁ HACIENDO LA REIMPRESIÓN (HOY)
         const ahora = new Date();
-        const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-        const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-        const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+        const diaSemanaA = dias[ahora.getDay()];
+        const numDiaA = String(ahora.getDate()).padStart(2, '0');
+        const mesNombreA = meses[ahora.getMonth()];
+        const anioA = ahora.getFullYear();
 
-        // 📅 FECHA 2: CUÁNDO SE CREÓ REALMENTE EL CRÉDITO ORIGINALMENTE
+        let horasA = ahora.getHours();
+        let minutosA = String(ahora.getMinutes()).padStart(2, '0');
+        const ampmA = horasA >= 12 ? 'p.m.' : 'a.m.';
+        horasA = horasA % 12; horasA = horasA ? horasA : 12;
+        horasA = String(horasA).padStart(2, '0');
+
+        const fechaHoraSMS = `${diaSemanaA} ${numDiaA}/${mesNombreA}/${anioA} | ${horasA}:${minutosA} ${ampmA}`;
+
+        // 📅 FECHA 2: CUÁNDO SE CREÓ REALMENTE EL CRÉDITO ORIGINALMENTE (¡AHORA CON HORA EXACTA!)
         let fechaEmisionTexto = "N/A";
         if (credito.fecha_emision) {
-            const fechaObjEmi = new Date(credito.fecha_emision);
-            const fEmiLarga = fechaObjEmi.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-            fechaEmisionTexto = fEmiLarga.charAt(0).toUpperCase() + fEmiLarga.slice(1);
+            // Pasamos la fecha con todo y hora al motor
+            let fechaObjEmi = new Date(credito.fecha_emision);
+            
+            // Truco de seguridad por si Supabase manda un formato extraño
+            if (isNaN(fechaObjEmi.getTime()) && typeof credito.fecha_emision === 'string') {
+                fechaObjEmi = new Date(credito.fecha_emision.replace(/-/g, '/').replace('T', ' ').split('.')[0]);
+            }
+
+            if (!isNaN(fechaObjEmi.getTime())) {
+                const diaSemanaEmi = dias[fechaObjEmi.getDay()];
+                const numDiaEmi = String(fechaObjEmi.getDate()).padStart(2, '0');
+                const mesNombreEmi = meses[fechaObjEmi.getMonth()];
+                const anioEmi = fechaObjEmi.getFullYear();
+                
+                // Extraemos la hora exacta del momento en que usted le dio clic a "Aprobar"
+                let horasEmi = fechaObjEmi.getHours();
+                let minutosEmi = String(fechaObjEmi.getMinutes()).padStart(2, '0');
+                let segundosEmi = String(fechaObjEmi.getSeconds()).padStart(2, '0');
+                const ampmEmi = horasEmi >= 12 ? 'p.m.' : 'a.m.';
+                horasEmi = horasEmi % 12; horasEmi = horasEmi ? horasEmi : 12;
+                horasEmi = String(horasEmi).padStart(2, '0');
+                
+                // La línea completa con auditoría de tiempo
+                fechaEmisionTexto = `${diaSemanaEmi} ${numDiaEmi}/${mesNombreEmi}/${anioEmi} | ${horasEmi}:${minutosEmi}:${segundosEmi} ${ampmEmi}`;
+            }
         }
 
-        // 🎓 AQUÍ ESTÁ LA MAGIA DOBLE: Código SMS oculto + Fecha Original insertada
         const msjReenvio = `=== SISTEMA ALPHA ===\n${etiquetaMensaje}${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n📅 Emitido: ${fechaEmisionTexto}\n\nHola, aqui tienes el respaldo de tu credito.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Nro Cuotas: ${credito.num_cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
         
-        // 5. Disparar el mensaje
         console.log("Reenviando voucher...");
         await enviarSMSAutomatico(numeroEnvio.trim(), msjReenvio);
 
