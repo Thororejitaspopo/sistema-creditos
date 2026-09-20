@@ -167,7 +167,7 @@ async function cargarPapelera(categoria) {
         } catch (error) { contenedor.innerHTML = `<p style="color:red; font-size:13px;">Error: ${error.message}</p>`; }
     }
     // =====================================================================
-    // 🛡️ SECCIÓN C: BÓVEDA DE PAGOS ELIMINADOS (AUDITORÍA COMPLETA)
+    // 🛡️ SECCIÓN C: BÓVEDA DE PAGOS ELIMINADOS (AUDITORÍA COMPLETA VIP)
     // =====================================================================
     else if (categoria === 'pagos_eliminados') {
         contenedor.innerHTML = '<p style="color:#64748b; font-size:13px;">Abriendo bóveda y cruzando datos de clientes...</p>';
@@ -190,15 +190,28 @@ async function cargarPapelera(categoria) {
                 if (creditosData) { creditosData.forEach(c => { diccionarioClientes[c.id] = c.clientes; }); }
             }
 
+            // 🔥 FÓRMULA ALPHA: Formateador VIP para fechas
+            const formatearFechaAlphaPagos = (fechaISO) => {
+                if (!fechaISO) return 'N/A';
+                const f = new Date(fechaISO);
+                if (isNaN(f.getTime())) return 'Fecha inválida';
+                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                let hora = f.getHours();
+                const ampm = hora >= 12 ? 'p.m.' : 'a.m.';
+                hora = hora % 12 || 12; 
+                const min = String(f.getMinutes()).padStart(2, '0');
+                const numDia = String(f.getDate()).padStart(2, '0');
+                return `${dias[f.getDay()]} ${numDia}/${meses[f.getMonth()]}/${f.getFullYear()} | ${String(hora).padStart(2, '0')}:${min} ${ampm}`;
+            };
+
             contenedor.innerHTML = pagosBorrados.map(pago => {
-                const fEli = new Date(pago.fecha_eliminacion);
-                const fechaEliminacionTxt = `${fEli.toLocaleDateString('es-EC')} | H:${fEli.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
+                // Aplicamos la fórmula a ambas fechas
+                const fechaEliminacionTxt = formatearFechaAlphaPagos(pago.fecha_eliminacion);
                 
                 let fechaOriginalTxt = 'Fecha original no registrada';
                 if (pago.fecha_pago_original) {
-                    const fOri = new Date(pago.fecha_pago_original);
-                    const diaOri = fOri.toLocaleDateString('es-EC', { weekday: 'long' });
-                    fechaOriginalTxt = `📅 ${diaOri.charAt(0).toUpperCase() + diaOri.slice(1)} ${fOri.toLocaleDateString('es-EC')} | H:${fOri.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
+                    fechaOriginalTxt = `📅 ${formatearFechaAlphaPagos(pago.fecha_pago_original)}`;
                 }
 
                 const metodoPago = pago.forma_pago ? pago.forma_pago.toUpperCase() : 'EFECTIVO';
@@ -225,7 +238,7 @@ async function cargarPapelera(categoria) {
                     </div>
                     
                     <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #0f172a; font-weight: 900;">👤 ${nombreCliente}</h3>
-                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; font-weight: 600;">Pago original: ${fechaOriginalTxt}</p>
+                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; font-weight: 600;">Pago original: <span style="color: #334155; font-weight: bold;">${fechaOriginalTxt}</span></p>
                     
                     <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #94a3b8; display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -233,7 +246,7 @@ async function cargarPapelera(categoria) {
                             <p style="margin: 0; font-size: 22px; color: #ef4444; font-weight: 900;">$${parseFloat(pago.abono_total).toFixed(2)}</p>
                         </div>
                         <div style="text-align: right;">
-                            <p style="margin: 0 0 5px 0; font-size: 11px; color: #64748b; font-weight: 600;">🗑️ Anulado: ${fechaEliminacionTxt}</p>
+                            <p style="margin: 0 0 5px 0; font-size: 11px; color: #64748b; font-weight: 600;">🗑️ Anulado: <span style="color: #991b1b; font-weight: bold;">${fechaEliminacionTxt}</span></p>
                             <p style="margin: 0; font-size: 11px; color: #475569; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; display: inline-block; font-weight: bold;">📝 ${pago.motivo_eliminacion || 'Auditoría Interna'}</p>
                         </div>
                     </div>

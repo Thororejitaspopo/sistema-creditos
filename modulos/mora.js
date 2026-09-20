@@ -709,24 +709,37 @@ window.notificarResolucionManualSMS = async function(clienteObj, etiquetaCRE, ti
         const u4 = (clienteObj.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
 
+        // 🔥 EL SABUESO DE SEGURIDAD (Protección de Inteligencia de Negocio)
+        // Extraemos solo la letra cifrada para ocultar el número total de créditos
+        let creCifradoLimpio = "CRE # ?";
+        if (etiquetaCRE) {
+            const matchLetra = etiquetaCRE.match(/\[(.*?)\]/); // Busca lo que está entre corchetes
+            if (matchLetra && matchLetra[1]) {
+                creCifradoLimpio = `CRE #${matchLetra[1]}`; // Deja solo CRE #H
+            } else {
+                creCifradoLimpio = etiquetaCRE; // Respaldo por si acaso
+            }
+        }
+
+        // 🔥 LA FÓRMULA ALPHA SMS COMPACTA (El Reloj)
         const ahora = new Date();
         const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
         
         const diaSemana = dias[ahora.getDay()];
         const diaNum = String(ahora.getDate()).padStart(2, '0');
         const mesNombre = meses[ahora.getMonth()];
-        const anioCorto = String(ahora.getFullYear()).slice(-2);
+        const anio = ahora.getFullYear(); // Año completo 2026
         
         let horas = ahora.getHours();
         let minutos = String(ahora.getMinutes()).padStart(2, '0');
-        const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+        const ampm = horas >= 12 ? 'p.m.' : 'a.m.'; // Sin espacios
         horas = horas % 12; horas = horas ? horas : 12;
         const horaFormateada = `${String(horas).padStart(2, '0')}:${minutos} ${ampm}`;
 
-        const fechaHoraSMS = `${diaSemana} ${diaNum}/${mesNombre}/${anioCorto} | ${horaFormateada}`;
+        const fechaHoraSMS = `${diaSemana} ${diaNum}/${mesNombre}/${anio} | ${horaFormateada}`;
 
-        const encabezado = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${etiquetaCRE}\n👤 Cliente: ${nombre}\n\n`;
+        const encabezado = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creCifradoLimpio}\n👤 Cliente: ${nombre}\n\n`;
         const pie = `\n\nPor favor, comunícate con nosotros para cualquier duda.\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
         
         let msjSalida = "";
@@ -739,7 +752,6 @@ window.notificarResolucionManualSMS = async function(clienteObj, etiquetaCRE, ti
         
         } else if (tipoAccion === 'congelar') {
             let textoConvenio = notaAcuerdo && notaAcuerdo.trim() !== "" ? `\n🤝 Convenio de Pago: ${notaAcuerdo}` : "";
-            // 🔥 saldoActual ES SU CÍRCULO AMARILLO INTACTO
             msjSalida = `${encabezado}Hola, te informamos que tu crédito ha sido CONGELADO temporalmente.\n\n❄️ Motivo: Congelamiento Preventivo\n📉 Saldo Actual: $${parseFloat(saldoActual).toFixed(2)}${textoConvenio}\n\nTu cuenta ha sido pausada y blindada para no generar nuevos recargos automáticos.${pie}`;
         
         } else if (tipoAccion === 'perdonar') {
@@ -752,7 +764,6 @@ window.notificarResolucionManualSMS = async function(clienteObj, etiquetaCRE, ti
             let tot = creditoExtra && creditoExtra.total_pagar ? parseFloat(creditoExtra.total_pagar).toFixed(2) : "0.00";
             let numC = creditoExtra && creditoExtra.num_cuotas ? creditoExtra.num_cuotas : "0";
 
-            // 🔥 saldoActual ES SU CÍRCULO AMARILLO INTACTO
             msjSalida = `${encabezado}Hola, te informamos que tu crédito ha sido DESCONGELADO exitosamente y vuelve a estar ACTIVO en nuestro sistema.\n\n📉 Saldo Pendiente Actual: $${parseFloat(saldoActual).toFixed(2)}\n💰 Monto Original: $${cap}\n💵 Cuota: $${cuota}\n🔄 Modalidad: ${freq}\n📊 Total Contrato: $${tot}\n🔢 Cuotas: ${numC}\n\n⚡ Importante: Los recargos automáticos por mora han sido reactivados.\n\nEste es tu soporte oficial. ¡Gracias!${pie}`;
         }
 

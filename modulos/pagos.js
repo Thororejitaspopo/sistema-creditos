@@ -696,8 +696,8 @@ async function editarAbono(idAbono) {
                     const matchH = lblRefH.innerText.match(/CRE\s*#[^|]+/);
                     if (matchH) {
                         const textoCrudoH = matchH[0].trim();
-                        const matchLetraH = textoCrudoH.match(/\[.*?\]/);
-                        creTextHistorial = matchLetraH ? `CRE #${matchLetraH[0]}` : textoCrudoH;
+                        const matchLetraH = textoCrudoH.match(/\[(.*?)\]/); // <-- Modificado para limpiar corchete
+                        creTextHistorial = matchLetraH && matchLetraH[1] ? `CRE #${matchLetraH[1]}` : textoCrudoH;
                     }
                 }
                 
@@ -735,26 +735,39 @@ async function editarAbono(idAbono) {
                 const u4 = (cli.cedula || '').trim().slice(-4);
                 const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
                 
-                // Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ])
+                // Extraer solo el CRE con su letra cifrada LIMPIA de corchetes
                 let creText = "CRE # ?";
                 const lblRef = document.getElementById('lbl-recaudacion-ref');
                 if (lblRef && lblRef.innerText) {
                     const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
                     if (match) {
                         const textoCrudo = match[0].trim(); 
-                        const matchLetra = textoCrudo.match(/\[.*?\]/); 
-                        if (matchLetra) {
-                            creText = `CRE #${matchLetra[0]}`; 
+                        const matchLetra = textoCrudo.match(/\[(.*?)\]/); 
+                        if (matchLetra && matchLetra[1]) {
+                            creText = `CRE #${matchLetra[1]}`; 
                         } else {
                             creText = textoCrudo;
                         }
                     }
                 }
 
+                // 🔥 FÓRMULA ALPHA SMS COMPACTA (Domingo 20/septiembre/2026 | 09:21 a.m.)
                 const ahora = new Date();
-                const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-                const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-                const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                
+                const diaSemana = dias[ahora.getDay()];
+                const numDia = String(ahora.getDate()).padStart(2, '0');
+                const mesNombre = meses[ahora.getMonth()];
+                const anio = ahora.getFullYear();
+                
+                let horas = ahora.getHours();
+                let minutos = String(ahora.getMinutes()).padStart(2, '0');
+                const ampm = horas >= 12 ? 'p.m.' : 'a.m.'; // Sin espacio en a.m.
+                horas = horas % 12; horas = horas ? horas : 12;
+                horas = String(horas).padStart(2, '0');
+                
+                const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anio} | ${horas}:${minutos} ${ampm}`;
 
                 // Calculamos el SALDO REAL GOBAL sumando todos los pagos a este momento
                 const { data: todosLosPagos } = await supabaseClient.from('historial_pagos').select('abono_total').eq('id_credito', abonoActual.id_credito);
@@ -779,7 +792,7 @@ async function editarAbono(idAbono) {
                 enviarSMSAutomatico(numeroCliente, msjActualizacion);
             }
         }
-alert("✅ Abono editado, saldos y cajas recalculadas exitosamente.");
+        alert("✅ Abono editado, saldos y cajas recalculadas exitosamente.");
         
         // 1. Refrescamos la pantalla visual del cliente
         if (creditoSeleccionadoCobro) {
@@ -809,15 +822,16 @@ async function eliminarAbono(idAbono) {
     const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de ANULACIÓN OFICIAL por SMS al cliente?");
 
     try {
-        // 🔥 EXTRAER EL 'CRE' DESDE LA PANTALLA ANTES DE BORRAR
+        // 🔥 EXTRAER EL 'CRE' DESDE LA PANTALLA ANTES DE BORRAR Y LIMPIAR CORCHETES
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
             const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
             if (match) {
                 const textoCrudo = match[0].trim(); 
-                const matchLetra = textoCrudo.match(/\[.*?\]/); 
-                creText = matchLetra ? `CRE #${matchLetra[0]}` : textoCrudo;
+                const matchLetra = textoCrudo.match(/\[(.*?)\]/); // Capturamos lo de adentro del corchete
+                // Si encontramos letra en corchete, la ponemos limpia sin corchetes (Ej: CRE #H)
+                creText = matchLetra && matchLetra[1] ? `CRE #${matchLetra[1]}` : textoCrudo;
             }
         }
 
@@ -892,7 +906,7 @@ async function eliminarAbono(idAbono) {
         }
 
         // =================================================================
-        // 🚀 SMS DE ANULACIÓN
+        // 🚀 SMS DE ANULACIÓN (CON DISEÑO VIP ALPHA)
         // =================================================================
         if (enviarSMS) {
             const { data: creditoAct } = await supabaseClient.from('creditos').select('*').eq('id', abonoABorrar.id_credito).single();
@@ -911,8 +925,24 @@ async function eliminarAbono(idAbono) {
                 const u4 = (cli.cedula || '').trim().slice(-4);
                 const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
                 
+                // 🔥 FÓRMULA ALPHA SMS COMPACTA (domingo 20/septiembre/2026 | 08:16 a.m.)
                 const ahora = new Date();
-                const fechaHoraSMS = `${ahora.toLocaleDateString('es-EC', { weekday: 'long' })} | ${ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
+                const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                
+                const diaSemana = dias[ahora.getDay()];
+                const numDia = String(ahora.getDate()).padStart(2, '0');
+                const mesNombre = meses[ahora.getMonth()];
+                const anio = ahora.getFullYear();
+                
+                let horas = ahora.getHours();
+                let minutos = String(ahora.getMinutes()).padStart(2, '0');
+                const ampm = horas >= 12 ? 'p.m.' : 'a.m.'; // <-- SIN ESPACIO PARA QUE NO SALTE LA LÍNEA
+                horas = horas % 12; horas = horas ? horas : 12;
+                horas = String(horas).padStart(2, '0');
+                
+                // Formato exacto requerido
+                const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anio} | ${horas}:${minutos} ${ampm}`;
 
                 const nuevoSaldoFinal = parseFloat(creditoSeleccionadoCobro.saldoNeto) + parseFloat(abonoABorrar.abono_total);
                 const cuotasTotales = parseInt(creditoAct.num_cuotas) || 1;
@@ -948,7 +978,7 @@ async function eliminarAbono(idAbono) {
 
 
 // -------------------------------------------------------------------------
-// 📩 3. REENVIAR RECIBO DE ABONO (PROGRAMACIÓN OFICIAL)
+// 📩 3. REENVIAR RECIBO DE ABONO (PROGRAMACIÓN OFICIAL ALPHA V5)
 // -------------------------------------------------------------------------
 async function reenviarReciboAbono(idAbono) {
     // 1. Buscamos el abono específico dentro de nuestra lista en memoria
@@ -1005,27 +1035,42 @@ async function reenviarReciboAbono(idAbono) {
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
         
-        // 🔥 FILTRO INTELIGENTE: Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ])
+        // 🔥 TRADUCCIÓN DE LÓGICA (El Sabueso): Aquí buscamos la etiqueta CRE en la pantalla.
+        // Si encontramos los corchetes (ej: [H]), usamos solo la letra. Si no, usamos el texto crudo.
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
             const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
             if (match) {
-                const textoCrudo = match[0].trim(); // Trae "CRE #9 [Ñ]"
-                const matchLetra = textoCrudo.match(/\[.*?\]/); // Busca solo lo que está entre corchetes "[Ñ]"
-                if (matchLetra) {
-                    creText = `CRE #${matchLetra[0]}`; // Lo convierte a "CRE #[Ñ]"
+                const textoCrudo = match[0].trim(); 
+                const matchLetra = textoCrudo.match(/\[(.*?)\]/); // <-- ESTA ES LA CLAVE: Sacar la letra sin corchetes
+                if (matchLetra && matchLetra[1]) {
+                    creText = `CRE #${matchLetra[1]}`; // Armamos CRE #H
                 } else {
                     creText = textoCrudo;
                 }
             }
         }
 
-        // 5. Formateo de la fecha y hora original de ese abono
+        // 5. 🔥 FÓRMULA ALPHA SMS COMPACTA PARA REENVÍO 🔥
         const fPago = new Date(abono.fecha_pago);
-        const fechaLarga = fPago.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-        const horaFormateada = fPago.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-        const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        
+        const diaSemana = dias[fPago.getDay()];
+        const numDia = String(fPago.getDate()).padStart(2, '0');
+        const mesNombre = meses[fPago.getMonth()];
+        const anio = fPago.getFullYear();
+        
+        // 🔥 TRADUCCIÓN DE LÓGICA (El Reloj de 12h y el Guardián): 
+        // Convertimos la hora de formato militar (24h) a civil (12h) y rellenamos los minutos con ceros.
+        let horas = fPago.getHours();
+        let minutos = String(fPago.getMinutes()).padStart(2, '0');
+        const ampm = horas >= 12 ? 'p.m.' : 'a.m.'; // <-- SIN ESPACIO (a.m. en lugar de a. m.)
+        horas = horas % 12; horas = horas ? horas : 12; // El módulo %12 hace que las 15h sean las 3h.
+        horas = String(horas).padStart(2, '0');
+        
+        const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anio} | ${horas}:${minutos} ${ampm}`;
 
         // 6. Matemática reconstructiva: Calcular el saldo y cuotas en ESE momento exacto
         const pagosHastaAqui = abonosClienteActual.filter(a => new Date(a.fecha_pago) <= fPago);
