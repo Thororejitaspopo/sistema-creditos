@@ -266,228 +266,266 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
 // 🔌 MOTORES DE RESOLUCIÓN INDIVIDUAL (CONECTADOS A SUPABASE Y MACRODROID)
 // =========================================================================
 
-// 1. EL BOTÓN ROJO: MORA S/ CAPITAL
-window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldoActual, etiquetaCRE) {
-    if (!confirm(`🚨 ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE CAPITAL?`)) return;
+// =========================================================================
+// 🔌 MOTORES DE RESOLUCIÓN INDIVIDUAL (CONECTADOS A SUPABASE Y MACRODROID)
+// =========================================================================
 
-    try {
-        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single();
-        if (errBusq) throw errBusq;
+// 1. EL BOTÓN ROJO: MORA S/ CAPITAL 
+window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldoActual, etiquetaCRE) { 
+    if (!confirm(`🚨 ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE CAPITAL?`)) return; 
+
+    try { 
+        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single(); 
+        if (errBusq) throw errBusq; 
         
-        const moraAnterior = parseFloat(credito.monto_mora) || 0;
-        const saldoAnterior = parseFloat(credito.saldo_pendiente) || parseFloat(saldoActual);
+        const moraAnterior = parseFloat(credito.monto_mora) || 0; 
+        const saldoAnterior = parseFloat(saldoActual) || parseFloat(credito.saldo_pendiente); 
         
-        const nuevaMora = moraAnterior + parseFloat(cantidadASumar);
-        const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar);
+        const nuevaMora = moraAnterior + parseFloat(cantidadASumar); 
+        const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar); 
 
-        // 🌟 MAGIA DEL TIEMPO (Calibrado para Ecuador)
-        const numeroCuotas = parseInt(credito.num_cuotas) || 1;
-        const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
-        let fechaBase;
+        const numeroCuotas = parseInt(credito.num_cuotas) || 1; 
+        const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
+        let fechaBase; 
 
-        if (credito.fecha_vencimiento_actual) {
-            const partes = credito.fecha_vencimiento_actual.split('-');
-            fechaBase = new Date(partes[0], partes[1] - 1, partes[2]);
-        } else {
+        if (credito.fecha_vencimiento_actual) { 
+            const partes = credito.fecha_vencimiento_actual.split('-'); 
+            fechaBase = new Date(partes[0], partes[1] - 1, partes[2]); 
+        } else { 
             fechaBase = new Date(credito.fecha_emision);
-            let dSum = 1;
-            if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas;
-            else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas;
-            else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas;
-            fechaBase.setDate(fechaBase.getDate() + dSum);
+            let dSum = numeroCuotas; 
+            if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas; 
+            else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas; 
+            else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas; 
+            fechaBase.setDate(fechaBase.getDate() + dSum); 
+        } 
+
+        if (frecuencia.includes('mensual')) fechaBase.setMonth(fechaBase.getMonth() + 1); 
+        else if (frecuencia.includes('quincenal')) fechaBase.setDate(fechaBase.getDate() + 15); 
+        else if (frecuencia.includes('semanal')) fechaBase.setDate(fechaBase.getDate() + 7); 
+        else fechaBase.setDate(fechaBase.getDate() + 30); 
+
+        // 🔥 LA CURA DEL RADAR: Limpiamos las horas para que el blindaje no falle
+        fechaBase.setHours(0,0,0,0);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        
+        if (fechaBase <= hoy) {
+            fechaBase = new Date();
+            fechaBase.setDate(fechaBase.getDate() + 30);
         }
 
-        if (frecuencia.includes('mensual')) fechaBase.setMonth(fechaBase.getMonth() + numeroCuotas);
-        else if (frecuencia.includes('quincenal')) fechaBase.setDate(fechaBase.getDate() + (15 * numeroCuotas));
-        else if (frecuencia.includes('semanal')) fechaBase.setDate(fechaBase.getDate() + (7 * numeroCuotas));
-        else fechaBase.setDate(fechaBase.getDate() + 30); // Base comercial
+        const año = fechaBase.getFullYear(); 
+        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0'); 
+        const dia = String(fechaBase.getDate()).padStart(2, '0'); 
+        const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
 
-        const año = fechaBase.getFullYear();
-        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
-        const dia = String(fechaBase.getDate()).padStart(2, '0');
-        const nuevaFechaVencimiento = `${año}-${mes}-${dia}`;
-
-        const { error } = await supabaseClient.from('creditos').update({ 
+        const { error } = await supabaseClient.from('creditos').update({  
             saldo_pendiente: Number(nuevoSaldo.toFixed(2)),
-            monto_mora: Number(nuevaMora.toFixed(2)),
-            fecha_vencimiento_actual: nuevaFechaVencimiento 
-        }).eq('id', idCredito);
+            monto_mora: Number(nuevaMora.toFixed(2)), 
+            fecha_vencimiento_actual: nuevaFechaVencimiento  
+        }).eq('id', idCredito); 
 
-        if (error) throw error;
+        if (error) throw error; 
 
-        await supabaseClient.from('historial_moras').insert({
-            credito_id: idCredito,
-            tipo_accion: 'Mora s/ Capital',
-            monto_castigo: Number(cantidadASumar.toFixed(2)),
-            detalle: `Mora aplicada manualmente. Próximo vencimiento: ${dia}/${mes}/${año}.`
-        });
+        await supabaseClient.from('historial_moras').insert({ 
+            credito_id: idCredito, 
+            tipo_accion: 'Mora s/ Capital', 
+            monto_castigo: Number(cantidadASumar.toFixed(2)), 
+            detalle: `Mora aplicada manualmente. Próximo vencimiento: ${dia}/${mes}/${año}.` 
+        }); 
 
-        let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre el capital?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
+        let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre el capital?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
 
-        if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_capital', cantidadASumar, nuevoSaldo);
-        }
+        if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') { 
+            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_capital', cantidadASumar, nuevoSaldo); 
+        } 
 
-        alert("✅ Proceso completado correctamente.\nEl cliente sale de las alertas.");
+        alert("✅ Proceso completado correctamente.\nEl cliente sale de las alertas."); 
         
-        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove(); 
         
-        // 🔥 LA CURA AL PROBLEMA DEL "DOBLE CLIC" (Freno de medio segundo)
-        setTimeout(() => {
-            if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
-            if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
-        }, 500);
+        setTimeout(() => { 
+            if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard(); 
+            if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora(); 
+        }, 500); 
         
-    } catch (error) {
-        console.error("Error en Mora Capital:", error);
-        alert("❌ Error al procesar: " + error.message);
-    }
-};
+    } catch (error) { 
+        console.error("Error en Mora Capital:", error); 
+        alert("❌ Error al procesar: " + error.message); 
+    } 
+}; 
 
-// 2. EL BOTÓN NARANJA: MORA S/ SALDO
-window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoActual, etiquetaCRE) {
-    if (!confirm(`⚡ ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE SALDO?`)) return;
+// 2. EL BOTÓN NARANJA: MORA S/ SALDO 
+window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoActual, etiquetaCRE) { 
+    if (!confirm(`⚡ ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE SALDO?`)) return; 
 
-    try {
-        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single();
-        if (errBusq) throw errBusq;
+    try { 
+        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_mora, saldo_pendiente, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single(); 
+        if (errBusq) throw errBusq; 
         
-        const moraAnterior = parseFloat(credito.monto_mora) || 0;
-        const saldoAnterior = parseFloat(credito.saldo_pendiente) || parseFloat(saldoActual);
+        const moraAnterior = parseFloat(credito.monto_mora) || 0; 
+        const saldoAnterior = parseFloat(saldoActual) || parseFloat(credito.saldo_pendiente); 
         
-        const nuevaMora = moraAnterior + parseFloat(cantidadASumar);
-        const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar);
+        const nuevaMora = moraAnterior + parseFloat(cantidadASumar); 
+        const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar); 
 
-        const numeroCuotas = parseInt(credito.num_cuotas) || 1;
-        const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
-        let fechaBase;
+        const numeroCuotas = parseInt(credito.num_cuotas) || 1; 
+        const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
+        let fechaBase; 
 
-        if (credito.fecha_vencimiento_actual) {
-            const partes = credito.fecha_vencimiento_actual.split('-');
-            fechaBase = new Date(partes[0], partes[1] - 1, partes[2]);
-        } else {
+        if (credito.fecha_vencimiento_actual) { 
+            const partes = credito.fecha_vencimiento_actual.split('-'); 
+            fechaBase = new Date(partes[0], partes[1] - 1, partes[2]); 
+        } else { 
             fechaBase = new Date(credito.fecha_emision);
-            let dSum = 1;
-            if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas;
-            else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas;
-            else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas;
-            fechaBase.setDate(fechaBase.getDate() + dSum);
+            let dSum = numeroCuotas; 
+            if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas; 
+            else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas; 
+            else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas; 
+            fechaBase.setDate(fechaBase.getDate() + dSum); 
+        } 
+
+        if (frecuencia.includes('mensual')) fechaBase.setMonth(fechaBase.getMonth() + 1); 
+        else if (frecuencia.includes('quincenal')) fechaBase.setDate(fechaBase.getDate() + 15); 
+        else if (frecuencia.includes('semanal')) fechaBase.setDate(fechaBase.getDate() + 7); 
+        else fechaBase.setDate(fechaBase.getDate() + 30); 
+
+        // 🔥 LA CURA DEL RADAR: Limpiamos las horas
+        fechaBase.setHours(0,0,0,0);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        
+        if (fechaBase <= hoy) {
+            fechaBase = new Date();
+            fechaBase.setDate(fechaBase.getDate() + 30);
         }
 
-        if (frecuencia.includes('mensual')) fechaBase.setMonth(fechaBase.getMonth() + numeroCuotas);
-        else if (frecuencia.includes('quincenal')) fechaBase.setDate(fechaBase.getDate() + (15 * numeroCuotas));
-        else if (frecuencia.includes('semanal')) fechaBase.setDate(fechaBase.getDate() + (7 * numeroCuotas));
-        else fechaBase.setDate(fechaBase.getDate() + 30);
+        const año = fechaBase.getFullYear(); 
+        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0'); 
+        const dia = String(fechaBase.getDate()).padStart(2, '0'); 
+        const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
 
-        const año = fechaBase.getFullYear();
-        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
-        const dia = String(fechaBase.getDate()).padStart(2, '0');
-        const nuevaFechaVencimiento = `${año}-${mes}-${dia}`;
+        const { error } = await supabaseClient.from('creditos').update({  
+            saldo_pendiente: Number(nuevoSaldo.toFixed(2)), 
+            monto_mora: Number(nuevaMora.toFixed(2)), 
+            fecha_vencimiento_actual: nuevaFechaVencimiento  
+        }).eq('id', idCredito); 
 
-        const { error } = await supabaseClient.from('creditos').update({ 
-            saldo_pendiente: Number(nuevoSaldo.toFixed(2)),
-            monto_mora: Number(nuevaMora.toFixed(2)),
-            fecha_vencimiento_actual: nuevaFechaVencimiento 
-        }).eq('id', idCredito);
+        if (error) throw error; 
 
-        if (error) throw error;
+        await supabaseClient.from('historial_moras').insert({ 
+            credito_id: idCredito, 
+            tipo_accion: 'Mora s/ Saldo', 
+            monto_castigo: Number(cantidadASumar.toFixed(2)), 
+            detalle: `Mora aplicada manualmente. Próximo vencimiento: ${dia}/${mes}/${año}.` 
+        }); 
 
-        await supabaseClient.from('historial_moras').insert({
-            credito_id: idCredito,
-            tipo_accion: 'Mora s/ Saldo',
-            monto_castigo: Number(cantidadASumar.toFixed(2)),
-            detalle: `Mora aplicada manualmente. Próximo vencimiento: ${dia}/${mes}/${año}.`
-        });
+        let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre su saldo?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
 
-        let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre su saldo?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
+        if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') { 
+            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_saldo', cantidadASumar, nuevoSaldo); 
+        } 
 
-        if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_saldo', cantidadASumar, nuevoSaldo);
-        }
-
-        alert("✅ Proceso completado correctamente.");
+        alert("✅ Proceso completado correctamente."); 
         
-        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove(); 
         
-        // 🔥 SOLUCIÓN DEL RETRASO DE SUPABASE
-        setTimeout(() => {
-            if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
-            if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
-        }, 500);
+        setTimeout(() => { 
+            if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard(); 
+            if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora(); 
+        }, 500); 
 
-    } catch (error) {
-        console.error("Error en Mora Saldo:", error);
-        alert("❌ Error al procesar: " + error.message);
-    }
-};
+    } catch (error) { 
+        console.error("Error en Mora Saldo:", error); 
+        alert("❌ Error al procesar: " + error.message); 
+    } 
+}; 
 
-// 3. EL BOTÓN VERDE: PERDONAR ESTE MES
-window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
-    if (!confirm("🛡️ ¿Desea PERDONAR LA MORA y patear la fecha para el próximo periodo?")) return;
+// 3. EL BOTÓN VERDE: PERDONAR ESTE MES 
+window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) { 
+    if (!confirm("🛡️ ¿Desea PERDONAR LA MORA y patear la fecha para el próximo periodo?")) return; 
 
-    try {
-        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, saldo_pendiente, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single();
-        if (errBusq) throw errBusq;
+    try { 
+        const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('total_pagar, monto_mora, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, saldo_pendiente, clientes(nombres, apellidos, cedula, whatsapp), historial_pagos(abono_total)').eq('id', idCredito).single(); 
+        if (errBusq) throw errBusq; 
         
-        const numeroCuotas = parseInt(credito.num_cuotas) || 1;
-        const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
-        let fechaBase;
+        const pagos = credito.historial_pagos || [];
+        const totalAbonado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
+        const moraActual = parseFloat(credito.monto_mora) || 0;
+        const deudaTotalOriginal = parseFloat(credito.total_pagar) || 0;
+        
+        let saldoMatematicoReal = (deudaTotalOriginal + moraActual) - totalAbonado;
+        if (saldoMatematicoReal < 0) saldoMatematicoReal = 0;
 
-        if (credito.fecha_vencimiento_actual) {
-            const partes = credito.fecha_vencimiento_actual.split('-');
-            fechaBase = new Date(partes[0], partes[1] - 1, partes[2]);
-        } else {
+        const numeroCuotas = parseInt(credito.num_cuotas) || 1; 
+        const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
+        let fechaBase; 
+
+        if (credito.fecha_vencimiento_actual) { 
+            const partes = credito.fecha_vencimiento_actual.split('-'); 
+            fechaBase = new Date(partes[0], partes[1] - 1, partes[2]); 
+        } else { 
             fechaBase = new Date(credito.fecha_emision);
-            let dSum = 1;
-            if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas;
-            else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas;
-            else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas;
-            fechaBase.setDate(fechaBase.getDate() + dSum);
+            let dSum = numeroCuotas; 
+            if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas; 
+            else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas; 
+            else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas; 
+            fechaBase.setDate(fechaBase.getDate() + dSum); 
+        } 
+
+        if (frecuencia.includes('mensual')) fechaBase.setMonth(fechaBase.getMonth() + 1); 
+        else if (frecuencia.includes('quincenal')) fechaBase.setDate(fechaBase.getDate() + 15); 
+        else if (frecuencia.includes('semanal')) fechaBase.setDate(fechaBase.getDate() + 7); 
+        else fechaBase.setDate(fechaBase.getDate() + 30); 
+
+        // 🔥 LA CURA DEL RADAR: Limpiamos las horas
+        fechaBase.setHours(0,0,0,0);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        
+        if (fechaBase <= hoy) {
+            fechaBase = new Date();
+            fechaBase.setDate(fechaBase.getDate() + 30);
         }
 
-        if (frecuencia.includes('mensual')) fechaBase.setMonth(fechaBase.getMonth() + numeroCuotas);
-        else if (frecuencia.includes('quincenal')) fechaBase.setDate(fechaBase.getDate() + (15 * numeroCuotas));
-        else if (frecuencia.includes('semanal')) fechaBase.setDate(fechaBase.getDate() + (7 * numeroCuotas));
-        else fechaBase.setDate(fechaBase.getDate() + 30);
+        const año = fechaBase.getFullYear(); 
+        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0'); 
+        const dia = String(fechaBase.getDate()).padStart(2, '0'); 
+        const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
 
-        const año = fechaBase.getFullYear();
-        const mes = String(fechaBase.getMonth() + 1).padStart(2, '0');
-        const dia = String(fechaBase.getDate()).padStart(2, '0');
-        const nuevaFechaVencimiento = `${año}-${mes}-${dia}`;
+        const { error } = await supabaseClient.from('creditos').update({  
+            fecha_vencimiento_actual: nuevaFechaVencimiento  
+        }).eq('id', idCredito); 
 
-        const { error } = await supabaseClient.from('creditos').update({ 
-            fecha_vencimiento_actual: nuevaFechaVencimiento 
-        }).eq('id', idCredito);
+        if (error) throw error; 
 
-        if (error) throw error;
+        await supabaseClient.from('historial_moras').insert({ 
+            credito_id: idCredito, 
+            tipo_accion: 'Perdón de Mora (Social)', 
+            monto_castigo: 0.00, 
+            detalle: `Perdón manual aplicado. Próximo vencimiento: ${dia}/${mes}/${año}.` 
+        }); 
 
-        await supabaseClient.from('historial_moras').insert({
-            credito_id: idCredito,
-            tipo_accion: 'Perdón de Mora (Social)',
-            monto_castigo: 0.00,
-            detalle: `Perdón manual aplicado. Próximo vencimiento: ${dia}/${mes}/${año}.`
-        });
+        let enviarSMS = confirm(`🛡️ PERDÓN APLICADO CON ÉXITO\n\n¿Deseas enviar un SMS de aviso al cliente informándole de su nuevo plazo sin recargos?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
 
-        let enviarSMS = confirm(`🛡️ PERDÓN APLICADO CON ÉXITO\n\n¿Deseas enviar un SMS de aviso al cliente informándole de su nuevo plazo sin recargos?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
+        if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') { 
+            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'perdonar', 0, saldoMatematicoReal); 
+        } 
 
-        if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'perdonar', 0, credito.saldo_pendiente);
-        }
-
-        alert("✅ Cliente perdonado y registrado en el historial.");
+        alert("✅ Cliente perdonado y registrado en el historial."); 
         
-        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
+        if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove(); 
         
-        // 🔥 SOLUCIÓN DEL RETRASO DE SUPABASE
-        setTimeout(() => {
-            if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard();
-            if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora();
-        }, 500);
+        setTimeout(() => { 
+            if (typeof window.despertarRobotDashboard === 'function') window.despertarRobotDashboard(); 
+            if (typeof cargarTablaGestionMora === 'function') cargarTablaGestionMora(); 
+        }, 500); 
 
-    } catch (error) {
-        console.error("Error al Perdonar:", error);
-        alert("❌ Error al procesar: " + error.message);
-    }
+    } catch (error) { 
+        console.error("Error al Perdonar:", error); 
+        alert("❌ Error al procesar: " + error.message); 
+    } 
 };
 
 // =========================================================================
@@ -499,54 +537,48 @@ window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
 // =========================================================================
 // 🔄 EL BOTÓN MORADO: REFINANCIAMIENTO DE WALL STREET (SUBROGACIÓN V5)
 // =========================================================================
-// =========================================================================
-// 🔄 EL BOTÓN MORADO: REFINANCIAMIENTO EN EL MISMO CRÉDITO (V6 DEFINITIVA)
-// =========================================================================
+// 4. EL BOTÓN MORADO: RENOVAR PLAZO (SOLO PAGO INTERÉS)
 window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
-    if (!confirm(`🔄 RENOVACIÓN DE PLAZO INTELIGENTE\n\nEl sistema mantendrá este mismo crédito y su historial de pagos intacto.\n\nGenerará el nuevo interés sobre el saldo de capital restante y empujará la fecha de vencimiento un periodo completo.\n\n¿Está seguro de proceder?`)) return;
+    if (!confirm(`🔄 RENOVACIÓN DE PLAZO INTELIGENTE\n\nEl sistema mantendrá este mismo crédito y su historial de pagos intacto.\n\nGenerará el nuevo interés sobre el saldo restante y empujará la fecha de vencimiento.\n\n¿Está seguro de proceder?`)) return;
 
     try {
-        // 1. Obtenemos la radiografía completa del crédito
+        // 1. Obtenemos la radiografía (Aseguramos traer valor_cuota para no dañarla)
         const { data: credito, error: errBusq } = await supabaseClient
             .from('creditos')
-            .select('monto_capital, total_interes, total_pagar, saldo_pendiente, tasa_interes, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, clientes(nombres, apellidos, cedula, whatsapp), historial_pagos(abono_total)')
+            .select('monto_capital, monto_mora, total_interes, total_pagar, saldo_pendiente, tasa_interes, fecha_emision, num_cuotas, frecuencia_pago, fecha_vencimiento_actual, valor_cuota, clientes(nombres, apellidos, cedula, whatsapp), historial_pagos(abono_total)')
             .eq('id', idCredito).single();
         
         if (errBusq) throw errBusq;
 
-        // 2. MATEMÁTICA EXACTA: ¿Cuánto ha pagado y cuánto capital real debe?
+        // 2. MATEMÁTICA EXACTA: Saldo Real * Porcentaje (Ej: 110 * 20%)
         const pagos = credito.historial_pagos || [];
         const totalAbonado = pagos.reduce((sum, p) => sum + (parseFloat(p.abono_total) || 0), 0);
 
-        const interesActual = parseFloat(credito.total_interes) || 0;
-        const capitalOriginal = parseFloat(credito.monto_capital) || 0;
-        const tasa = parseFloat(credito.tasa_interes) || 20;
-
-        // El abono cubre primero el interés histórico, el resto baja el capital
-        const capitalPagado = Math.max(0, totalAbonado - interesActual);
-        let capitalRestante = capitalOriginal - capitalPagado;
-
-        if (capitalRestante <= 0) {
-            alert("✅ El cliente ya amortizó el 100% del capital. El crédito está liquidado.");
+        const moraAnterior = parseFloat(credito.monto_mora) || 0;
+        const totalHistorico = parseFloat(credito.total_pagar) || 0;
+        
+        let saldoMatematicoReal = (totalHistorico + moraAnterior) - totalAbonado;
+        
+        if (saldoMatematicoReal <= 0) {
+            alert("✅ El cliente ya no tiene deuda. El crédito está liquidado.");
             return;
         }
 
-        // 3. GENERAMOS EL NUEVO INTERÉS (Solo sobre el capital que aún debe)
-        const nuevoInteresGenerado = capitalRestante * (tasa / 100);
-
-        // 4. ACTUALIZAMOS LOS TOTALES MANTENIENDO LA HISTORIA
-        const nuevoTotalInteres = interesActual + nuevoInteresGenerado;
-        const nuevoTotalPagar = parseFloat(credito.total_pagar) + nuevoInteresGenerado; 
+        const tasa = parseFloat(credito.tasa_interes) || 20;
         
-        // El Saldo Pendiente es el nuevo Total Histórico menos lo que ya abonó
-        let nuevoSaldoPendiente = nuevoTotalPagar - totalAbonado;
-        if (nuevoSaldoPendiente < 0) nuevoSaldoPendiente = 0;
+        // El interés generado sobre el dinero vivo (Ej: 110 * 20% = 22)
+        const nuevoInteresGenerado = saldoMatematicoReal * (tasa / 100);
 
-        // Ajustamos la Cuota Visual para que el cajón de cobro sugiera el valor correcto
+        // 🔥 LA CURA DE LA ETIQUETA: Guardamos el recargo como MORA para que la pantalla lo reconozca
+        const nuevaMora = moraAnterior + nuevoInteresGenerado;
+        
+        let nuevoSaldoPendiente = saldoMatematicoReal + nuevoInteresGenerado;
+
+        // 🔥 LA CURA DE LA CUOTA REDONDA: Mantenemos la original intacta (ej: 4.00)
+        const cuotaOriginal = parseFloat(credito.valor_cuota) || 0;
+
+        // 5. MAGIA DEL TIEMPO (Empujamos la fecha un periodo más)
         const numeroCuotas = parseInt(credito.num_cuotas) || 1;
-        const nuevaCuotaFija = nuevoSaldoPendiente / numeroCuotas;
-
-        // 5. MAGIA DEL TIEMPO (Empujamos la fecha)
         const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
         let fechaBase;
         if (credito.fecha_vencimiento_actual) {
@@ -554,7 +586,7 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
             fechaBase = new Date(partes[0], partes[1] - 1, partes[2]);
         } else {
             fechaBase = new Date(credito.fecha_emision);
-            let dSum = 1;
+            let dSum = numeroCuotas;
             if (frecuencia.includes('semanal')) dSum = 7 * numeroCuotas;
             else if (frecuencia.includes('quincenal')) dSum = 15 * numeroCuotas;
             else if (frecuencia.includes('mensual')) dSum = 30 * numeroCuotas;
@@ -562,13 +594,23 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
         }
 
         if (frecuencia.includes('mensual')) {
-            fechaBase.setMonth(fechaBase.getMonth() + numeroCuotas);
+            fechaBase.setMonth(fechaBase.getMonth() + 1);
         } else if (frecuencia.includes('quincenal')) {
-            fechaBase.setDate(fechaBase.getDate() + (15 * numeroCuotas));
+            fechaBase.setDate(fechaBase.getDate() + 15);
         } else if (frecuencia.includes('semanal')) {
-            fechaBase.setDate(fechaBase.getDate() + (7 * numeroCuotas));
+            fechaBase.setDate(fechaBase.getDate() + 7);
         } else {
-            fechaBase.setDate(fechaBase.getDate() + (1 * numeroCuotas));
+            fechaBase.setDate(fechaBase.getDate() + 30);
+        }
+
+        // BLINDAJE DEL RADAR (Escudo limpia-horas)
+        fechaBase.setHours(0,0,0,0);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        
+        if (fechaBase <= hoy) {
+            fechaBase = new Date();
+            fechaBase.setDate(fechaBase.getDate() + 30);
         }
 
         const año = fechaBase.getFullYear();
@@ -576,34 +618,31 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
         const dia = String(fechaBase.getDate()).padStart(2, '0');
         const nuevaFechaVencimiento = `${año}-${mes}-${dia}`;
 
-        // 6. INYECTAMOS EN BASE DE DATOS (Mismo crédito, se borra la mora roja)
+        // 6. INYECTAMOS EN BASE DE DATOS
         const { error } = await supabaseClient.from('creditos').update({ 
-            total_interes: Number(nuevoTotalInteres.toFixed(2)),
-            total_pagar: Number(nuevoTotalPagar.toFixed(2)),
             saldo_pendiente: Number(nuevoSaldoPendiente.toFixed(2)),
-            valor_cuota: Number(nuevaCuotaFija.toFixed(2)),
-            monto_mora: 0, // Limpiamos la mora roja por completo
+            monto_mora: Number(nuevaMora.toFixed(2)), // Inyectamos el castigo a la bodega de mora
+            valor_cuota: Number(cuotaOriginal.toFixed(2)), // Cuota redonda intacta (Los 4.00)
             fecha_vencimiento_actual: nuevaFechaVencimiento 
         }).eq('id', idCredito);
 
         if (error) throw error;
 
-        // 7. HISTORIAL DE AUDITORÍA
         await supabaseClient.from('historial_moras').insert({
             credito_id: idCredito,
             tipo_accion: 'Refinanciamiento de Plazo',
-            monto_castigo: 0.00,
-            detalle: `Renovación sobre Capital Restante de $${capitalRestante.toFixed(2)}. Nuevo interés cobrado: $${nuevoInteresGenerado.toFixed(2)}. Vence: ${dia}/${mes}/${año}.`
+            monto_castigo: Number(nuevoInteresGenerado.toFixed(2)),
+            detalle: `Renovación sobre Saldo Real de $${saldoMatematicoReal.toFixed(2)}. Interés cobrado: $${nuevoInteresGenerado.toFixed(2)}. Vence: ${dia}/${mes}/${año}.`
         });
 
-        // 8. SMS DE NOTIFICACIÓN
-        let enviarSMS = confirm(`✅ CONTRATO REFINANCIADO CON ÉXITO\n\n- Capital Restante: $${capitalRestante.toFixed(2)}\n- Nuevo Interés Generado: $${nuevoInteresGenerado.toFixed(2)}\n- El cliente tiene hasta el ${dia}/${mes}/${año} para pagar.\n\n¿Desea enviar un SMS al cliente avisándole de su nuevo saldo y fecha?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar silencioso`);
+        let enviarSMS = confirm(`✅ CONTRATO REFINANCIADO CON ÉXITO\n\n- Saldo Base: $${saldoMatematicoReal.toFixed(2)}\n- Nuevo Interés (${tasa}%): $${nuevoInteresGenerado.toFixed(2)}\n- NUEVO SALDO TOTAL: $${nuevoSaldoPendiente.toFixed(2)}\n- Vence el ${dia}/${mes}/${año}.\n\n¿Desea enviar un SMS al cliente avisándole de su nuevo saldo y fecha?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar silencioso`);
 
         if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'perdonar', 0, nuevoSaldoPendiente);
+            // El SMS se va con la matemática impecable
+            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_saldo', nuevoInteresGenerado, nuevoSaldoPendiente);
         }
 
-        alert("✅ Refinanciamiento completado en el mismo crédito. Historial de abonos conservado.");
+        alert("✅ Refinanciamiento completado en el mismo crédito.");
         
         if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
         
@@ -1199,7 +1238,7 @@ window.notificarMoraSMS = async function(clienteObj, etiquetaCRE, multaAplicada,
 };
 
 // =========================================================================
-// 📲 MOTOR DE AVISO DE GRACIA (SMS INTERNACIONAL)
+// 📲 MOTOR DE AVISO DE GRACIA (SMS INTERNACIONAL) - CON LÉXICO Y CRE CIFRADO
 // =========================================================================
 window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActual, etiquetaCRE, refBancaria) {
     if (!confirm(`📲 ¿Desea enviar el Aviso de Periodo de Gracia por SMS a ${nombreCliente}?\n\nSe le notificará que tiene pocos días para evitar recargos.`)) return;
@@ -1218,11 +1257,11 @@ window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActu
             return;
         }
 
-        // Formateo de fechas estilo internacional
-        const fechaRef = credito.fecha_vencimiento_actual ? new Date(credito.fecha_vencimiento_actual) : new Date(credito.fecha_emision);
-        const opcionesFecha = { weekday: 'long', day: 'numeric', month: 'long' };
-        let fechaVenceTxt = fechaRef.toLocaleDateString('es-ES', opcionesFecha);
-        fechaVenceTxt = fechaVenceTxt.charAt(0).toUpperCase() + fechaVenceTxt.slice(1);
+        // 🔥 EXTRAEMOS LA FECHA DE CREACIÓN EXACTA
+        const fechaEmision = new Date(credito.fecha_emision);
+        const opcionesFecha = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        let fechaEmisionTxt = fechaEmision.toLocaleDateString('es-ES', opcionesFecha);
+        fechaEmisionTxt = fechaEmisionTxt.charAt(0).toUpperCase() + fechaEmisionTxt.slice(1);
 
         const ahora = new Date();
         const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -1235,13 +1274,23 @@ window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActu
         
         const fechaHoraSMS = `${dias[ahora.getDay()]} ${String(ahora.getDate()).padStart(2, '0')}/${meses[ahora.getMonth()]}/${String(ahora.getFullYear()).slice(-2)} | ${String(horas).padStart(2, '0')}:${minutos} ${ampm}`;
 
-        // El Mensaje Internacional
-        const msjAviso = `=== SISTEMA ALPHA (Aviso) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refBancaria} | ${etiquetaCRE}\n👤 Cliente: ${nombreCliente}\n\nHola, este es un recordatorio automático. Su crédito por el saldo de $${saldoActual} venció el pasado ${fechaVenceTxt}.\n\n🛡️ Estado actual: PERIODO DE GRACIA.\n\nPara evitar que el sistema le aplique multas y recargos financieros, le invitamos a realizar su pago en los próximos días. ¡Agradecemos su puntualidad!\n\n🚫 NO RESPONDER A ESTE MENSAJE AUTOMÁTICO.`;
+        // 1. Limpiamos la referencia bancaria para no repetir "REF:"
+        let refLimpia = refBancaria.replace(/^REF:\s*/i, '');
+        refLimpia = refLimpia.split('|')[0].trim();
+
+        // 2. 🔥 MAGIA PARA EL CÓDIGO CRE (Extraemos solo las letras entre corchetes, ej: HV)
+        let cifradoFinal = "";
+        const matchCod = etiquetaCRE.match(/\[(.*?)\]/);
+        if (matchCod && matchCod[1]) {
+            cifradoFinal = ` | CRE #${matchCod[1]}`; // Esto genera el " | CRE #HV"
+        }
+
+        // 🔥 EL NUEVO MENSAJE IMPLACABLE
+        const msjAviso = `=== SISTEMA ALPHA (Aviso) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refLimpia}${cifradoFinal}\n👤 Cliente: ${nombreCliente}\n\nHola, este es un recordatorio automático. Le informamos que su crédito por el saldo de $${saldoActual}, emitido el pasado ${fechaEmisionTxt}, ha superado su fecha límite de pago.\n\n🛡️ Estado actual: PERIODO DE GRACIA.\n\nPara evitar que el sistema le aplique multas y recargos financieros, le invitamos a regularizar su cuenta en los próximos días. ¡Agradecemos su puntualidad!\n\n🚫 NO RESPONDER A ESTE MENSAJE AUTOMÁTICO.`;
 
         if (typeof enviarSMSAutomatico === 'function') {
             await enviarSMSAutomatico(cli.whatsapp.toString(), msjAviso);
             alert(`✅ Mensaje de Aviso de Gracia enviado exitosamente a ${nombreCliente}.`);
-            // Se cierra el modal automáticamente tras el éxito
             if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
         } else {
             alert("❌ La conexión con MacroDroid no se encontró.");

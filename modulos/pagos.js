@@ -215,12 +215,11 @@ async function buscarCreditoParaCobro() {
 
 
 // =========================================================================
-// 🎯 CARGADOR DE ESTADO DE CUENTA Y GENERADOR DE HISTORIAL (ALPHA V5)
+// 🎯 CARGADOR DE ESTADO DE CUENTA Y GENERADOR DE HISTORIAL (ALPHA V5 - MULTI MESES)
 // =========================================================================
 async function cargarEstadoCuentaCredito(idCredito) {
     if (!idCredito) return;
     
-    // 🔥 MAGIA DE UX: Si tiene más de 1 crédito, dejamos el menú visible para cambiar rápido.
     if (listaCreditosActivosCliente && listaCreditosActivosCliente.length > 1) {
         document.getElementById('contenedor-multicredito').style.display = 'block';
     } else {
@@ -234,9 +233,10 @@ async function cargarEstadoCuentaCredito(idCredito) {
     let totalPagadoHastaHoy = 0;
     interesYaPagado = 0;
     
-    // Reseteamos la memoria de páginas cada vez que buscamos un nuevo cliente
     abonosClienteActual = [];
     paginaActualAbonos = 1;
+
+    let ultimaAccion = ""; 
 
     try {
         const { data: pagosPrevios, errorPagos } = await supabaseClient
@@ -246,24 +246,24 @@ async function cargarEstadoCuentaCredito(idCredito) {
             .order('fecha_pago', { ascending: false });
 
         if (!errorPagos && pagosPrevios && pagosPrevios.length > 0) {
-            // 1. Calculamos la matemática sumando TODOS los abonos (sin ocultar ninguno)
             pagosPrevios.forEach(p => {
                 totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
                 interesYaPagado += parseFloat(p.monto_interes || 0);
             });
-            // 2. Guardamos la lista en la memoria para que el paginador haga su trabajo
             abonosClienteActual = pagosPrevios;
         } else {
             abonosClienteActual = [];
         }
+
+        const { data: moras } = await supabaseClient.from('historial_moras').select('tipo_accion').eq('credito_id', encontrado.id).order('id', { ascending: true });
+        if (moras && moras.length > 0) {
+            ultimaAccion = moras[moras.length - 1].tipo_accion || '';
+        }
+
     } catch (e) {
-        console.log("Historial vacío o por inicializar.");
         abonosClienteActual = [];
     }
 
-    // -------------------------------------------------------------------------
-    // CONTINÚA LA ACTUALIZACIÓN DE DATOS DE LA TARJETA PRINCIPAL
-    // -------------------------------------------------------------------------
     interesTotalPactado = parseFloat(encontrado.total_pagar) - parseFloat(encontrado.monto_capital);
     const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
     creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto;
@@ -282,31 +282,22 @@ async function cargarEstadoCuentaCredito(idCredito) {
         fechaEmisionStr = `${dias[fEmi.getDay()]} ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()}`;
     }
 
-    // 🔥 BUSCAMOS EL ACUERDO DE PAGO Y EL NÚMERO DE CRE A LA VEZ 🔥
     let numCre = '?';
-    let textoAcuerdo = ''; // Variable para guardar el acuerdo si existe
+    let textoAcuerdo = ''; 
     let nuevaCuotaAcuerdo = null;
     let nuevaFrecuenciaAcuerdo = null;
 
     try {
-        const { data: credFull } = await supabaseClient
-            .from('creditos')
-            .select('*')
-            .eq('id', encontrado.id)
-            .single();
+        const { data: credFull } = await supabaseClient.from('creditos').select('*').eq('id', encontrado.id).single();
             
         if (credFull) {
-            textoAcuerdo = credFull.acuerdo_pago || ''; // Leemos el cajón de memoria
+            textoAcuerdo = credFull.acuerdo_pago || ''; 
             
-            // INTELIGENCIA ARTIFICIAL BÁSICA: Leer la cuota y la frecuencia del acuerdo
             if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
                 const acuerdoLower = textoAcuerdo.toLowerCase();
-                
-                // 1. Extraer el valor en dólares ($)
                 const matchMonto = textoAcuerdo.match(/\$?\s*(\d+(\.\d{1,2})?)/);
                 if (matchMonto) nuevaCuotaAcuerdo = parseFloat(matchMonto[1]);
 
-                // 2. Extraer la frecuencia
                 if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) nuevaFrecuenciaAcuerdo = 'DIARIO';
                 else if (acuerdoLower.includes('semanal') || acuerdoLower.includes('por semana')) nuevaFrecuenciaAcuerdo = 'SEMANAL';
                 else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) nuevaFrecuenciaAcuerdo = 'QUINCENAL';
@@ -316,21 +307,14 @@ async function cargarEstadoCuentaCredito(idCredito) {
             if (credFull.numero_credito) {
                 numCre = credFull.numero_credito;
             } else if (credFull.cliente_id) {
-                const { data: historialCli } = await supabaseClient
-                    .from('creditos')
-                    .select('id')
-                    .eq('cliente_id', credFull.cliente_id)
-                    .order('id', { ascending: true });
-                    
+                const { data: historialCli } = await supabaseClient.from('creditos').select('id').eq('cliente_id', credFull.cliente_id).order('id', { ascending: true });
                 if (historialCli) {
                     const pos = historialCli.findIndex(c => c.id == encontrado.id);
                     if (pos !== -1) numCre = pos + 1;
                 }
             }
         }
-    } catch (errorCRE) {
-        console.log("Error buscando datos completos del crédito:", errorCRE);
-    }
+    } catch (errorCRE) {}
 
     const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numCre).toUpperCase() : '?';
 
@@ -338,93 +322,85 @@ async function cargarEstadoCuentaCredito(idCredito) {
     document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
     document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
     
-    // =====================================================================
-    // 🌟 MAGIA INTERNACIONAL: EL LETRERO DORADO DE CONVENIOS
-    // =====================================================================
     const contenedorBanderas = document.getElementById('contenedor-banderas-recaudacion'); 
-    
-    // Si no existe el contenedor de banderas (es decir, es la primera vez que inyectamos esto), lo creamos dinámicamente:
     if (!contenedorBanderas) {
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         const divBanderas = document.createElement('div');
         divBanderas.id = 'contenedor-banderas-recaudacion';
         divBanderas.style.marginBottom = '15px';
-        lblRef.parentNode.insertBefore(divBanderas, lblRef.nextSibling); // Lo pone debajo del nombre del cliente
+        lblRef.parentNode.insertBefore(divBanderas, lblRef.nextSibling); 
     }
     
-    // Pintamos el letrero SÓLO si la cuenta está congelada y tiene un acuerdo
     const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
     if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
-        cajaBanderas.innerHTML = `
-            <div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 12px 15px; margin-top: 10px; box-shadow: 0 4px 6px -1px rgba(202, 138, 4, 0.2);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                    <span style="font-size: 18px;">🤝</span>
-                    <span style="color: #854d0e; font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Acuerdo de Refinanciamiento Activo</span>
-                </div>
-                <div style="color: #422006; font-size: 14px; font-weight: bold; line-height: 1.4; padding-left: 26px;">
-                    "${textoAcuerdo}"
-                </div>
-                <div style="text-align: right; margin-top: 5px;">
-                    <span style="background: #ca8a04; color: white; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: bold;">CUENTA CONGELADA</span>
-                </div>
-            </div>`;
+        cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 12px 15px; margin-top: 10px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 18px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 14px; text-transform: uppercase;">Acuerdo de Refinanciamiento Activo</span></div><div style="color: #422006; font-size: 14px; font-weight: bold; padding-left: 26px;">"${textoAcuerdo}"</div></div>`;
     } else if (encontrado.estado === 'congelado' && textoAcuerdo.trim() === '') {
-         // Letrero azul suave si está congelado pero sin texto específico
-         cajaBanderas.innerHTML = `
-            <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px 15px; margin-top: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 16px;">🧊</span>
-                    <span style="color: #0369a1; font-weight: 800; font-size: 13px;">Cuenta Protegida (Sin acuerdo escrito)</span>
-                </div>
-            </div>`;
+         cajaBanderas.innerHTML = `<div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px 15px; margin-top: 10px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 16px;">🧊</span><span style="color: #0369a1; font-weight: 800; font-size: 13px;">Cuenta Protegida (Sin acuerdo escrito)</span></div></div>`;
     } else {
-        cajaBanderas.innerHTML = ''; // Limpiamos si es una cuenta normal activa
+        cajaBanderas.innerHTML = ''; 
     }
-    // =====================================================================
 
-    // 🧮 APLICAR MATEMÁTICAS DEL CONVENIO A LA INTERFAZ
-    const cuotaFinal = nuevaCuotaAcuerdo !== null ? nuevaCuotaAcuerdo : parseFloat(encontrado.valor_cuota);
-    const frecuenciaFinal = nuevaFrecuenciaAcuerdo !== null ? nuevaFrecuenciaAcuerdo : (encontrado.frecuencia_pago || 'DIARIO').replace('📅', '').trim().toUpperCase();
+    const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
+    const saldoFinalMora = saldoRestanteNeto + moraGuardada;
+
+    const frecuenciaBruta = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase();
+    const frecuenciaFinal = nuevaFrecuenciaAcuerdo !== null ? nuevaFrecuenciaAcuerdo : frecuenciaBruta.replace('📅', '').trim();
+    
+    // 🔥 LA CURA MULTI-MESES: Identificamos cuántas cuotas tiene realmente el crédito
+    const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
+    const cuotaPuraCalculada = parseFloat(encontrado.total_pagar) / numeroCuotasOriginales;
+    
+    let cuotaFinal = nuevaCuotaAcuerdo !== null ? nuevaCuotaAcuerdo : cuotaPuraCalculada;
+
+    // 🔥 SOLO suma todo de golpe si es MENSUAL y de 1 SOLA CUOTA. Si son 11 cuotas, respeta la división ($200)
+    if (frecuenciaFinal.includes('MENSUAL') && numeroCuotasOriginales === 1) {
+        cuotaFinal = saldoFinalMora;
+    }
 
     document.getElementById('lbl-recaudacion-cuota').innerText = `$${cuotaFinal.toFixed(2)}`;
     document.getElementById('lbl-recaudacion-frecuencia').innerText = frecuenciaFinal;
     
-    // Si hay convenio, resaltar los valores para que el cajero se dé cuenta del cambio
     if (nuevaCuotaAcuerdo !== null) {
         document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px;">$${cuotaFinal.toFixed(2)}</span>`;
         document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal}</span>`;
     }
     
-    // MAGIA MATEMÁTICA: Cuotas pendientes
     const elCuotas = document.getElementById('lbl-recaudacion-num-cuotas');
     if (elCuotas) {
-        // Usamos la cuota final (la del acuerdo o la original) para calcular cuotas pendientes
         const valorDeCuota = cuotaFinal || 1; 
-        
         let cuotasPendientes = Math.ceil(saldoRestanteNeto / valorDeCuota);
         if (cuotasPendientes < 0) cuotasPendientes = 0; 
 
-        // Si hay convenio, cambiamos el texto a "N/A" para cuotas totales originales
-        const textoCuotasTotales = nuevaCuotaAcuerdo !== null ? '<span title="Modificado por convenio">N/A</span>' : (parseInt(encontrado.num_cuotas) || 1);
-
+        // Mostramos el total de cuotas original (ej: 11) en lugar de siempre forzar un "1"
+        const textoCuotasTotales = nuevaCuotaAcuerdo !== null ? '<span title="Modificado por convenio">N/A</span>' : numeroCuotasOriginales;
         elCuotas.innerHTML = `${textoCuotasTotales} &nbsp; <span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes Aprox.)</span>`;
     }
+    
+    let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
+        <span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
+    
+    if (moraGuardada > 0) {
+        htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #64748b;">(Incluye $${moraGuardada.toFixed(2)} de mora)</span>`;
+    } else if (ultimaAccion.includes('Refinanciamiento') || ultimaAccion.includes('Renovación')) {
+        htmlSaldoNeto += `<span style="font-size: 11px; font-weight: bold; color: #8b5cf6;">(Capital Refinanciado)</span>`;
+    }
+    htmlSaldoNeto += `</div>`;
+    
+    const totalVisual = parseFloat(encontrado.valor_cuota) * numeroCuotasOriginales;
+    document.getElementById('lbl-recaudacion-total').innerText = `$${totalVisual.toFixed(2)}`;
+    
+    document.getElementById('lbl-recaudacion-saldo').innerHTML = htmlSaldoNeto;
 
-    const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
-    const saldoFinalMora = saldoRestanteNeto + moraGuardada;
+    let cajonSugerido = cuotaFinal;
+    // Sugiere todo de golpe SÓLO si es mensual de 1 sola cuota
+    if (frecuenciaFinal.includes('MENSUAL') && numeroCuotasOriginales === 1) {
+        cajonSugerido = saldoFinalMora;
+    }
     
-    const etiquetaMora = moraGuardada > 0 ? `<span style="margin-left: 10px; color: #ef4444; font-size: 12px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">+ Mora $${moraGuardada.toFixed(2)}</span>` : '';
+    document.getElementById('monto-cobro-input').value = cajonSugerido.toFixed(2);
     
-    // 🌟 MAGIA VISUAL: Mostramos el total de este periodo, no el acumulado histórico
-const totalVisual = parseFloat(encontrado.valor_cuota) * (parseInt(encontrado.num_cuotas) || 1);
-document.getElementById('lbl-recaudacion-total').innerText = `$${totalVisual.toFixed(2)}`;
-    document.getElementById('lbl-recaudacion-saldo').innerHTML = `$${saldoFinalMora.toFixed(2)} ${etiquetaMora}`;
-
-    // El input sugiere cobrar la cuota del acuerdo, o la cuota normal si no hay acuerdo
-    document.getElementById('monto-cobro-input').value = cuotaFinal.toFixed(2);
-    
-   if (typeof simularEnrutamientoFlujo === 'function') {
-        simularEnrutamientoFlujo(cuotaFinal); // <-- LA SOLUCIÓN
+    if (typeof simularEnrutamientoFlujo === 'function') {
+        simularEnrutamientoFlujo(cajonSugerido); 
     }
 
     document.getElementById('recaudacion-espera-msg').style.display = 'none';
