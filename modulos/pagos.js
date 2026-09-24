@@ -96,7 +96,8 @@ async function buscarCreditoParaCobro() {
     try {
         const { data: creditos, error } = await supabaseClient
             .from('creditos')
-            .select(`id, monto_capital, total_pagar, monto_mora, valor_cuota, frecuencia_pago, estado, fecha_emision, cliente_id, num_cuotas, clientes (nombres, apellidos, cedula)`)
+            // 🔥 AQUÍ ESTÁ LA MAGIA: Agregamos "fecha_vencimiento_actual" para que el empujón funcione
+            .select(`id, monto_capital, total_pagar, monto_mora, valor_cuota, frecuencia_pago, estado, fecha_emision, fecha_vencimiento_actual, cliente_id, num_cuotas, clientes (nombres, apellidos, cedula)`)
             .in('estado', ['activo', 'congelado']); 
 
         if (error) throw error;
@@ -180,10 +181,8 @@ async function buscarCreditoParaCobro() {
                 // 🔥 MAGIA DE ETIQUETAS: Detectar Botón Morado o Verde 🔥
                 let etiquetaAccion = "";
                 if (morasCliente) {
-                    // Filtramos solo las acciones de este crédito específico
                     const morasEsteCredito = morasCliente.filter(m => m.credito_id === c.id);
                     if (morasEsteCredito.length > 0) {
-                        // Tomamos siempre la ÚLTIMA acción que usted hizo
                         const ultimaAccion = morasEsteCredito[morasEsteCredito.length - 1].tipo_accion || '';
                         
                         if (ultimaAccion.includes('Refinanciamiento') || ultimaAccion.includes('Renovación')) {
@@ -194,10 +193,8 @@ async function buscarCreditoParaCobro() {
                     }
                 }
                 
-                // Etiqueta visual si es un acuerdo verbal (Congelado)
                 const alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
                 
-                // Armado del texto final para la secretaria
                 const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}${textoMoraExtra}${etiquetaAccion}`;
                 
                 selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
@@ -1213,7 +1210,6 @@ async function procesarCobroOficial() {
         // 🔥 MAGIA DE CAPITAL: INYECTAR EL RETORNO DE CAPITAL A LAS CAJAS
         // =================================================================
         if (finalCapital > 0) {
-            // Buscamos la caja correcta dependiendo del método de pago
             const tipoCaja = metodoPago === 'transferencia' ? 'banco' : 'efectivo';
             
             const { data: cajasTarget, error: errCajas } = await supabaseClient
@@ -1228,17 +1224,14 @@ async function procesarCobroOficial() {
                 const saldoActualCaja = parseFloat(cajasTarget[0].saldo_actual || 0);
                 const nuevoSaldoCaja = saldoActualCaja + finalCapital;
 
-                // 1. Aumentamos el saldo en la caja
                 await supabaseClient
                     .from('cajas_capital')
                     .update({ saldo_actual: nuevoSaldoCaja })
                     .eq('id', cajaId);
 
-                // 2. Dejamos registro en el Historial de Auditoría
                 const cli = creditoSeleccionadoCobro.clientes || {};
                 const nombreCliente = `${cli.nombres || ''} ${cli.apellidos || ''}`.toUpperCase().trim();
                 
-                // Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ]) para el historial
                 let creTextHistorial = "CRE # ?";
                 const lblRefH = document.getElementById('lbl-recaudacion-ref');
                 if (lblRefH && lblRefH.innerText) {
@@ -1261,7 +1254,6 @@ async function procesarCobroOficial() {
                 console.warn(`⚠️ No se encontró una caja tipo '${tipoCaja}' para retornar el capital.`);
             }
         }
-
 
         // =================================================================
         // 🧮 CÁLCULO DE SALDO RESIDUAL Y VALIDACIÓN DE LIQUIDACIÓN
@@ -1288,13 +1280,13 @@ async function procesarCobroOficial() {
         }
 
         // =================================================================
-        // 🚀 LÓGICA INTELIGENTE DE ENVÍO DE SMS (NORMAL O DE FELICITACIÓN)
+        // 🚀 LÓGICA INTELIGENTE DE ENVÍO DE SMS
         // =================================================================
         if (enviarSMS) {
             if (!numeroCliente) {
-                alert("⚠️ El SMS NO se envió: Este cliente definitivamente no tiene un número en la base de datos.");
+                alert("⚠️ El SMS NO se envió: Este cliente no tiene número en la BD.");
             } else if (typeof enviarSMSAutomatico !== 'function') {
-                alert("⚠️ El SMS NO se envió: El sistema no detecta la función 'enviarSMSAutomatico'.");
+                alert("⚠️ El SMS NO se envió: Función 'enviarSMSAutomatico' no detectada.");
             } else {
                 try {
                     const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
@@ -1303,7 +1295,6 @@ async function procesarCobroOficial() {
                     const u4 = (cli.cedula || '').trim().slice(-4);
                     const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
                     
-                    // Extraer solo el CRE con su letra cifrada (Ej: CRE #[Ñ])
                     let creText = "CRE # ?";
                     const lblRef = document.getElementById('lbl-recaudacion-ref');
                     if (lblRef && lblRef.innerText) {
@@ -1323,10 +1314,8 @@ async function procesarCobroOficial() {
                     let msjSalida = "";
 
                     if (esCancelacionTotal) {
-                        // 🏆 SMS PREMIUM DE FELICITACIONES
                         msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\n🎉 ¡CONTRATO CANCELADO AL 100%! 🎉\n\nTe notificamos de manera oficial que tu crédito ha sido liquidado exitosamente en nuestra base de datos.\n\n✅ Pago de Cierre: #${numeroNuevoPago}\n💰 Monto Recibido: $${montoInput.toFixed(2)}\n📉 Saldo Pendiente: $0.00\n📊 Récord Crediticio: EXCELENTE / IMPECABLE\n\nQueremos agradecer enormemente tu compromiso y puntualidad. ¡Tienes las puertas totalmente abiertas para tu siguiente solicitud cuando la requieras! 🚀\n\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                     } else {
-                        // 💳 SMS DE ABONO NORMAL
                         const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
                         const valorDeCuota = parseFloat(creditoSeleccionadoCobro.valor_cuota) || 1;
                         let cuotasPendientes = Math.ceil(nuevoSaldo / valorDeCuota);
@@ -1343,24 +1332,18 @@ async function procesarCobroOficial() {
             }
         }
 
-        // 2. ACTUALIZAR ESTADO DEL CRÉDITO SI QUEDÓ LIQUIDADO
-        // 🔥 AHORA LIMPIAMOS CUALQUIER ACUERDO QUE TUVIERA EL CLIENTE PARA QUE NO SE QUEDE EN EL LIMBO
         if (esCancelacionTotal) {
             await supabaseClient
                 .from('creditos')
-                .update({ 
-                    estado: 'finalizado',
-                    acuerdo_pago: '' // Borramos la memoria del congelamiento para que salga en la papelera
-                })
+                .update({ estado: 'finalizado', acuerdo_pago: '' })
                 .eq('id', creditoSeleccionadoCobro.id);
         }
 
         // =================================================================
-        // 🔥 TICKET DIGITAL DINÁMICO (ESTILO WALL STREET)
+        // 🔥 TICKET DIGITAL DINÁMICO
         // =================================================================
         const ticketDiv = document.createElement('div');
         
-        // Si el crédito se liquidó, le ponemos un borde morado de gala
         ticketDiv.style.cssText = esCancelacionTotal
             ? "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:3px solid #8b5cf6; text-align:center;"
             : "position:fixed; top:15%; left:30%; width:40%; background:white; padding:30px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.3); z-index:9999; border:2px solid #10b981; text-align:center;";
@@ -1381,7 +1364,6 @@ async function procesarCobroOficial() {
             btnWhatsApp = `<a href="${url}" target="_blank" style="padding:10px 20px; background:#25d366; color:white; text-decoration:none; border-radius:6px; font-weight:bold;">Enviar WhatsApp 📲</a>`;
         }
 
-        // Título del ticket según el estado
         const cabeceraTicket = esCancelacionTotal 
             ? `<h2 style="color:#8b5cf6; margin-bottom:5px;">🏆 ¡CRÉDITO LIQUIDADO! 🏆</h2>
                <p style="font-size:14px; color:#6d28d9; font-weight:900; margin:0 0 10px 0;">Felicite al cliente por su récord impecable</p>`
@@ -1421,15 +1403,54 @@ async function procesarCobroOficial() {
         document.getElementById('monto-cobro-input').value = "";
         document.getElementById('input-detalles-banco').value = "";
         if (typeof cambiarMetodoPago === 'function') cambiarMetodoPago('efectivo');
-
-        // 🔥 Opcional: Actualizar datos de capital para reflejar al instante
         if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
+
+        // =================================================================
+        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (EMPUJÓN AUTOMÁTICO)
+        // =================================================================
+       // =================================================================
+        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (EMPUJÓN INTELIGENTE)
+        // =================================================================
+        if (!esCancelacionTotal && creditoSeleccionadoCobro.fecha_vencimiento_actual) {
+            try {
+                // 1. Saber de cuánto es la cuota base del cliente
+                const valorDeUnaCuota = parseFloat(creditoSeleccionadoCobro.valor_cuota) || 1;
+                
+                // 2. Saber cuántas cuotas COMPLETAS nos acaba de pagar de golpe
+                const cuotasCompletasPagadas = Math.floor(montoInput / valorDeUnaCuota);
+
+                // 3. Si pagó al menos 1 cuota completa, lo empujamos. Si pagó medias cuotas, NO avanza la fecha.
+                if (cuotasCompletasPagadas >= 1) {
+                    const freq = (creditoSeleccionadoCobro.frecuencia_pago || '').toUpperCase();
+                    let fechaObj = new Date(creditoSeleccionadoCobro.fecha_vencimiento_actual + 'T12:00:00');
+                    
+                    if (freq.includes('SEMANAL')) {
+                        fechaObj.setDate(fechaObj.getDate() + (7 * cuotasCompletasPagadas));
+                    } else if (freq.includes('QUINCENAL')) {
+                        fechaObj.setDate(fechaObj.getDate() + (15 * cuotasCompletasPagadas));
+                    } else if (freq.includes('MENSUAL')) {
+                        fechaObj.setMonth(fechaObj.getMonth() + (1 * cuotasCompletasPagadas));
+                    }
+                    
+                    const nuevaFechaVenc = fechaObj.toISOString().split('T')[0];
+
+                    await supabaseClient
+                        .from('creditos')
+                        .update({ fecha_vencimiento_actual: nuevaFechaVenc })
+                        .eq('id', creditoSeleccionadoCobro.id);
+
+                    creditoSeleccionadoCobro.fecha_vencimiento_actual = nuevaFechaVenc;
+                }
+            } catch (errorFecha) {
+                console.error("Error moviendo la fecha:", errorFecha);
+            }
+        }
+        // =================================================================
 
     } catch (err) {
         alert("Error crítico al registrar abono: " + err.message);
     }
 }
-
 
 
 // =========================================================================

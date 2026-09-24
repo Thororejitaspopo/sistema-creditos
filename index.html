@@ -165,15 +165,25 @@
     <!-- 4. PANELES DE RANKING (LOS MEJORES Y LOS PEORES) -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         
-        <!-- Panel Izquierdo: Buenos Pagadores -->
-        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <h3 style="margin: 0 0 15px 0; color: #15803d; display: flex; align-items: center; gap: 8px; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">
-                ⭐ Top 5: Mejores Pagadores
-            </h3>
-            <div id="dash-lista-buenos" style="color: #64748b; font-size: 14px;">
-                <div style="text-align: center; padding: 20px;">⏳ Despertando al Robot...</div>
-            </div>
+        <!-- 🗺️ RUTA DE COBRO DEL DÍA (Reemplaza al Top 5) -->
+<div style="background: #ffffff; border: 1px solid #a7f3d0; border-top: 5px solid #059669; border-radius: 10px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 15px;">
+        <h3 style="color: #047857; font-weight: 900; font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">🗺️</span> Ruta de Cobro (Hoy)
+        </h3>
+        <span id="contador-ruta-dia" style="background: #d1fae5; color: #059669; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+            0 Visitas
+        </span>
+    </div>
+    
+    <!-- Aquí el sistema inyectará a los clientes -->
+    <div id="contenedor-ruta-dia" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+        <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 13px;">
+            <span style="font-size: 24px;">⏳</span><br>
+            Calculando la ruta de hoy...
         </div>
+    </div>
+</div>
 
         <!-- Panel Derecho: Lista Negra / Mayor Mora -->
         <!-- Panel Derecho: Alertas de Vencimiento (Asistente Inteligente) -->

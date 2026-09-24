@@ -140,6 +140,9 @@ window.addEventListener('DOMContentLoaded', () => {
 // =========================================================================
 // 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
 // =========================================================================
+// =========================================================================
+// 2. FUNCIÓN PARA GUARDAR EL CRÉDITO EN SUPABASE AL DAR CLIC AL BOTÓN
+// =========================================================================
 async function guardarNuevoCredito() {
     // BLOCK 1: CAPTURA DE DATOS DESDE LA INTERFAZ HTML
     const selectorCliente = document.getElementById('cred-cliente-id');
@@ -167,6 +170,32 @@ async function guardarNuevoCredito() {
     const totalInteres = parseFloat(((monto * tasa) / 100).toFixed(2));
     const totalPagar = parseFloat((monto + totalInteres).toFixed(2));
     const valorCuota = parseFloat((totalPagar / cuotas).toFixed(2));
+
+    // =========================================================================
+    // 🔥 BLOCK 4.5: CÁLCULO DE FECHA DE VENCIMIENTO INICIAL (EL CEREBRO DEL RADAR) 🔥
+    // =========================================================================
+    // Obtenemos la modalidad elegida por el operador
+    const modalidadText = document.getElementById('cred-modalidad').options[document.getElementById('cred-modalidad').selectedIndex].text.toUpperCase();
+    
+    // Por defecto nace en NULL (Perfecto para los Diarios)
+    let fechaVencimientoCalculada = null; 
+    
+    // Si NO es diario, calculamos la fecha de su primera cuota para la Ruta de Cobro
+    if (!modalidadText.includes('DIARIO')) {
+        const fechaNacimiento = new Date();
+        
+        if (modalidadText.includes('SEMANAL')) {
+            fechaNacimiento.setDate(fechaNacimiento.getDate() + 7);
+        } else if (modalidadText.includes('QUINCENAL')) {
+            fechaNacimiento.setDate(fechaNacimiento.getDate() + 15);
+        } else if (modalidadText.includes('MENSUAL')) {
+            fechaNacimiento.setMonth(fechaNacimiento.getMonth() + 1);
+        }
+        
+        // Formateamos a 'YYYY-MM-DD' para Supabase
+        fechaVencimientoCalculada = fechaNacimiento.toISOString().split('T')[0];
+    }
+    // =========================================================================
 
     try {
         // BLOCK 4: CONSULTAR EL SALDO ACTUAL DE LA BÓVEDA/CAJA
@@ -225,7 +254,9 @@ async function guardarNuevoCredito() {
                     estado: 'activo',
                     usuario_registro: 'Administrador',
                     frecuencia_pago: document.getElementById('cred-modalidad').options[document.getElementById('cred-modalidad').selectedIndex].text,
-                    forma_entrega: document.getElementById('cred-forma-entrega').options[document.getElementById('cred-forma-entrega').selectedIndex].text
+                    forma_entrega: document.getElementById('cred-forma-entrega').options[document.getElementById('cred-forma-entrega').selectedIndex].text,
+                    // 🔥 INYECTAMOS LA FECHA CALCULADA AQUÍ 🔥
+                    fecha_vencimiento_actual: fechaVencimientoCalculada 
                 }
             ])
             .select();
