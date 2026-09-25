@@ -1167,13 +1167,19 @@ async function procesarCobroOficial() {
 
     const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de este abono por SMS al cliente?");
 
-    try {
-        const { count } = await supabaseClient
+   try {
+        // 🌟 MAGIA 1: Traemos todos los pagos previos de la BD para sumar los pedacitos
+        const { data: pagosPrevios } = await supabaseClient
             .from('historial_pagos')
-            .select('*', { count: 'exact', head: true })
+            .select('abono_total')
             .eq('id_credito', creditoSeleccionadoCobro.id);
         
-        const numeroNuevoPago = (count || 0) + 1;
+        let totalAbonadoPrevio = 0;
+        if (pagosPrevios) {
+            totalAbonadoPrevio = pagosPrevios.reduce((acc, p) => acc + (parseFloat(p.abono_total) || 0), 0);
+        }
+        const numeroNuevoPago = (pagosPrevios ? pagosPrevios.length : 0) + 1;
+
 
         // 🔥 REGLA DE ORO ALPHA: Asignamos la mora a la Bóveda de Interés
         const interesFaltantePorAsegurar = (interesTotalPactado + moraExtra) - interesYaPagado;
@@ -1411,25 +1417,54 @@ async function procesarCobroOficial() {
        // =================================================================
         // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (EMPUJÓN INTELIGENTE)
         // =================================================================
+        // =================================================================
+        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (CEREBRO DE PAGOS PARCIALES)
+        // =================================================================
+        // =================================================================
+        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (CEREBRO DE PAGOS PARCIALES)
+        // =================================================================
         if (!esCancelacionTotal && creditoSeleccionadoCobro.fecha_vencimiento_actual) {
             try {
-                // 1. Saber de cuánto es la cuota base del cliente
-                const valorDeUnaCuota = parseFloat(creditoSeleccionadoCobro.valor_cuota) || 1;
-                
-                // 2. Saber cuántas cuotas COMPLETAS nos acaba de pagar de golpe
-                const cuotasCompletasPagadas = Math.floor(montoInput / valorDeUnaCuota);
+                // 🔥 OBLIGAMOS A LA MÁQUINA A LEER LA BASE DE DATOS EN ESTE SEGUNDO
+                const { data: dbCredito } = await supabaseClient
+                    .from('creditos')
+                    .select('estado, acuerdo_pago, valor_cuota, frecuencia_pago')
+                    .eq('id', creditoSeleccionadoCobro.id)
+                    .single();
 
-                // 3. Si pagó al menos 1 cuota completa, lo empujamos. Si pagó medias cuotas, NO avanza la fecha.
-                if (cuotasCompletasPagadas >= 1) {
-                    const freq = (creditoSeleccionadoCobro.frecuencia_pago || '').toUpperCase();
+                let freq = (dbCredito.frecuencia_pago || '').toUpperCase();
+                let valorDeUnaCuota = parseFloat(dbCredito.valor_cuota) || 1;
+
+                // 1. Si está congelado, extraemos la cuota EXACTA de su acuerdo
+                if (dbCredito.estado === 'congelado') {
+                    const acuerdo = (dbCredito.acuerdo_pago || '').toLowerCase();
+                    if (acuerdo.includes('mensual')) freq = 'MENSUAL';
+                    else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
+                    else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
+                    else if (acuerdo.includes('diario')) freq = 'DIARIO';
+
+                    const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
+                    if (matchMonto && parseFloat(matchMonto[0]) > 0) {
+                        valorDeUnaCuota = parseFloat(matchMonto[0]);
+                    }
+                }
+
+                // 2. 🌟 EL CEREBRO MATEMÁTICO DE LOS ABONOS PARCIALES 🌟
+                const cuotasPagadasAntes = Math.floor(totalAbonadoPrevio / valorDeUnaCuota);
+                const cuotasPagadasDespues = Math.floor((totalAbonadoPrevio + montoInput) / valorDeUnaCuota);
+                const cuotasAvanzadas = cuotasPagadasDespues - cuotasPagadasAntes;
+
+                if (cuotasAvanzadas >= 1) {
                     let fechaObj = new Date(creditoSeleccionadoCobro.fecha_vencimiento_actual + 'T12:00:00');
                     
                     if (freq.includes('SEMANAL')) {
-                        fechaObj.setDate(fechaObj.getDate() + (7 * cuotasCompletasPagadas));
+                        fechaObj.setDate(fechaObj.getDate() + (7 * cuotasAvanzadas));
                     } else if (freq.includes('QUINCENAL')) {
-                        fechaObj.setDate(fechaObj.getDate() + (15 * cuotasCompletasPagadas));
+                        fechaObj.setDate(fechaObj.getDate() + (15 * cuotasAvanzadas));
                     } else if (freq.includes('MENSUAL')) {
-                        fechaObj.setMonth(fechaObj.getMonth() + (1 * cuotasCompletasPagadas));
+                        fechaObj.setMonth(fechaObj.getMonth() + (1 * cuotasAvanzadas));
+                    } else if (freq.includes('DIARIO')) {
+                        fechaObj.setDate(fechaObj.getDate() + (1 * cuotasAvanzadas));
                     }
                     
                     const nuevaFechaVenc = fechaObj.toISOString().split('T')[0];

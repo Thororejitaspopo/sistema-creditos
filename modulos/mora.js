@@ -658,10 +658,8 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
 };
 
 // =========================================================================
-// 🧊 MOTOR PARA CONGELAR/DESCONGELAR CUENTAS (BOTÓN AZUL)
+// 🧊 MOTOR PARA CONGELAR/DESCONGELAR CUENTAS (CEREBRO MATEMÁTICO INCLUIDO)
 // =========================================================================
-// 4. EL BOTÓN AZUL: CONGELAR CUENTA
-// 4. EL BOTÓN AZUL / NARANJA: CONGELAR / DESCONGELAR CUENTA
 window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCRE, saldoAmarilloReal) {
     let mensajeConfirmacion = nuevoEstado === 'congelado' 
         ? "¿Está seguro de CONGELAR esta cuenta? Se detendrán los recargos automáticos." 
@@ -670,35 +668,117 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCR
     if (!confirm(mensajeConfirmacion)) return;
 
     let notaAcuerdo = '';
+    let nuevaFechaVencimiento = undefined;
+
     if (nuevoEstado === 'congelado') {
-        notaAcuerdo = prompt("🤝 CONVENIO DE PAGO (Opcional):\n\nSi llegó a un acuerdo de refinanciamiento con el cliente, escríbalo aquí (Ej: $50 Semanal los viernes).\n\nSi no hay acuerdo, deje esto vacío y presione Aceptar:") || '';
+        // 🔥 AQUÍ NACE EL NUEVO PANEL ESTRUCTURADO (REEMPLAZA AL PROMPT VIEJO) 🔥
+        const resultadoAcuerdo = await new Promise((resolve) => {
+            const divModal = document.createElement('div');
+            divModal.innerHTML = `
+            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:999999; display:flex; justify-content:center; align-items:center;">
+                <div style="background:white; padding:30px; border-radius:12px; width:90%; max-width:400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-family: sans-serif;">
+                    <h3 style="margin-top:0; color: #1e293b; display: flex; align-items: center; gap: 10px; font-size: 18px;">🧊 CONVENIO DE PAGO</h3>
+                    <p style="color: #64748b; font-size: 13px; margin-bottom: 20px; line-height: 1.4;">Ingrese el monto y la frecuencia. El sistema calculará la próxima fecha de cobro <b>automáticamente</b>.</p>
+                    
+                    <label style="display:block; font-weight:bold; margin-bottom:5px; color: #334155; font-size: 13px;">Monto a Cobrar ($): <span style="font-weight:normal; color:#94a3b8;">(Opcional)</span></label>
+                    <input type="number" id="input-acuerdo-monto" placeholder="Ej: 25" style="width:100%; padding:12px; border:2px solid #0284c7; border-radius:8px; box-sizing:border-box; margin-bottom:15px; font-size:16px; font-weight:bold; outline: none; color: #0f172a;">
+                    
+                    <label style="display:block; font-weight:bold; margin-bottom:5px; color: #334155; font-size: 13px;">Frecuencia del Convenio:</label>
+                    <select id="select-acuerdo-frec" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box; margin-bottom:25px; font-size:14px; background: #f8fafc; outline: none; color: #0f172a; font-weight: bold; cursor: pointer;">
+                        <option value="mensual">📊 Mensual (+30 días)</option>
+                        <option value="quincenal">🌓 Quincenal (+15 días)</option>
+                        <option value="semanal">🗓️ Semanal (+7 días)</option>
+                        <option value="diario">📆 Diario (+1 día)</option>
+                    </select>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <button id="btn-guardar-acuerdo" style="flex:1; background:#0284c7; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 14px; transition: 0.2s; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);">Aceptar</button>
+                        <button id="btn-cancelar-acuerdo" style="flex:1; background:#ef4444; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 14px; transition: 0.2s; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.body.appendChild(divModal);
+            
+            // Pone el mouse automático en el cuadrito para escribir rápido
+            setTimeout(() => document.getElementById('input-acuerdo-monto').focus(), 100);
+
+            document.getElementById('btn-guardar-acuerdo').onclick = () => {
+                const monto = document.getElementById('input-acuerdo-monto').value;
+                const frec = document.getElementById('select-acuerdo-frec').value;
+                document.body.removeChild(divModal);
+                resolve({ cancelado: false, monto: monto, frec: frec });
+            };
+
+            document.getElementById('btn-cancelar-acuerdo').onclick = () => {
+                document.body.removeChild(divModal);
+                resolve({ cancelado: true });
+            };
+        });
+
+        if (resultadoAcuerdo.cancelado) return; // Si apretó cancelar, no hacemos nada
+
+        if (resultadoAcuerdo.monto) {
+            // Unimos el número y la palabra para que el Módulo de Recaudación siga haciendo su magia
+            notaAcuerdo = `${resultadoAcuerdo.monto} ${resultadoAcuerdo.frec}`;
+            
+            // =========================================================
+            // 🔥 EL CEREBRO MATEMÁTICO: CALCULA LA PRÓXIMA FECHA HOY 🔥
+            // =========================================================
+            let diasSumar = 30; 
+            if (resultadoAcuerdo.frec === 'quincenal') diasSumar = 15;
+            if (resultadoAcuerdo.frec === 'semanal') diasSumar = 7;
+            if (resultadoAcuerdo.frec === 'diario') diasSumar = 1;
+
+            const fechaCalculada = new Date();
+            fechaCalculada.setDate(fechaCalculada.getDate() + diasSumar);
+            
+            const añoFormato = fechaCalculada.getFullYear();
+            const mesFormato = String(fechaCalculada.getMonth() + 1).padStart(2, '0');
+            const diaFormato = String(fechaCalculada.getDate()).padStart(2, '0');
+            
+            nuevaFechaVencimiento = `${añoFormato}-${mesFormato}-${diaFormato}`;
+        } else {
+            // Si el gerente dejó la caja de dinero vacía, el crédito se congela sin acuerdo (Fecha NULL)
+            notaAcuerdo = "";
+            nuevaFechaVencimiento = null;
+        }
     }
 
     try {
         const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_capital, valor_cuota, frecuencia_pago, total_pagar, num_cuotas, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single();
         if (errBusq) throw errBusq;
 
-        const { error } = await supabaseClient.from('creditos').update({ 
+        // Preparamos el paquete de actualización para Supabase
+        let datosGuardar = { 
             estado: nuevoEstado,
             acuerdo_pago: notaAcuerdo 
-        }).eq('id', idCredito);
+        };
+
+        // Inyectamos la fecha si es necesario
+        if (nuevoEstado === 'congelado' && nuevaFechaVencimiento !== undefined) {
+            datosGuardar.fecha_vencimiento_actual = nuevaFechaVencimiento;
+        } else if (nuevoEstado === 'activo') {
+            datosGuardar.acuerdo_pago = ""; // Si descongela, borramos el acuerdo viejo
+            datosGuardar.fecha_vencimiento_actual = null; // 🔥 LA SOLUCIÓN: DESTRUIMOS LA FECHA FUTURA 🔥
+        }
+
+        const { error } = await supabaseClient.from('creditos').update(datosGuardar).eq('id', idCredito);
 
         if (error) throw error;
 
         let msjExito = nuevoEstado === 'congelado' 
-            ? "🧊 Cuenta CONGELADA exitosamente." + (notaAcuerdo ? `\nAcuerdo guardado: ${notaAcuerdo}` : "")
+            ? "🧊 Cuenta CONGELADA exitosamente." + (notaAcuerdo ? `\n\nPróxima fecha calculada para: ${nuevaFechaVencimiento}\nAcuerdo: ${notaAcuerdo}` : "\n\nCongelada sin acuerdo (No aparecerá en rutas).")
             : "🔥 Cuenta DESCONGELADA. El cliente vuelve al radar normal.";
             
         if (nuevoEstado === 'congelado') {
-            let enviarSMS = confirm(`❄️ CUENTA CONGELADA\n\n¿Deseas enviar un SMS al cliente avisándole que su cuenta está en pausa y adjuntando el convenio de pago (si lo hubo)?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
+            let enviarSMS = confirm(`❄️ CUENTA CONGELADA\n\n¿Deseas enviar un SMS al cliente avisándole que su cuenta está en pausa y adjuntando el convenio de pago?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
             if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-                // 🔥 ENVIAMOS EL SALDO AMARILLO DIRECTAMENTE
                 await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'congelar', 0, saldoAmarilloReal, notaAcuerdo, null);
             }
         } else if (nuevoEstado === 'activo') {
             let enviarSMS = confirm(`🔥 CUENTA DESCONGELADA\n\n¿Deseas enviar un SMS al cliente avisándole que su crédito fue RESTAURADO y vuelve a estar ACTIVO?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
             if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-                // 🔥 ENVIAMOS EL SALDO AMARILLO DIRECTAMENTE
                 await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'descongelar', 0, saldoAmarilloReal, "", credito);
             }
         }
