@@ -508,6 +508,17 @@ async function cargarRutaCobroDia() {
         const diaHoy = String(hoy.getDate()).padStart(2, '0');
         const stringHoy = `${añoHoy}-${mesHoy}-${diaHoy}`;
 
+        // 🔥 EL CEREBRO DEL CRE: Contamos el historial para tener el número exacto
+        const { data: historialTodos } = await supabaseClient.from('creditos').select('id, cliente_id').order('id', { ascending: true });
+        const mapNumCreditoLocal = {};
+        if (historialTodos) {
+            const conteoPorCliente = {};
+            historialTodos.forEach(hc => {
+                conteoPorCliente[hc.cliente_id] = (conteoPorCliente[hc.cliente_id] || 0) + 1;
+                mapNumCreditoLocal[hc.id] = conteoPorCliente[hc.cliente_id];
+            });
+        }
+
         // 2. Traemos a TODOS los clientes activos ¡USANDO EL NOMBRE DE TABLA CORRECTO: historial_pagos!
         const { data: creditosActivos, error } = await supabaseClient
             .from('creditos')
@@ -557,7 +568,11 @@ async function cargarRutaCobroDia() {
             const inicialN = cli.nombres ? cli.nombres.charAt(0).toUpperCase() : 'X';
             const inicialA = cli.apellidos ? cli.apellidos.charAt(0).toUpperCase() : 'X';
             const ultimos4 = cli.cedula ? String(cli.cedula).slice(-4) : '0000';
-            const refCompleta = `🆔 REF: ${inicialN}${inicialA}-${ultimos4} | CRÉDITO #${c.id} | CRE #1 [H]`;
+            
+            // 🔥 CÁLCULO REAL DEL CRE PARA LA RUTA
+            const numLocal = mapNumCreditoLocal[c.id] || 1;
+            let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numLocal).toUpperCase() : 'H';
+            const refCompleta = `🆔 REF: ${inicialN}${inicialA}-${ultimos4} | CRÉDITO #${c.id} | CRE #${numLocal} [${creCifrado}]`;
 
             let emitidoStr = 'N/A';
             if (c.fecha_emision) {

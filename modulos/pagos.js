@@ -559,9 +559,8 @@ async function validarRegla24HorasAbono(idAbono) {
     }
     return true;
 }
-
 // -------------------------------------------------------------------------
-// ✏️ 1. EDITAR ABONO (Motor Matemático + Ajuste de Cajas + SMS)
+// ✏️ 1. EDITAR ABONO (Motor Matemático + Ajuste de Cajas + SMS + REVERSA FECHAS)
 // -------------------------------------------------------------------------
 async function editarAbono(idAbono) {
     const idNum = parseInt(idAbono);
@@ -687,6 +686,73 @@ async function editarAbono(idAbono) {
         }
 
         // =================================================================
+        // 🚀 🔥 RECALCULAR FECHA DE VENCIMIENTO (SISTEMA DELTA ALPHA) 🔥
+        // =================================================================
+        try {
+            const oldMonto = parseFloat(abonoActual.abono_total || 0);
+            
+            // Traemos TODOS los pagos de este crédito para tener el total real actual
+            const { data: todosPagosActuales } = await supabaseClient
+                .from('historial_pagos')
+                .select('abono_total')
+                .eq('id_credito', creditoAct.id);
+
+            let pagadoTotalActualizado = 0;
+            if (todosPagosActuales) {
+                pagadoTotalActualizado = todosPagosActuales.reduce((acc, p) => acc + parseFloat(p.abono_total || 0), 0);
+            }
+
+            // Calculamos cuánto dinero había ANTES de que usted modificara el abono
+            const totalPagadoAntes = pagadoTotalActualizado - nuevoMonto + oldMonto;
+
+            let freq = (creditoAct.frecuencia_pago || '').toUpperCase();
+            let valorDeUnaCuota = parseFloat(creditoAct.valor_cuota) || 1;
+
+            if (creditoAct.estado === 'congelado') {
+                const acuerdo = (creditoAct.acuerdo_pago || '').toLowerCase();
+                if (acuerdo.includes('mensual')) freq = 'MENSUAL';
+                else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
+                else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
+                else if (acuerdo.includes('diario')) freq = 'DIARIO';
+
+                const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
+                if (matchMonto && parseFloat(matchMonto[0]) > 0) {
+                    valorDeUnaCuota = parseFloat(matchMonto[0]);
+                }
+            }
+
+            const cuotasAntes = Math.floor(totalPagadoAntes / valorDeUnaCuota);
+            const cuotasDespues = Math.floor(pagadoTotalActualizado / valorDeUnaCuota);
+            const diferenciaCuotas = cuotasDespues - cuotasAntes; // Puede ser positivo o negativo
+
+            // Solo movemos la fecha si hubo un cambio real en el número de cuotas completas
+            if (diferenciaCuotas !== 0 && creditoAct.fecha_vencimiento_actual) {
+                let fechaObj = new Date(creditoAct.fecha_vencimiento_actual + 'T12:00:00');
+                
+                if (freq.includes('SEMANAL')) {
+                    fechaObj.setDate(fechaObj.getDate() + (7 * diferenciaCuotas));
+                } else if (freq.includes('QUINCENAL')) {
+                    fechaObj.setDate(fechaObj.getDate() + (15 * diferenciaCuotas));
+                } else if (freq.includes('MENSUAL')) {
+                    fechaObj.setMonth(fechaObj.getMonth() + (1 * diferenciaCuotas));
+                } else if (freq.includes('DIARIO')) {
+                    fechaObj.setDate(fechaObj.getDate() + (1 * diferenciaCuotas));
+                }
+                
+                const nuevaFechaCalculada = fechaObj.toISOString().split('T')[0];
+
+                await supabaseClient
+                    .from('creditos')
+                    .update({ fecha_vencimiento_actual: nuevaFechaCalculada })
+                    .eq('id', creditoAct.id);
+                
+                if(creditoSeleccionadoCobro) creditoSeleccionadoCobro.fecha_vencimiento_actual = nuevaFechaCalculada;
+            }
+        } catch (errorFecha) {
+            console.error("Error al recalcular la fecha en edición:", errorFecha);
+        }
+
+        // =================================================================
         // 🚀 MENSAJE DE AUDITORÍA Y ACTUALIZACIÓN
         // =================================================================
         if (enviarSMS) {
@@ -765,7 +831,7 @@ async function editarAbono(idAbono) {
                 enviarSMSAutomatico(numeroCliente, msjActualizacion);
             }
         }
-        alert("✅ Abono editado, saldos y cajas recalculadas exitosamente.");
+        alert("✅ Abono editado, saldos, cajas y FECHAS recalculadas exitosamente.");
         
         // 1. Refrescamos la pantalla visual del cliente
         if (creditoSeleccionadoCobro) {
@@ -783,7 +849,7 @@ async function editarAbono(idAbono) {
 }
 
 // -------------------------------------------------------------------------
-// 🚫 2. ELIMINAR ABONO (Auditoría Avanzada + Ajuste de Cajas + SMS)
+// 🚫 2. ELIMINAR ABONO (Auditoría Avanzada + Ajuste Cajas + SMS + REVERSA FECHAS)
 // -------------------------------------------------------------------------
 async function eliminarAbono(idAbono) {
     const idNum = parseInt(idAbono);
@@ -819,6 +885,8 @@ async function eliminarAbono(idAbono) {
              alert("⚠️ Error: No se pudo leer el abono para su auditoría.");
              return;
         }
+
+        const { data: creditoAct } = await supabaseClient.from('creditos').select('*').eq('id', abonoABorrar.id_credito).single();
 
         // 2. SEGUNDO: Guardamos TODO en la Bóveda de Eliminados (Papelera)
         const { error: errAuditoria } = await supabaseClient
@@ -877,12 +945,77 @@ async function eliminarAbono(idAbono) {
                 }]);
             }
         }
+// =================================================================
+        // 🚀 🔥 RECALCULAR FECHA DE VENCIMIENTO (SISTEMA DELTA ALPHA) 🔥
+        // =================================================================
+        if (creditoAct) {
+            try {
+                const oldMonto = parseFloat(abonoABorrar.abono_total || 0);
+
+                // Traemos TODOS los pagos de este crédito (Ya sin el que acabamos de borrar)
+                const { data: todosPagosActuales } = await supabaseClient
+                    .from('historial_pagos')
+                    .select('abono_total')
+                    .eq('id_credito', creditoAct.id);
+
+                let pagadoTotalActualizado = 0;
+                if (todosPagosActuales) {
+                    pagadoTotalActualizado = todosPagosActuales.reduce((acc, p) => acc + parseFloat(p.abono_total || 0), 0);
+                }
+                
+                const totalPagadoAntes = pagadoTotalActualizado + oldMonto;
+
+                let freq = (creditoAct.frecuencia_pago || '').toUpperCase();
+                let valorDeUnaCuota = parseFloat(creditoAct.valor_cuota) || 1;
+
+                if (creditoAct.estado === 'congelado') {
+                    const acuerdo = (creditoAct.acuerdo_pago || '').toLowerCase();
+                    if (acuerdo.includes('mensual')) freq = 'MENSUAL';
+                    else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
+                    else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
+                    else if (acuerdo.includes('diario')) freq = 'DIARIO';
+
+                    const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
+                    if (matchMonto && parseFloat(matchMonto[0]) > 0) {
+                        valorDeUnaCuota = parseFloat(matchMonto[0]);
+                    }
+                }
+
+                const cuotasAntes = Math.floor(totalPagadoAntes / valorDeUnaCuota);
+                const cuotasDespues = Math.floor(pagadoTotalActualizado / valorDeUnaCuota);
+                const diferenciaCuotas = cuotasDespues - cuotasAntes; // Siempre será 0 o negativo
+
+                if (diferenciaCuotas !== 0 && creditoAct.fecha_vencimiento_actual) {
+                    let fechaObj = new Date(creditoAct.fecha_vencimiento_actual + 'T12:00:00');
+                    
+                    if (freq.includes('SEMANAL')) {
+                        fechaObj.setDate(fechaObj.getDate() + (7 * diferenciaCuotas));
+                    } else if (freq.includes('QUINCENAL')) {
+                        fechaObj.setDate(fechaObj.getDate() + (15 * diferenciaCuotas));
+                    } else if (freq.includes('MENSUAL')) {
+                        fechaObj.setMonth(fechaObj.getMonth() + (1 * diferenciaCuotas));
+                    } else if (freq.includes('DIARIO')) {
+                        fechaObj.setDate(fechaObj.getDate() + (1 * diferenciaCuotas));
+                    }
+                    
+                    const nuevaFechaCalculada = fechaObj.toISOString().split('T')[0];
+
+                    await supabaseClient
+                        .from('creditos')
+                        .update({ fecha_vencimiento_actual: nuevaFechaCalculada })
+                        .eq('id', creditoAct.id);
+                    
+                    if(creditoSeleccionadoCobro) creditoSeleccionadoCobro.fecha_vencimiento_actual = nuevaFechaCalculada;
+                }
+            } catch (errorFecha) {
+                console.error("Error al recalcular la fecha en eliminación:", errorFecha);
+            }
+        }
 
         // =================================================================
         // 🚀 SMS DE ANULACIÓN (CON DISEÑO VIP ALPHA)
         // =================================================================
         if (enviarSMS) {
-            const { data: creditoAct } = await supabaseClient.from('creditos').select('*').eq('id', abonoABorrar.id_credito).single();
             const cli = creditoSeleccionadoCobro.clientes || {};
             let numeroCliente = cli.whatsapp; 
 
@@ -932,7 +1065,7 @@ async function eliminarAbono(idAbono) {
              await supabaseClient.from('creditos').update({ estado: 'activo' }).eq('id', creditoSeleccionadoCobro.id);
         }
 
-        alert("✅ Abono borrado y respaldado con todos los detalles en la bóveda de eliminados.");
+        alert("✅ Abono borrado y FECHAS recalculadas. Respaldado en la bóveda de eliminados.");
         
         // 1. Refrescamos la pantalla visual del cliente
         if (creditoSeleccionadoCobro) {
