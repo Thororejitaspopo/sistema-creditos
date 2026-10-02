@@ -237,7 +237,7 @@ window.despertarRobotDashboard = async function() {
                 if (c.estado === 'activo') {
                     const fechaEmision = c.fecha_emision ? new Date(c.fecha_emision) : new Date();
                     
-                    // 🛑 CIRUGÍA 2: EL MOTOR MULTIPLICADOR DE TIEMPO
+                   // 🛑 CIRUGÍA 2: EL MOTOR MULTIPLICADOR DE TIEMPO (CÁLCULO DE CADUCIDAD GLOBAL)
                     const numeroCuotas = parseInt(c.num_cuotas) || 30;
                     const frecuencia = (c.frecuencia_pago || '').toLowerCase();
                     
@@ -246,17 +246,37 @@ window.despertarRobotDashboard = async function() {
                     else if (frecuencia.includes('quincenal')) multiplicador = 15;
                     else if (frecuencia.includes('mensual')) multiplicador = 30;
                     
-                    // Calculamos los días reales (Ej: 6 cuotas Semanales = 42 días)
+                    // 1. Calculamos la Fecha de Caducidad Global (El fin del ciclo total para este crédito)
                     const diasTotalesCredito = numeroCuotas * multiplicador;
-                    
-                    let fechaVence;
-                    if (c.fecha_vencimiento_actual) {
-                        const partes = c.fecha_vencimiento_actual.split('-');
-                        fechaVence = new Date(partes[0], partes[1] - 1, partes[2]);
+                    let fechaVencimientoAbsoluto = new Date(fechaEmision.getFullYear(), fechaEmision.getMonth(), fechaEmision.getDate());
+                    fechaVencimientoAbsoluto.setDate(fechaVencimientoAbsoluto.getDate() + diasTotalesCredito);
+
+                    // 2. LA REGLA DE ORO DEL GERENTE: Separación de mundos
+                    let fechaVence; // 🔥 Usamos su nombre de variable original para no romper la pantalla
+                    const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
+                    const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
+
+                    if (esDiario || esMensualUnico) {
+                        // REGLA A: Los diarios y mensuales de 1 mes respetan su regla original (Intocables)
+                        if (c.fecha_vencimiento_actual) {
+                            const partes = c.fecha_vencimiento_actual.split('-');
+                            fechaVence = new Date(partes[0], partes[1] - 1, partes[2]);
+                        } else {
+                            fechaVence = fechaVencimientoAbsoluto;
+                        }
                     } else {
-                        fechaVence = new Date(fechaEmision.getFullYear(), fechaEmision.getMonth(), fechaEmision.getDate());
-                        // Sumamos los días exactos
-                        fechaVence.setDate(fechaVence.getDate() + diasTotalesCredito);
+                        // REGLA B: Semanales, Quincenales y Mensuales (de 2 meses en adelante).
+                        // Solo van a Alertas cuando pasa toda su vida útil (Ej: Las 4 semanas completas).
+                        fechaVence = fechaVencimientoAbsoluto;
+                        
+                        // Si el gerente aplicó una sanción y pateó la fecha más allá de la caducidad global, la respetamos
+                        if (c.fecha_vencimiento_actual) {
+                            const partes = c.fecha_vencimiento_actual.split('-');
+                            const fActual = new Date(partes[0], partes[1] - 1, partes[2]);
+                            if (fActual > fechaVencimientoAbsoluto) {
+                                fechaVence = fActual;
+                            }
+                        }
                     }
                     
                     const hoyLimpiado = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth(), fechaHoy.getDate());
