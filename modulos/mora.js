@@ -270,7 +270,7 @@ window.abrirPanelSancion = function(idCredito, nombreCliente, capital, total, sa
 // 🔌 MOTORES DE RESOLUCIÓN INDIVIDUAL (CONECTADOS A SUPABASE Y MACRODROID)
 // =========================================================================
 
-// 1. EL BOTÓN ROJO: MORA S/ CAPITAL (MOTOR DE REFINANCIAMIENTO EXACTO)
+// 1. EL BOTÓN ROJO: MORA S/ CAPITAL (MOTOR DE REFINANCIAMIENTO EXACTO V6)
 window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldoActual, etiquetaCRE) { 
     if (!confirm(`🚨 ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE CAPITAL?`)) return; 
 
@@ -284,31 +284,43 @@ window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldo
         const nuevaMora = moraAnterior + parseFloat(cantidadASumar); 
         const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar); 
 
-        const numeroCuotas = parseInt(credito.num_cuotas) || 1; 
-        const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
+        // ====================================================================
+        // 🔥 NUEVO INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V6) 🔥
+        // ====================================================================
+        const numeroCuotas = parseInt(credito.num_cuotas) || 1;
+        const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
         
-        // 🔥 CÁLCULO DE EXTENSIÓN EXACTA SEGÚN LA VIDA ORIGINAL DEL CRÉDITO
-        let diasExtension = numeroCuotas; // Base para cobros diarios
+        // REGLA DE ORO DEL GERENTE: ¡NUNCA TOCAR LA FECHA DE EMISIÓN!
         
-        if (frecuencia.includes('semanal')) {
-            diasExtension = 7 * numeroCuotas; 
-        } else if (frecuencia.includes('quincenal')) {
-            diasExtension = 15 * numeroCuotas; 
-        } else if (frecuencia.includes('mensual')) {
-            diasExtension = 30 * numeroCuotas; 
+        const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
+        const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
+
+        let diasExtension = 1;
+        
+        if (esDiario || esMensualUnico) {
+            // REGLA A: Diarios y de 1 Mes -> Saltan el ciclo completo (Ej: +60, +40, +30 días)
+            diasExtension = numeroCuotas;
+            if (frecuencia.includes('mensual')) diasExtension = 30; 
+        } else {
+            // REGLA B: Semanales, Quincenales, Mensuales Largos -> SOLO SALTAN 1 CUOTA
+            // El cliente tiene que dar la cara en el próximo pago de su ciclo
+            if (frecuencia.includes('semanal')) diasExtension = 7;
+            else if (frecuencia.includes('quincenal')) diasExtension = 15;
+            else if (frecuencia.includes('mensual')) diasExtension = 30;
         }
         
-        // Tomamos el día de hoy como punto de partida para el nuevo ciclo
+        // Tomamos el día de HOY como punto de partida para el castigo
         let fechaBase = new Date(); 
         fechaBase.setHours(0,0,0,0);
         
-        // Disparamos la fecha hacia el futuro sumando los días exactos calculados
+        // Disparamos la nueva fecha hacia el futuro según la regla
         fechaBase.setDate(fechaBase.getDate() + diasExtension);
 
         const año = fechaBase.getFullYear(); 
         const mes = String(fechaBase.getMonth() + 1).padStart(2, '0'); 
         const dia = String(fechaBase.getDate()).padStart(2, '0'); 
         const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
+        // ====================================================================
 
         const { error } = await supabaseClient.from('creditos').update({  
             saldo_pendiente: Number(nuevoSaldo.toFixed(2)),
