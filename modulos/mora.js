@@ -362,6 +362,7 @@ window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldo
 // =========================================================================
 // 2. EL BOTÓN NARANJA: MORA S/ SALDO (MOTOR DE REFINANCIAMIENTO EXACTO)
 // =========================================================================
+// 2. EL BOTÓN AMARILLO: MORA S/ SALDO (MOTOR DE REFINANCIAMIENTO EXACTO V6)
 window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoActual, etiquetaCRE) { 
     if (!confirm(`⚡ ¿Está seguro de sumar $${parseFloat(cantidadASumar).toFixed(2)} por MORA SOBRE SALDO?`)) return; 
 
@@ -375,31 +376,43 @@ window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoAc
         const nuevaMora = moraAnterior + parseFloat(cantidadASumar); 
         const nuevoSaldo = saldoAnterior + parseFloat(cantidadASumar); 
 
-        const numeroCuotas = parseInt(credito.num_cuotas) || 1; 
-        const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
+        // ====================================================================
+        // 🔥 NUEVO INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V6) 🔥
+        // ====================================================================
+        const numeroCuotas = parseInt(credito.num_cuotas) || 1;
+        const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
         
-        // 🔥 CÁLCULO DE EXTENSIÓN EXACTA SEGÚN LA VIDA ORIGINAL DEL CRÉDITO
-        let diasExtension = numeroCuotas; // Base para cobros diarios
+        // REGLA DE ORO DEL GERENTE: ¡NUNCA TOCAR LA FECHA DE EMISIÓN!
         
-        if (frecuencia.includes('semanal')) {
-            diasExtension = 7 * numeroCuotas; 
-        } else if (frecuencia.includes('quincenal')) {
-            diasExtension = 15 * numeroCuotas; 
-        } else if (frecuencia.includes('mensual')) {
-            diasExtension = 30 * numeroCuotas; 
+        const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
+        const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
+
+        let diasExtension = 1;
+        
+        if (esDiario || esMensualUnico) {
+            // REGLA A: Diarios y de 1 Mes -> Saltan el ciclo completo (Ej: +60, +40, +30 días)
+            diasExtension = numeroCuotas;
+            if (frecuencia.includes('mensual')) diasExtension = 30; 
+        } else {
+            // REGLA B: Semanales, Quincenales, Mensuales Largos -> SOLO SALTAN 1 CUOTA
+            // El cliente tiene que dar la cara en el próximo pago de su ciclo
+            if (frecuencia.includes('semanal')) diasExtension = 7;
+            else if (frecuencia.includes('quincenal')) diasExtension = 15;
+            else if (frecuencia.includes('mensual')) diasExtension = 30;
         }
         
-        // Tomamos el día de hoy como punto de partida para el nuevo ciclo
+        // Tomamos el día de HOY como punto de partida para el castigo
         let fechaBase = new Date(); 
         fechaBase.setHours(0,0,0,0);
         
-        // Disparamos la fecha hacia el futuro sumando los días exactos calculados
+        // Disparamos la nueva fecha hacia el futuro según la regla
         fechaBase.setDate(fechaBase.getDate() + diasExtension);
 
         const año = fechaBase.getFullYear(); 
         const mes = String(fechaBase.getMonth() + 1).padStart(2, '0'); 
         const dia = String(fechaBase.getDate()).padStart(2, '0'); 
         const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
+        // ====================================================================
 
         const { error } = await supabaseClient.from('creditos').update({  
             saldo_pendiente: Number(nuevoSaldo.toFixed(2)), 
@@ -436,11 +449,11 @@ window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoAc
         alert("❌ Error al procesar: " + error.message); 
     } 
 };
-
 // 3. EL BOTÓN VERDE: PERDONAR ESTE MES 
 // =========================================================================
 // 3. EL BOTÓN VERDE: PERDONAR ESTE MES (MOTOR DE REFINANCIAMIENTO EXACTO - MODO PAZ)
 // =========================================================================
+// 3. EL BOTÓN VERDE: PERDONAR ESTE MES (MOTOR DE REFINANCIAMIENTO EXACTO V6)
 window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) { 
     if (!confirm("🛡️ ¿Desea PERDONAR LA MORA y patear la fecha para el próximo ciclo sin multas?")) return; 
 
@@ -458,29 +471,41 @@ window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
 
         const numeroCuotas = parseInt(credito.num_cuotas) || 1; 
         const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
+
+        // ====================================================================
+        // 🔥 NUEVO INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V6) 🔥
+        // ====================================================================
+        // REGLA DE ORO DEL GERENTE: ¡NUNCA TOCAR LA FECHA DE EMISIÓN!
         
-        // 🔥 CÁLCULO DE EXTENSIÓN EXACTA SEGÚN LA VIDA ORIGINAL DEL CRÉDITO
-        let diasExtension = numeroCuotas; // Base para cobros diarios
+        const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
+        const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
+
+        let diasExtension = 1;
         
-        if (frecuencia.includes('semanal')) {
-            diasExtension = 7 * numeroCuotas; 
-        } else if (frecuencia.includes('quincenal')) {
-            diasExtension = 15 * numeroCuotas; 
-        } else if (frecuencia.includes('mensual')) {
-            diasExtension = 30 * numeroCuotas; 
+        if (esDiario || esMensualUnico) {
+            // REGLA A: Diarios y de 1 Mes -> Saltan el ciclo completo (Ej: +60, +40, +30 días)
+            diasExtension = numeroCuotas;
+            if (frecuencia.includes('mensual')) diasExtension = 30; 
+        } else {
+            // REGLA B: Semanales, Quincenales, Mensuales Largos -> SOLO SALTAN 1 CUOTA
+            // El cliente tiene que dar la cara en el próximo pago de su ciclo
+            if (frecuencia.includes('semanal')) diasExtension = 7;
+            else if (frecuencia.includes('quincenal')) diasExtension = 15;
+            else if (frecuencia.includes('mensual')) diasExtension = 30;
         }
         
-        // Tomamos el día de hoy como punto de partida para el nuevo ciclo de gracia
+        // Tomamos el día de HOY como punto de partida para el nuevo ciclo de gracia
         let fechaBase = new Date(); 
         fechaBase.setHours(0,0,0,0);
         
-        // Disparamos la fecha hacia el futuro sumando los días exactos calculados
+        // Disparamos la nueva fecha hacia el futuro según la regla
         fechaBase.setDate(fechaBase.getDate() + diasExtension);
 
         const año = fechaBase.getFullYear(); 
         const mes = String(fechaBase.getMonth() + 1).padStart(2, '0'); 
         const dia = String(fechaBase.getDate()).padStart(2, '0'); 
         const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
+        // ====================================================================
 
         // 🛡️ ACTUALIZACIÓN EN MODO PAZ: Solo movemos la fecha, no tocamos la plata
         const { error } = await supabaseClient.from('creditos').update({  
@@ -530,6 +555,7 @@ window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
 // =========================================================================
 // 4. EL BOTÓN MORADO: RENOVAR PLAZO (MOTOR INTELIGENTE CON CÁLCULO DE INTERÉS)
 // =========================================================================
+// 4. EL BOTÓN AZUL: RENOVAR PLAZO (MOTOR DE REFINANCIAMIENTO EXACTO V6)
 window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
     if (!confirm(`🔄 RENOVACIÓN DE PLAZO INTELIGENTE\n\nEl sistema mantendrá este mismo crédito y su historial de pagos intacto.\n\nGenerará el nuevo interés sobre el saldo restante y empujará la fecha de vencimiento.\n\n¿Está seguro de proceder?`)) return;
 
@@ -570,20 +596,25 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
         const cuotaOriginal = parseFloat(credito.valor_cuota) || 0;
 
         // ====================================================================
-        // 🔥 INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V5) 🔥
+        // 🔥 NUEVO INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V6) 🔥
         // ====================================================================
         const numeroCuotas = parseInt(credito.num_cuotas) || 1;
         const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
         
-        // CÁLCULO DE EXTENSIÓN EXACTA SEGÚN LA VIDA ORIGINAL DEL CRÉDITO
-        let diasExtension = numeroCuotas; // Base para cobros diarios
+        const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
+        const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
+
+        let diasExtension = 1;
         
-        if (frecuencia.includes('semanal')) {
-            diasExtension = 7 * numeroCuotas; 
-        } else if (frecuencia.includes('quincenal')) {
-            diasExtension = 15 * numeroCuotas; 
-        } else if (frecuencia.includes('mensual')) {
-            diasExtension = 30 * numeroCuotas; 
+        if (esDiario || esMensualUnico) {
+            // REGLA A: Diarios y de 1 Mes -> Saltan el ciclo completo (Ej: +60, +40, +30 días)
+            diasExtension = numeroCuotas;
+            if (frecuencia.includes('mensual')) diasExtension = 30; 
+        } else {
+            // REGLA B: Semanales, Quincenales, Mensuales Largos -> SOLO SALTAN 1 CUOTA
+            if (frecuencia.includes('semanal')) diasExtension = 7;
+            else if (frecuencia.includes('quincenal')) diasExtension = 15;
+            else if (frecuencia.includes('mensual')) diasExtension = 30;
         }
         
         // Tomamos el día de hoy como punto de partida para el nuevo ciclo
@@ -637,7 +668,6 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
         alert("❌ Error al procesar: " + error.message);
     }
 };
-
 // =========================================================================
 // 🧊 MOTOR PARA CONGELAR/DESCONGELAR CUENTAS (CEREBRO MATEMÁTICO INCLUIDO)
 // =========================================================================
@@ -652,7 +682,7 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCR
     let nuevaFechaVencimiento = undefined;
 
     if (nuevoEstado === 'congelado') {
-        // 🔥 AQUÍ NACE EL NUEVO PANEL ESTRUCTURADO (REEMPLAZA AL PROMPT VIEJO) 🔥
+        // 🔥 AQUÍ NACE EL NUEVO PANEL ESTRUCTURADO 🔥
         const resultadoAcuerdo = await new Promise((resolve) => {
             const divModal = document.createElement('div');
             divModal.innerHTML = `
@@ -681,7 +711,6 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCR
             `;
             document.body.appendChild(divModal);
             
-            // Pone el mouse automático en el cuadrito para escribir rápido
             setTimeout(() => document.getElementById('input-acuerdo-monto').focus(), 100);
 
             document.getElementById('btn-guardar-acuerdo').onclick = () => {
@@ -697,30 +726,30 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCR
             };
         });
 
-        if (resultadoAcuerdo.cancelado) return; // Si apretó cancelar, no hacemos nada
+        if (resultadoAcuerdo.cancelado) return;
 
         if (resultadoAcuerdo.monto) {
-            // Unimos el número y la palabra para que el Módulo de Recaudación siga haciendo su magia
             notaAcuerdo = `${resultadoAcuerdo.monto} ${resultadoAcuerdo.frec}`;
             
             // =========================================================
-            // 🔥 EL CEREBRO MATEMÁTICO: CALCULA LA PRÓXIMA FECHA HOY 🔥
+            // 🔥 CEREBRO ALPHA V6 (ADAPTADO PARA CONVENIOS DE PAGO) 🔥
             // =========================================================
             let diasSumar = 30; 
             if (resultadoAcuerdo.frec === 'quincenal') diasSumar = 15;
-            if (resultadoAcuerdo.frec === 'semanal') diasSumar = 7;
-            if (resultadoAcuerdo.frec === 'diario') diasSumar = 1;
+            else if (resultadoAcuerdo.frec === 'semanal') diasSumar = 7;
+            else if (resultadoAcuerdo.frec === 'diario') diasSumar = 1;
 
-            const fechaCalculada = new Date();
-            fechaCalculada.setDate(fechaCalculada.getDate() + diasSumar);
+            let fechaBase = new Date();
+            fechaBase.setHours(0,0,0,0); // Blindaje contra zonas horarias
+            fechaBase.setDate(fechaBase.getDate() + diasSumar);
             
-            const añoFormato = fechaCalculada.getFullYear();
-            const mesFormato = String(fechaCalculada.getMonth() + 1).padStart(2, '0');
-            const diaFormato = String(fechaCalculada.getDate()).padStart(2, '0');
+            const añoFormato = fechaBase.getFullYear();
+            const mesFormato = String(fechaBase.getMonth() + 1).padStart(2, '0');
+            const diaFormato = String(fechaBase.getDate()).padStart(2, '0');
             
             nuevaFechaVencimiento = `${añoFormato}-${mesFormato}-${diaFormato}`;
+            // =========================================================
         } else {
-            // Si el gerente dejó la caja de dinero vacía, el crédito se congela sin acuerdo (Fecha NULL)
             notaAcuerdo = "";
             nuevaFechaVencimiento = null;
         }
@@ -730,21 +759,19 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCR
         const { data: credito, error: errBusq } = await supabaseClient.from('creditos').select('monto_capital, valor_cuota, frecuencia_pago, total_pagar, num_cuotas, clientes(nombres, apellidos, cedula, whatsapp)').eq('id', idCredito).single();
         if (errBusq) throw errBusq;
 
-        // Preparamos el paquete de actualización para Supabase
         let datosGuardar = { 
             estado: nuevoEstado,
             acuerdo_pago: notaAcuerdo 
         };
 
-        // Inyectamos la fecha si es necesario
         if (nuevoEstado === 'congelado' && nuevaFechaVencimiento !== undefined) {
             datosGuardar.fecha_vencimiento_actual = nuevaFechaVencimiento;
-       } else if (nuevoEstado === 'activo') {
-            datosGuardar.acuerdo_pago = ""; // Borramos el acuerdo viejo
+        } else if (nuevoEstado === 'activo') {
+            datosGuardar.acuerdo_pago = ""; 
             
-            // 🛠️ CORRECCIÓN DE AUDITORÍA ALPHA V5: 
-            // Si lo descongelamos, lo enviamos a la fecha de HOY para que explote en la Ruta de Cobro.
-            const hoy = new Date();
+            // 🛠️ CORRECCIÓN DE AUDITORÍA ALPHA V6 (Descongelar)
+            let hoy = new Date();
+            hoy.setHours(0,0,0,0);
             const año = hoy.getFullYear();
             const mes = String(hoy.getMonth() + 1).padStart(2, '0');
             const dia = String(hoy.getDate()).padStart(2, '0');
