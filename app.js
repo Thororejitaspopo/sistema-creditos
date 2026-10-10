@@ -513,6 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // =========================================================================
 // 🗺️ MOTOR INDEPENDIENTE: RUTA DE COBRO DEL DÍA (CLON PERFECTO DE ALERTAS)
 // =========================================================================
+// =========================================================================
+// 🗺️ MOTOR INDEPENDIENTE: RUTA DE COBRO DEL DÍA (CLON PERFECTO DE ALERTAS)
+// =========================================================================
 async function cargarRutaCobroDia() {
     try {
         const contenedor = document.getElementById('contenedor-ruta-dia');
@@ -626,8 +629,8 @@ async function cargarRutaCobroDia() {
             let saldoPendiente = deudaTotalReal - totalAbonado;
             if (saldoPendiente < 0) saldoPendiente = 0;
             
-            // =========================================================
-            // 🔥 CALCULADORA DE CUOTAS ACUMULADAS
+           // =========================================================
+            // 🔥 CALCULADORA DE CUOTAS ACUMULADAS (CON DOBLE CANDADO)
             // =========================================================
             let cuotasAcumuladas = 1;
             let diasAtraso = 0;
@@ -638,12 +641,27 @@ async function cargarRutaCobroDia() {
                 diasAtraso = Math.floor((hoy.getTime() - fechaVenc.getTime()) / (1000 * 60 * 60 * 24));
                 const freqStr = etiqueta; 
                 
+                let cuotasPorTiempo = 1;
+                
                 if (freqStr.includes('SEMANAL')) {
-                    cuotasAcumuladas = Math.floor(diasAtraso / 7) + 1;
+                    cuotasPorTiempo = Math.floor(diasAtraso / 7) + 1;
                 } else if (freqStr.includes('QUINCENAL')) {
-                    cuotasAcumuladas = Math.floor(diasAtraso / 15) + 1;
+                    cuotasPorTiempo = Math.floor(diasAtraso / 15) + 1;
                 } else if (freqStr.includes('MENSUAL')) {
-                    cuotasAcumuladas = Math.floor(diasAtraso / 30) + 1;
+                    cuotasPorTiempo = Math.floor(diasAtraso / 30) + 1;
+                }
+                
+                // CANDADO 1: El tiempo no puede exigir más cuotas del total del crédito
+                const totalCuotasCredito = parseInt(c.num_cuotas) || 1;
+                let cuotasExigibles = Math.min(cuotasPorTiempo, totalCuotasCredito);
+                
+                // CANDADO 2: Damos "vida" al texto restando las cuotas que el cliente ya pagó
+                let cuotasYaPagadas = Math.floor(totalAbonado / parseFloat(c.valor_cuota));
+                cuotasAcumuladas = cuotasExigibles - cuotasYaPagadas;
+                
+                // Seguridad: Si la resta da 0 o menos, pero aún hay saldo pendiente, al menos debe 1 cuota (o una fracción)
+                if (cuotasAcumuladas < 1 && saldoPendiente > 0) {
+                    cuotasAcumuladas = 1;
                 }
             }
 

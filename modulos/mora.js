@@ -584,11 +584,8 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
 
         const tasa = parseFloat(credito.tasa_interes) || 20;
         
-        // El interés generado sobre el dinero vivo (Ej: 110 * 20% = 22)
+        // El interés generado sobre el dinero vivo (Ej: 100 * 20% = 20)
         const nuevoInteresGenerado = saldoMatematicoReal * (tasa / 100);
-
-        // 🔥 LA CURA DE LA ETIQUETA: Guardamos el recargo como MORA para que la pantalla lo reconozca
-        const nuevaMora = moraAnterior + nuevoInteresGenerado;
         
         let nuevoSaldoPendiente = saldoMatematicoReal + nuevoInteresGenerado;
 
@@ -631,10 +628,14 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
         // ====================================================================
 
         // 6. INYECTAMOS EN BASE DE DATOS
+        // Para que el saldo neto quede exactamente en los 120 nuevos sin que el abono viejo de 68 lo reduzca a 52:
+        const nuevoTotalPagar = totalAbonado + nuevoSaldoPendiente;
+
         const { error } = await supabaseClient.from('creditos').update({ 
-            saldo_pendiente: Number(nuevoSaldoPendiente.toFixed(2)),
-            monto_mora: Number(nuevaMora.toFixed(2)), // Inyectamos el castigo a la bodega de mora
-            valor_cuota: Number(cuotaOriginal.toFixed(2)), // Cuota redonda intacta (Los 4.00)
+            total_pagar: Number(nuevoTotalPagar.toFixed(2)), // Sube el total histórico a 188 para absorber el abono previo
+            saldo_pendiente: Number(nuevoSaldoPendiente.toFixed(2)), // Saldo vivo: 120
+            monto_mora: 0, // Mora limpia a 0
+            valor_cuota: Number(cuotaOriginal.toFixed(2)), 
             fecha_vencimiento_actual: nuevaFechaVencimiento 
         }).eq('id', idCredito);
 
@@ -647,10 +648,9 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
             detalle: `Renovación sobre Saldo Real de $${saldoMatematicoReal.toFixed(2)}. Interés cobrado: $${nuevoInteresGenerado.toFixed(2)}. Vence: ${dia}/${mes}/${año}.`
         });
 
-        let enviarSMS = confirm(`✅ CONTRATO REFINANCIADO CON ÉXITO\n\n- Saldo Base: $${saldoMatematicoReal.toFixed(2)}\n- Nuevo Interés (${tasa}%): $${nuevoInteresGenerado.toFixed(2)}\n- NUEVO SALDO TOTAL: $${nuevoSaldoPendiente.toFixed(2)}\n- Vence el ${dia}/${mes}/${año}.\n\n¿Desea enviar un SMS al cliente avisándole de su nuevo saldo y fecha?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar silencioso`);
+        let enviarSMS = confirm(`✅ CONTRATO REFINANCIADO CON ÉXITO\n\nSaldo Base: $${saldoMatematicoReal.toFixed(2)}\nNuevo Interés (${tasa}%): $${nuevoInteresGenerado.toFixed(2)}\nNUEVO SALDO TOTAL: $${nuevoSaldoPendiente.toFixed(2)}\nVence el ${dia}/${mes}/${año}.\n\n¿Desea enviar un SMS al cliente avisándole de su nuevo saldo y fecha?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar silencioso`);
 
         if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
-            // El SMS se va con la matemática impecable
             await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_saldo', nuevoInteresGenerado, nuevoSaldoPendiente);
         }
 

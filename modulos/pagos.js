@@ -159,24 +159,33 @@ async function buscarCreditoParaCobro() {
 
                 const cli = c.clientes || {};
                 
-                // MAGIA VISUAL: Calculamos el préstamo del periodo actual (Cuota x N° Cuotas)
-                const prestamo = (parseFloat(c.valor_cuota) * (parseInt(c.num_cuotas) || 1)).toFixed(0);
-                
+               // =========================================================
+                // 🔥 CÁLCULO DEL SALDO NETO REAL PARA LA LISTA DESPLEGABLE
+                // =========================================================
                 const moraCredito = parseFloat(c.monto_mora) || 0;
-                let textoMoraExtra = "";
+                let totalPagadoHastaHoy = 0;
                 
-                if (moraCredito > 0) {
-                    let totalPagadoHastaHoy = 0;
-                    if (pagosCliente) {
-                        pagosCliente.forEach(p => {
-                            if (p.id_credito === c.id) {
-                                totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
-                            }
-                        });
-                    }
-                    const deudaTotalCalc = (parseFloat(c.total_pagar) - totalPagadoHastaHoy) + moraCredito;
-                    textoMoraExtra = ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalCalc.toFixed(2)}`;
+                if (pagosCliente) {
+                    pagosCliente.forEach(p => {
+                        if (p.id_credito === c.id) {
+                            totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
+                        }
+                    });
                 }
+                
+                // Calculamos el saldo vivo (Total a pagar original - Todo lo que ha pagado)
+                let saldoNeto = (parseFloat(c.total_pagar) || 0) - totalPagadoHastaHoy;
+                if (saldoNeto < 0) saldoNeto = 0; // Para que no salgan saldos negativos si pagó de más
+
+                const deudaTotalConMora = saldoNeto + moraCredito;
+                
+                let textoMoraExtra = "";
+                if (moraCredito > 0) {
+                    textoMoraExtra = ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalConMora.toFixed(2)}`;
+                }
+                
+                // Formateamos el texto que se verá en la lista
+                const prestamo = `Saldo: $${saldoNeto.toFixed(2)}`;
 
                 // 🔥 MAGIA DE ETIQUETAS: Detectar Botón Morado o Verde 🔥
                 let etiquetaAccion = "";
@@ -195,7 +204,11 @@ async function buscarCreditoParaCobro() {
                 
                 const alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
                 
-                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | Préstamo de $${prestamo}${textoMoraExtra}${etiquetaAccion}`;
+                // Formateamos el texto que se verá en la lista (Total a Pagar Original + Saldo Actual)
+                const totalOriginal = parseFloat(c.total_pagar || 0).toFixed(2);
+                const infoDinero = `Total: $${totalOriginal} ➡️ Saldo: $${saldoNeto.toFixed(2)}`;
+                
+                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | ${infoDinero}${textoMoraExtra}${etiquetaAccion}`;
                 
                 selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
             });
@@ -345,7 +358,7 @@ async function cargarEstadoCuentaCredito(idCredito) {
     
     // 🔥 LA CURA MULTI-MESES: Identificamos cuántas cuotas tiene realmente el crédito
     const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
-    const cuotaPuraCalculada = parseFloat(encontrado.total_pagar) / numeroCuotasOriginales;
+   const cuotaPuraCalculada = parseFloat(encontrado.valor_cuota) || (parseFloat(encontrado.total_pagar) / numeroCuotasOriginales);
     
     let cuotaFinal = nuevaCuotaAcuerdo !== null ? nuevaCuotaAcuerdo : cuotaPuraCalculada;
 
@@ -1271,6 +1284,9 @@ function cambiarMetodoPago(metodo) {
 // =========================================================================
 // 🚀 INYECCIÓN OFICIAL DE COBRO A LA BASE DE DATOS, TICKET Y NOTIFICACIÓN SMS
 // =========================================================================
+// =========================================================================
+// 🚀 INYECCIÓN OFICIAL DE COBRO A LA BASE DE DATOS, TICKET Y NOTIFICACIÓN SMS
+// =========================================================================
 async function procesarCobroOficial() {
     const montoInput = parseFloat(document.getElementById('monto-cobro-input').value);
     const metodoPago = document.getElementById('metodo-pago-seleccionado').value;
@@ -1312,7 +1328,6 @@ async function procesarCobroOficial() {
             totalAbonadoPrevio = pagosPrevios.reduce((acc, p) => acc + (parseFloat(p.abono_total) || 0), 0);
         }
         const numeroNuevoPago = (pagosPrevios ? pagosPrevios.length : 0) + 1;
-
 
         // 🔥 REGLA DE ORO ALPHA: Asignamos la mora a la Bóveda de Interés
         const interesFaltantePorAsegurar = (interesTotalPactado + moraExtra) - interesYaPagado;
@@ -1545,69 +1560,74 @@ async function procesarCobroOficial() {
         if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
 
         // =================================================================
-        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (EMPUJÓN AUTOMÁTICO)
-        // =================================================================
-       // =================================================================
-        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (EMPUJÓN INTELIGENTE)
-        // =================================================================
-        // =================================================================
-        // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (CEREBRO DE PAGOS PARCIALES)
-        // =================================================================
-        // =================================================================
         // 🚀 NUEVO: REPROGRAMAR LA FECHA DE COBRO (CEREBRO DE PAGOS PARCIALES)
         // =================================================================
         if (!esCancelacionTotal && creditoSeleccionadoCobro.fecha_vencimiento_actual) {
             try {
-                // 🔥 OBLIGAMOS A LA MÁQUINA A LEER LA BASE DE DATOS EN ESTE SEGUNDO
-                const { data: dbCredito } = await supabaseClient
-                    .from('creditos')
-                    .select('estado, acuerdo_pago, valor_cuota, frecuencia_pago')
-                    .eq('id', creditoSeleccionadoCobro.id)
-                    .single();
+                // 🔥 EL CANDADO DEL GERENTE (REGLA DE ALERTAS) 🔥
+                const fVenc = new Date(creditoSeleccionadoCobro.fecha_vencimiento_actual + 'T12:00:00');
+                const fHoy = new Date();
+                
+                fVenc.setHours(0,0,0,0);
+                fHoy.setHours(0,0,0,0);
+                
+                // Si la fecha de vencimiento es de AYER o más antigua, está atrapado en Alertas.
+                const estaEnAlertas = fVenc.getTime() < fHoy.getTime(); 
 
-                let freq = (dbCredito.frecuencia_pago || '').toUpperCase();
-                let valorDeUnaCuota = parseFloat(dbCredito.valor_cuota) || 1;
-
-                // 1. Si está congelado, extraemos la cuota EXACTA de su acuerdo
-                if (dbCredito.estado === 'congelado') {
-                    const acuerdo = (dbCredito.acuerdo_pago || '').toLowerCase();
-                    if (acuerdo.includes('mensual')) freq = 'MENSUAL';
-                    else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
-                    else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
-                    else if (acuerdo.includes('diario')) freq = 'DIARIO';
-
-                    const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
-                    if (matchMonto && parseFloat(matchMonto[0]) > 0) {
-                        valorDeUnaCuota = parseFloat(matchMonto[0]);
-                    }
-                }
-
-                // 2. 🌟 EL CEREBRO MATEMÁTICO DE LOS ABONOS PARCIALES 🌟
-                const cuotasPagadasAntes = Math.floor(totalAbonadoPrevio / valorDeUnaCuota);
-                const cuotasPagadasDespues = Math.floor((totalAbonadoPrevio + montoInput) / valorDeUnaCuota);
-                const cuotasAvanzadas = cuotasPagadasDespues - cuotasPagadasAntes;
-
-                if (cuotasAvanzadas >= 1) {
-                    let fechaObj = new Date(creditoSeleccionadoCobro.fecha_vencimiento_actual + 'T12:00:00');
-                    
-                    if (freq.includes('SEMANAL')) {
-                        fechaObj.setDate(fechaObj.getDate() + (7 * cuotasAvanzadas));
-                    } else if (freq.includes('QUINCENAL')) {
-                        fechaObj.setDate(fechaObj.getDate() + (15 * cuotasAvanzadas));
-                    } else if (freq.includes('MENSUAL')) {
-                        fechaObj.setMonth(fechaObj.getMonth() + (1 * cuotasAvanzadas));
-                    } else if (freq.includes('DIARIO')) {
-                        fechaObj.setDate(fechaObj.getDate() + (1 * cuotasAvanzadas));
-                    }
-                    
-                    const nuevaFechaVenc = fechaObj.toISOString().split('T')[0];
-
-                    await supabaseClient
+                if (estaEnAlertas) {
+                    // 🔒 LUZ ROJA: El cliente está vencido y acaba de hacer un abono parcial.
+                    // ¡SE ACTIVA EL CANDADO! La fecha NO SE MUEVE para que no escape de Alertas.
+                    console.log("🔒 Candado Alpha Activo: El cliente está en mora. La fecha de vencimiento ha sido bloqueada.");
+                } else {
+                    // 🟢 LUZ VERDE: El cliente está al día. El sistema lo premia moviendo su fecha normal.
+                    const { data: dbCredito } = await supabaseClient
                         .from('creditos')
-                        .update({ fecha_vencimiento_actual: nuevaFechaVenc })
-                        .eq('id', creditoSeleccionadoCobro.id);
+                        .select('estado, acuerdo_pago, valor_cuota, frecuencia_pago')
+                        .eq('id', creditoSeleccionadoCobro.id)
+                        .single();
 
-                    creditoSeleccionadoCobro.fecha_vencimiento_actual = nuevaFechaVenc;
+                    let freq = (dbCredito.frecuencia_pago || '').toUpperCase();
+                    let valorDeUnaCuota = parseFloat(dbCredito.valor_cuota) || 1;
+
+                    if (dbCredito.estado === 'congelado') {
+                        const acuerdo = (dbCredito.acuerdo_pago || '').toLowerCase();
+                        if (acuerdo.includes('mensual')) freq = 'MENSUAL';
+                        else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
+                        else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
+                        else if (acuerdo.includes('diario')) freq = 'DIARIO';
+
+                        const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
+                        if (matchMonto && parseFloat(matchMonto[0]) > 0) {
+                            valorDeUnaCuota = parseFloat(matchMonto[0]);
+                        }
+                    }
+
+                    const cuotasPagadasAntes = Math.floor(totalAbonadoPrevio / valorDeUnaCuota);
+                    const cuotasPagadasDespues = Math.floor((totalAbonadoPrevio + montoInput) / valorDeUnaCuota);
+                    const cuotasAvanzadas = cuotasPagadasDespues - cuotasPagadasAntes;
+
+                    if (cuotasAvanzadas >= 1) {
+                        let fechaObj = new Date(creditoSeleccionadoCobro.fecha_vencimiento_actual + 'T12:00:00');
+                        
+                        if (freq.includes('SEMANAL')) {
+                            fechaObj.setDate(fechaObj.getDate() + (7 * cuotasAvanzadas));
+                        } else if (freq.includes('QUINCENAL')) {
+                            fechaObj.setDate(fechaObj.getDate() + (15 * cuotasAvanzadas));
+                        } else if (freq.includes('MENSUAL')) {
+                            fechaObj.setMonth(fechaObj.getMonth() + (1 * cuotasAvanzadas));
+                        } else if (freq.includes('DIARIO')) {
+                            fechaObj.setDate(fechaObj.getDate() + (1 * cuotasAvanzadas));
+                        }
+                        
+                        const nuevaFechaVenc = fechaObj.toISOString().split('T')[0];
+
+                        await supabaseClient
+                            .from('creditos')
+                            .update({ fecha_vencimiento_actual: nuevaFechaVenc })
+                            .eq('id', creditoSeleccionadoCobro.id);
+
+                        creditoSeleccionadoCobro.fecha_vencimiento_actual = nuevaFechaVenc;
+                    }
                 }
             } catch (errorFecha) {
                 console.error("Error moviendo la fecha:", errorFecha);
