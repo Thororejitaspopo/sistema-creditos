@@ -330,7 +330,17 @@ async function guardarNuevoCredito() {
 
             const mensajeVoucher = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreLimpio}\n\n💰 Monto: $${monto.toFixed(2)}\n💵 Cuota: $${valorCuota.toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${totalPagar.toFixed(2)}\n🔢 Cuotas: ${cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
             
-            enviarSMSAutomatico(infoCliente.whatsapp, mensajeVoucher);
+            // 1. Envía el mensaje original e impecable al cliente
+            await enviarSMSAutomatico(infoCliente.whatsapp, mensajeVoucher);
+
+            // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos que el chip bloquee los mensajes
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 2. 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
+            const numeroGerente = "0939836191"; // <-- ¡RECUERDE PONER SU NÚMERO REAL AQUÍ!
+            if (infoCliente.whatsapp !== numeroGerente) {
+                await enviarSMSAutomatico(numeroGerente, `[COPIA NUEVO CRÉDITO]\n\n${mensajeVoucher}`);
+            }
         }
         
         if (typeof window.cargarHistorialCreditos === 'function') {
@@ -936,14 +946,31 @@ async function guardarEdicion() {
             
             // Fecha y hora del evento de modificación
             const ahora = new Date();
-            const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            const diaCapitalizado = dias[ahora.getDay()].charAt(0).toUpperCase() + dias[ahora.getDay()].slice(1);
+            const diaNum = String(ahora.getDate()).padStart(2, '0');
+            const mesNombre = meses[ahora.getMonth()];
+            const anioCorto = String(ahora.getFullYear()).slice(-2);
+            
             const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-            const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
-
+            
+            // Formato exacto manual: Lunes 12/octubre/26 | 10:49 a. m.
+            const fechaHoraSMS = `${diaCapitalizado} ${diaNum}/${mesNombre}/${anioCorto} | ${horaFormateada}`;
             // Estructura limpia y corporativa con el código en su propia línea (SOLO LETRA PARA EL CLIENTE)
             const msjMod = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n\nHola, los datos de tu credito han sido MODIFICADOS con exito.\n\n💰 Nuevo Monto: $${nuevoMonto.toFixed(2)}\n💵 Nueva Cuota: $${nuevoValorCuota.toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${nuevoTotalPagar.toFixed(2)}\n🔢 Cuotas: ${credInfo.num_cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
             
+           // 🔥 CONFIGURACIÓN DE RESPALDO PARA EL GERENTE
+            const numeroGerente = "0939836191"; // <-- ¡PON TU NÚMERO REAL AQUÍ!
+
+            // 1. Envía el mensaje al cliente
             await enviarSMSAutomatico(cliInfo.whatsapp, msjMod);
+
+            // 2. Envía la copia al gerente (si el cliente no usó tu número)
+            if (cliInfo.whatsapp !== numeroGerente) {
+                await enviarSMSAutomatico(numeroGerente, `[COPIA EDICIÓN CRÉDITO]\n\n${msjMod}`);
+            }
         }
     } catch (errSMS) {
         console.error("⚠️ Error silencioso en SMS de modificación:", errSMS);
@@ -1015,9 +1042,8 @@ async function intentarAnularCredito(idCredito, capitalPrestado) {
         const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
 
         // 🛡️ SEPARACIÓN DE CÓDIGOS (INTERNO VS CLIENTE)
-        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`; // Para tu auditoría interna
-        const codigoCreditoSMS = `${codigoClienteBancario} | CRE #${codigoCifrado}`; // 🎓 SOLO LA LETRA para el cliente
-
+    const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`; // Para tu auditoría
+    const codigoCreditoSMS = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`; // 🎓 MOSTRAR NÚMERO Y LETRA
         const nombreCompleto = `${infoCliente.nombres.toUpperCase()} ${infoCliente.apellidos.toUpperCase()}`;
 
         // 3. LÓGICA DE CAJA
@@ -1244,8 +1270,21 @@ async function reenviarVoucher(idCredito) {
 
         const msjReenvio = `=== SISTEMA ALPHA ===\n${etiquetaMensaje}${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n📅 Emitido: ${fechaEmisionTexto}\n\nHola, aqui tienes el respaldo de tu credito.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Nro Cuotas: ${credito.num_cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
         
-        console.log("Reenviando voucher...");
+     console.log("Reenviando voucher...");
+        
+        // 1. Envía el mensaje de copia al cliente (o al nuevo número)
         await enviarSMSAutomatico(numeroEnvio.trim(), msjReenvio);
+
+        // 🕒 PAUSA DE 2 SEGUNDOS: Le da tiempo al chip para procesar y no bloquearse
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // 2. 🔥 ENVÍA AVISO DE AUDITORÍA AL GERENTE
+        const numeroGerente = "0939836191"; 
+        if (numeroEnvio.trim() !== numeroGerente) {
+            // Etiqueta secreta de auditoría exclusiva para tu teléfono
+            const estadoCobro = cobrar ? "COBRADO $0.50" : "GRATIS";
+            await enviarSMSAutomatico(numeroGerente, `[AVISO REENVÍO ${estadoCobro}]\n\n${msjReenvio}`);
+        }
 
         if (cobrar) {
             alert(`✅ Copia cobrada ($0.50) y enviada a: ${numeroEnvio}`);
