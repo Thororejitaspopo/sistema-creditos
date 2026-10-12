@@ -99,13 +99,16 @@ async function registrarCliente() {
         return; 
     }
 
-    const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idEditando);
+ // 🔥 CONFIGURACIÓN DEL NÚMERO MAESTRO (Tu número de gerente)
+    const numeroGerente = "0939836191"; // <-- ¡CAMBIA ESTO POR TU NÚMERO REAL!
+
+    // Validamos que el número no exista, EXCEPTO si es el número del gerente
+    const whatsappExiste = listaClientesGlobal.some(c => c.whatsapp === whatsapp && c.id !== idEditando && c.whatsapp !== numeroGerente);
     if (whatsappExiste) {
         inputWhatsapp.classList.add('campo-error');
         alert("⛔ Error: Este número de WhatsApp ya está asignado a otro cliente.");
         return;
     }
-
     const correoExiste = listaClientesGlobal.some(c => c.correo && c.correo.toLowerCase() === correo.toLowerCase() && c.id !== idEditando);
     if (correo && correoExiste) {
         inputCorreo.classList.add('campo-error');
@@ -131,11 +134,15 @@ async function registrarCliente() {
     horas = horas % 12 || 12;
     const fechaRegistro = `${nombreDia} ${diaNum}/${mesNombre}/${anio} hora ${horas}:${minutos} ${ampm}`;
 
-    // Fecha corta y elegante para enviar en el SMS
-    const fechaLargaSMS = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
+    // ==========================================
+    // Fecha elegante para enviar en el SMS
+    // ==========================================
+    const diaCapitalizado = nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
+    const anioCorto = String(anio).slice(-2); // Convierte 2026 a 26
     const horaFormateadaSMS = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-    const fechaHoraSMS = `${fechaLargaSMS.charAt(0).toUpperCase() + fechaLargaSMS.slice(1)} | ${horaFormateadaSMS}`;
-
+    
+    // Armamos el formato exacto: Domingo 11/octubre/26 | 03:00 p. m.
+    const fechaHoraSMS = `${diaCapitalizado} ${diaNum}/${mesNombre}/${anioCorto} | ${horaFormateadaSMS}`;
     // === GENERACIÓN DEL CÓDIGO DE CLIENTE ===
     const inicialN = nombres.charAt(0).toUpperCase();
     const inicialA = apellidos.charAt(0).toUpperCase();
@@ -212,10 +219,18 @@ async function registrarCliente() {
                 } catch (errorCobro) { console.error("Error contable:", errorCobro); }
             }
 
-            try {
+          try {
                 // SMS PROFESIONAL (Fecha y Código separados)
                 const msjBienvenida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 ${codigoUnico}\n\nHola ${nombreCompleto}, tu registro ha sido exitoso.\n\nA partir de ahora podras acceder a nuestra linea de creditos.\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
-                if (typeof enviarSMSAutomatico === 'function') await enviarSMSAutomatico(whatsapp, msjBienvenida);
+                if (typeof enviarSMSAutomatico === 'function') {
+                    // 1. Envía al cliente
+                    await enviarSMSAutomatico(whatsapp, msjBienvenida);
+                    
+                    // 2. 🔥 ENVÍA COPIA AL GERENTE (Solo si el cliente no usó tu número)
+                    if (whatsapp !== numeroGerente) {
+                        await enviarSMSAutomatico(numeroGerente, `[COPIA NUEVO] ${codigoUnico}\n\n${msjBienvenida}`);
+                    }
+                }
             } catch (errorSMS) { console.error("Error SMS:", errorSMS); }
 
             if (cobrarAfiliacion) { alert(`✅ ¡${codigoUnico} guardado, $1.00 cobrado y SMS enviado!`);
@@ -251,10 +266,18 @@ async function registrarCliente() {
                 } catch (errorCobro) { console.error("Error contable:", errorCobro); }
             }
 
-            try {
+           try {
                 // SMS PROFESIONAL (Fecha y Código separados)
                 const msjActualizacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 ${codigoUnico}\n\nHola ${nombreCompleto}, tus datos han sido actualizados exitosamente en nuestro sistema.\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
-                if (typeof enviarSMSAutomatico === 'function') await enviarSMSAutomatico(whatsapp, msjActualizacion);
+                if (typeof enviarSMSAutomatico === 'function') {
+                    // 1. Envía al cliente
+                    await enviarSMSAutomatico(whatsapp, msjActualizacion);
+                    
+                    // 2. 🔥 ENVÍA COPIA AL GERENTE
+                    if (whatsapp !== numeroGerente) {
+                        await enviarSMSAutomatico(numeroGerente, `[COPIA EDICIÓN] ${codigoUnico}\n\n${msjActualizacion}`);
+                    }
+                }
             } catch (errorSMS) { console.error("Error SMS:", errorSMS); }
 
             if (cobrarEdicion) { alert(`✅ ¡Datos de ${codigoUnico} actualizados, $0.50 cobrados y SMS enviado!`);
