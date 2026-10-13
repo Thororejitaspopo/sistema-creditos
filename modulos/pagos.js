@@ -841,7 +841,17 @@ async function editarAbono(idAbono) {
 
                 const msjActualizacion = `=== SISTEMA ALPHA (Actualización) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, te notificamos un ajuste en tu historial tras nuestra revisión de caja.\n\n🔄 Pago Corregido: #${numPago}\n💰 Monto Exacto: $${nuevoMonto.toFixed(2)}\n📉 Nuevo Saldo: $${nuevoSaldoFinal.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoTxt}\n\nLamentamos las molestias. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
 
-                enviarSMSAutomatico(numeroCliente, msjActualizacion);
+                // 1. Envía el mensaje de actualización al cliente
+                await enviarSMSAutomatico(numeroCliente, msjActualizacion);
+
+                // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso del chip
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // 2. 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
+                const numeroGerente = "0939836191";
+                if (numeroCliente.toString().trim() !== numeroGerente) {
+                    await enviarSMSAutomatico(numeroGerente, `[COPIA EDICIÓN ABONO]\n\n${msjActualizacion}`);
+                }
             }
         }
         alert("✅ Abono editado, saldos, cajas y FECHAS recalculadas exitosamente.");
@@ -1070,7 +1080,17 @@ async function eliminarAbono(idAbono) {
 
                 const msjAnulacion = `=== SISTEMA ALPHA (Anulación Oficial) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nPor transparencia y control de auditoría, te notificamos que el siguiente abono ha sido ELIMINADO del sistema por una corrección interna.\n\n❌ Pago Anulado: #${abonoABorrar.numero_pago}\n💰 Monto Reversado: $${parseFloat(abonoABorrar.abono_total).toFixed(2)}\n📈 Saldo Restablecido: $${nuevoSaldoFinal.toFixed(2)}\n🔢 Cuotas Pendientes: ${cuotasPendientes}/${cuotasTotales}\n\nTu cuenta está protegida. Conserva este msj.\n🚫 NO RESPONDER A ESTE MENSAJE.`;
 
-                enviarSMSAutomatico(numeroCliente, msjAnulacion);
+                // 1. Envía la notificación de anulación al cliente
+                await enviarSMSAutomatico(numeroCliente, msjAnulacion);
+
+                // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso del chip
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // 2. 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
+                const numeroGerente = "0939836191";
+                if (numeroCliente.toString().trim() !== numeroGerente) {
+                    await enviarSMSAutomatico(numeroGerente, `[COPIA ANULACIÓN ABONO]\n\n${msjAnulacion}`);
+                }
             }
         }
 
@@ -1207,8 +1227,19 @@ async function reenviarReciboAbono(idAbono) {
         // 7. Armado del Mensaje Comercial con el encabezado dinámico 🔥
         const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoTxt}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
 
-        // 8. Disparo directo a tu MacroDroid sin bloqueos
-        enviarSMSAutomatico(numeroCliente, msjAbono);
+       // 8. Disparo directo a tu MacroDroid sin bloqueos
+        // A. Envío original al cliente
+        await enviarSMSAutomatico(numeroCliente, msjAbono);
+
+        // 🕒 B. PAUSA DE 2 SEGUNDOS: Evitamos colapso del chip
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // 🔥 C. COPIA DE AUDITORÍA PARA EL GERENTE
+        const numeroGerente = "0939836191";
+        if (numeroCliente !== numeroGerente) {
+            const estadoCobro = cobrarCosto ? "COBRADO $0.50" : "GRATIS";
+            await enviarSMSAutomatico(numeroGerente, `[AVISO REENVÍO ABONO - ${estadoCobro}]\n\n${msjAbono}`);
+        }
         
         // Alerta informativa final para el operador en pantalla
         if (cobrarCosto) {
@@ -1460,11 +1491,23 @@ async function procesarCobroOficial() {
                         }
                     }
 
+                    // 🔥 FÓRMULA ALPHA SMS COMPACTA (Mes en letras)
                     const ahora = new Date();
-                    const fechaLarga = ahora.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: '2-digit' });
-                    const horaFormateada = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-                    const fechaHoraSMS = `${fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1)} | ${horaFormateada}`;
+                    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
+                    const diaSemana = dias[ahora.getDay()];
+                    const numDia = String(ahora.getDate()).padStart(2, '0');
+                    const mesNombre = meses[ahora.getMonth()];
+                    const anioCorto = String(ahora.getFullYear()).slice(-2);
+
+                    let horas = ahora.getHours();
+                    let minutos = String(ahora.getMinutes()).padStart(2, '0');
+                    const ampm = horas >= 12 ? 'p.m.' : 'a.m.';
+                    horas = horas % 12; horas = horas ? horas : 12;
+                    horas = String(horas).padStart(2, '0');
+
+                    const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anioCorto} | ${horas}:${minutos} ${ampm}`;
                     let msjSalida = "";
 
                     if (esCancelacionTotal) {
@@ -1478,8 +1521,21 @@ async function procesarCobroOficial() {
                         msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoPago.toUpperCase()}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                     }
                     
+                    // 1. Envía el recibo original al cliente
                     await enviarSMSAutomatico(numeroCliente.toString(), msjSalida);
-                    console.log("✅ SMS enviado con éxito al número: " + numeroCliente);
+
+                    // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso de red
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    // 2. 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
+                    const numeroGerente = "0939836191";
+                    if (numeroCliente.toString().trim() !== numeroGerente) {
+                        // Detectamos si fue un abono normal o si liquidó toda la deuda
+                        const etiquetaAuditoria = esCancelacionTotal ? "[COPIA LIQUIDACIÓN]" : "[COPIA NUEVO ABONO]";
+                        await enviarSMSAutomatico(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
+                    }
+                    console.log("✅ SMS enviado al cliente y copia al gerente.");
+
                 } catch (errorSMS) {
                     alert(`❌ Falló el envío del SMS: ${errorSMS.message}`);
                 }
