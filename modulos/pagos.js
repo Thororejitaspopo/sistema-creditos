@@ -1610,9 +1610,15 @@ async function procesarCobroOficial() {
             cargarEstadoCuentaCredito(idCreditoActual);
         };
 
-        document.getElementById('monto-cobro-input').value = "";
+       document.getElementById('monto-cobro-input').value = "";
         document.getElementById('input-detalles-banco').value = "";
+        
+        // 🔥 Limpiar los nuevos selectores VIP
+        if(document.getElementById('select-banco')) document.getElementById('select-banco').value = "";
+        if(document.getElementById('input-referencia')) document.getElementById('input-referencia').value = "";
+
         if (typeof cambiarMetodoPago === 'function') cambiarMetodoPago('efectivo');
+        
         if (typeof cargarDatosCapital === 'function') cargarDatosCapital();
 
         // =================================================================
@@ -1693,6 +1699,25 @@ async function procesarCobroOficial() {
 
     } catch (err) {
         alert("Error crítico al registrar abono: " + err.message);
+    }
+}
+
+// =========================================================================
+// 🔄 UNIR BANCO Y REFERENCIA AUTOMÁTICAMENTE
+// =========================================================================
+// =========================================================================
+// 🔄 UNIR BANCO Y REFERENCIA AUTOMÁTICAMENTE (CON SIGNO # VIP)
+// =========================================================================
+function unirDetallesTransferencia() {
+    const banco = document.getElementById('select-banco').value;
+    const ref = document.getElementById('input-referencia').value.trim();
+    const inputOculto = document.getElementById('input-detalles-banco');
+    
+    if (banco && ref) {
+        // 🔥 Aquí está la magia: le inyectamos el espacio y el # automáticamente
+        inputOculto.value = `${banco} #${ref}`; 
+    } else {
+        inputOculto.value = ""; 
     }
 }
 

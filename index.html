@@ -582,8 +582,24 @@
                                 </button>
                             </div>
                             
-                            <div id="caja-detalles-transferencia" style="display: none; margin-top: 10px;">
-                                <textarea id="input-detalles-banco" placeholder="Ej: BANCO PICHINCHA, RUC: 123..., REF: 545454..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; resize: none; box-sizing: border-box; outline: none;" rows="2"></textarea>
+                            <!-- 🔥 NUEVO CONTENEDOR VIP DE TRANSFERENCIAS 🔥 -->
+                            <div id="caja-detalles-transferencia" style="display: none; margin-top: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                                
+                                <label style="font-size: 12px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">🏦 BANCO DE ORIGEN:</label>
+                                <select id="select-banco" onchange="unirDetallesTransferencia()" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 2px solid #0284c7; font-size: 14px; background: white; cursor: pointer; outline: none; font-weight: bold;">
+                                    <option value="">-- Seleccione el Banco --</option>
+                                    <option value="Pichincha">🟡 Banco Pichincha</option>
+                                    <option value="Guayaquil">🟣 Banco Guayaquil</option>
+                                    <option value="Produbanco">🟢 Banco Produbanco</option>
+                                    <option value="Pacifico">🔵 Banco del Pacífico</option>
+                                    <option value="Otro">⚪ Otro Banco</option>
+                                </select>
+
+                                <label style="font-size: 12px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">🧾 N° DE COMPROBANTE (REF):</label>
+                                <input type="text" id="input-referencia" oninput="unirDetallesTransferencia()" placeholder="Ej: 123456" style="width: 100%; padding: 12px; border-radius: 6px; border: 2px solid #0284c7; font-size: 14px; box-sizing: border-box; outline: none; font-weight: bold;">
+                                
+                                <!-- EL CEREBRO OCULTO QUE LEE EL BOTÓN VERDE -->
+                                <input type="hidden" id="input-detalles-banco" value="">
                             </div>
                             <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
                         </div>
