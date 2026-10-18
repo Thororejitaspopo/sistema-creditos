@@ -482,7 +482,7 @@ function renderizarAbonosPaginados() {
         
         const metodoTxt = p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO';
         
-        htmlHistorial += `
+       htmlHistorial += `
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 10px;">
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px;">
@@ -496,7 +496,12 @@ function renderizarAbonosPaginados() {
                         <span style="color: #cbd5e1;">|</span>
                         <span>H:${horas}:${minutos}</span>
                     </div>
-                    <span style="font-size: 10px; font-weight: 800; background: #e0f2fe; color: #0284c7; padding: 3px 6px; border-radius: 4px; margin-left: 10px;">${metodoTxt}</span>
+                    
+                    <!-- 🔥 AQUÍ ESTÁ LA MAGIA: AGRUPAMOS EL MÉTODO Y EL BANCO A LA DERECHA -->
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px; margin-left: 10px;">
+                        <span style="font-size: 10px; font-weight: 800; background: #e0f2fe; color: #0284c7; padding: 3px 6px; border-radius: 4px;">${metodoTxt}</span>
+                        ${p.detalles_banco ? `<span style="font-size: 11px; font-weight: 800; color: #64748b;">${p.detalles_banco}</span>` : ''}
+                    </div>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -516,7 +521,6 @@ function renderizarAbonosPaginados() {
                         ` : ''}
                     </div>
                 </div>
-                ${p.detalles_banco ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">Ref: ${p.detalles_banco}</div>` : ''}
             </div>
         `;
     });
@@ -837,10 +841,13 @@ async function editarAbono(idAbono) {
                 let cuotasPendientes = Math.ceil(nuevoSaldoFinal / valorDeCuota);
                 if (cuotasPendientes < 0) cuotasPendientes = 0;
 
-                const metodoTxt = abonoActual.forma_pago ? abonoActual.forma_pago.toUpperCase() : 'EFECTIVO';
+               // 🔥 MAGIA VIP PARA EDICIÓN
+                let infoMetodo = `💳 Método: ${abonoActual.forma_pago ? abonoActual.forma_pago.toUpperCase() : 'EFECTIVO'}`;
+                if (abonoActual.forma_pago && abonoActual.forma_pago.toLowerCase() === 'transferencia' && abonoActual.detalles_banco) {
+                    infoMetodo += `\n🏦 Banco: ${abonoActual.detalles_banco}`;
+                }
 
-                const msjActualizacion = `=== SISTEMA ALPHA (Actualización) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, te notificamos un ajuste en tu historial tras nuestra revisión de caja.\n\n🔄 Pago Corregido: #${numPago}\n💰 Monto Exacto: $${nuevoMonto.toFixed(2)}\n📉 Nuevo Saldo: $${nuevoSaldoFinal.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoTxt}\n\nLamentamos las molestias. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
-
+                const msjActualizacion = `=== SISTEMA ALPHA (Actualización) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, te notificamos un ajuste en tu historial tras nuestra revisión de caja.\n\n🔄 Pago Corregido: #${numPago}\n💰 Monto Exacto: $${nuevoMonto.toFixed(2)}\n📉 Nuevo Saldo: $${nuevoSaldoFinal.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nLamentamos las molestias. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
                 // 1. Envía el mensaje de actualización al cliente
                 await enviarSMSAutomatico(numeroCliente, msjActualizacion);
 
@@ -1073,13 +1080,18 @@ async function eliminarAbono(idAbono) {
                 // Formato exacto requerido
                 const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anio} | ${horas}:${minutos} ${ampm}`;
 
-                const nuevoSaldoFinal = parseFloat(creditoSeleccionadoCobro.saldoNeto) + parseFloat(abonoABorrar.abono_total);
+               const nuevoSaldoFinal = parseFloat(creditoSeleccionadoCobro.saldoNeto) + parseFloat(abonoABorrar.abono_total);
                 const cuotasTotales = parseInt(creditoAct.num_cuotas) || 1;
                 let cuotasPendientes = Math.ceil(nuevoSaldoFinal / (parseFloat(creditoAct.valor_cuota) || 1));
                 if (cuotasPendientes > cuotasTotales) cuotasPendientes = cuotasTotales;
 
-                const msjAnulacion = `=== SISTEMA ALPHA (Anulación Oficial) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nPor transparencia y control de auditoría, te notificamos que el siguiente abono ha sido ELIMINADO del sistema por una corrección interna.\n\n❌ Pago Anulado: #${abonoABorrar.numero_pago}\n💰 Monto Reversado: $${parseFloat(abonoABorrar.abono_total).toFixed(2)}\n📈 Saldo Restablecido: $${nuevoSaldoFinal.toFixed(2)}\n🔢 Cuotas Pendientes: ${cuotasPendientes}/${cuotasTotales}\n\nTu cuenta está protegida. Conserva este msj.\n🚫 NO RESPONDER A ESTE MENSAJE.`;
+                // 🔥 MAGIA VIP PARA ANULACIÓN
+                let infoMetodo = `💳 Método: ${abonoABorrar.forma_pago ? abonoABorrar.forma_pago.toUpperCase() : 'EFECTIVO'}`;
+                if (abonoABorrar.forma_pago && abonoABorrar.forma_pago.toLowerCase() === 'transferencia' && abonoABorrar.detalles_banco) {
+                    infoMetodo += `\n🏦 Banco: ${abonoABorrar.detalles_banco}`;
+                }
 
+                const msjAnulacion = `=== SISTEMA ALPHA (Anulación Oficial) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nPor transparencia y control de auditoría, te notificamos que el siguiente abono ha sido ELIMINADO del sistema por una corrección interna.\n\n❌ Pago Anulado: #${abonoABorrar.numero_pago}\n💰 Monto Reversado: $${parseFloat(abonoABorrar.abono_total).toFixed(2)}\n📈 Saldo Restablecido: $${nuevoSaldoFinal.toFixed(2)}\n🔢 Cuotas Pendientes: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nTu cuenta está protegida. Conserva este msj.\n🚫 NO RESPONDER A ESTE MENSAJE.`;
                 // 1. Envía la notificación de anulación al cliente
                 await enviarSMSAutomatico(numeroCliente, msjAnulacion);
 
@@ -1222,11 +1234,14 @@ async function reenviarReciboAbono(idAbono) {
         let cuotasPendientes = Math.ceil(saldoEnEseMomento / valorDeCuota);
         if (cuotasPendientes < 0) cuotasPendientes = 0;
 
-        const metodoTxt = abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO';
+       // 🔥 MAGIA VIP PARA EL REENVÍO
+        let infoMetodo = `💳 Método: ${abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO'}`;
+        if (abono.forma_pago && abono.forma_pago.toLowerCase() === 'transferencia' && abono.detalles_banco) {
+            infoMetodo += `\n🏦 Banco: ${abono.detalles_banco}`;
+        }
 
         // 7. Armado del Mensaje Comercial con el encabezado dinámico 🔥
-        const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoTxt}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
-
+        const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
        // 8. Disparo directo a tu MacroDroid sin bloqueos
         // A. Envío original al cliente
         await enviarSMSAutomatico(numeroCliente, msjAbono);
@@ -1508,17 +1523,23 @@ async function procesarCobroOficial() {
                     horas = String(horas).padStart(2, '0');
 
                     const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anioCorto} | ${horas}:${minutos} ${ampm}`;
+                    // 🔥 MAGIA: Preparamos la línea del método para ver si lleva banco
+                    let infoMetodo = `💳 Método: ${metodoPago.toUpperCase()}`;
+                    if (metodoPago === 'transferencia' && detallesBanco !== "") {
+                        infoMetodo += `\n🏦 Banco: ${detallesBanco}`;
+                    }
+
                     let msjSalida = "";
 
                     if (esCancelacionTotal) {
-                        msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\n🎉 ¡CONTRATO CANCELADO AL 100%! 🎉\n\nTe notificamos de manera oficial que tu crédito ha sido liquidado exitosamente en nuestra base de datos.\n\n✅ Pago de Cierre: #${numeroNuevoPago}\n💰 Monto Recibido: $${montoInput.toFixed(2)}\n📉 Saldo Pendiente: $0.00\n📊 Récord Crediticio: EXCELENTE / IMPECABLE\n\nQueremos agradecer enormemente tu compromiso y puntualidad. ¡Tienes las puertas totalmente abiertas para tu siguiente solicitud cuando la requieras! 🚀\n\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                        msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\n🎉 ¡CONTRATO CANCELADO AL 100%! 🎉\n\nTe notificamos de manera oficial que tu crédito ha sido liquidado exitosamente en nuestra base de datos.\n\n✅ Pago de Cierre: #${numeroNuevoPago}\n💰 Monto Recibido: $${montoInput.toFixed(2)}\n📉 Saldo Pendiente: $0.00\n${infoMetodo}\n📊 Récord Crediticio: EXCELENTE / IMPECABLE\n\nQueremos agradecer enormemente tu compromiso y puntualidad. ¡Tienes las puertas totalmente abiertas para tu siguiente solicitud cuando la requieras! 🚀\n\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                     } else {
                         const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
                         const valorDeCuota = parseFloat(creditoSeleccionadoCobro.valor_cuota) || 1;
                         let cuotasPendientes = Math.ceil(nuevoSaldo / valorDeCuota);
                         if (cuotasPendientes < 0) cuotasPendientes = 0;
 
-                        msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${metodoPago.toUpperCase()}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                        msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                     }
                     
                     // 1. Envía el recibo original al cliente
