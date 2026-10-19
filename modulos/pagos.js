@@ -204,12 +204,16 @@ async function buscarCreditoParaCobro() {
                 
                 const alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
                 
-                // Formateamos el texto que se verá en la lista (Total a Pagar Original + Saldo Actual)
+                // Formateamos la fecha en versión corta (ej: 18/oct/2026)
+                const fMesCorto = meses[f.getMonth()].substring(0, 3);
+                const fechaTxtCorta = `${f.getDate()}/${fMesCorto}/${f.getFullYear()}`;
+                
+                // Formateamos el dinero
                 const totalOriginal = parseFloat(c.total_pagar || 0).toFixed(2);
                 const infoDinero = `Total: $${totalOriginal} ➡️ Saldo: $${saldoNeto.toFixed(2)}`;
                 
-                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}]${alertaCongelado} | ${fechaTxt} | ${cli.nombres.split(' ')[0]} ${cli.apellidos.split(' ')[0]} (${cli.cedula}) | ${infoDinero}${textoMoraExtra}${etiquetaAccion}`;
-                
+                // 🔥 VERSIÓN VIP: Sin nombre/cédula repetidos, fecha corta y directo al grano
+                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}] | Emitido: ${fechaTxtCorta} | ${infoDinero}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
                 selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
             });
 
@@ -1777,7 +1781,7 @@ async function generarEstadoCuentaPDF() {
         const cli = creditoSeleccionadoCobro.clientes;
         const nombreCompleto = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         
-        // 1. EXTRAER EL CRE CIFRADO DE LA PANTALLA (Ej: CRE #[Ñ])
+        // 1. EXTRAER EL CRE CIFRADO
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
@@ -1806,6 +1810,7 @@ async function generarEstadoCuentaPDF() {
             
             fechaEmisionCredito = `${diaSemanaLimpio} ${numDia}/${mesNombre}/${anio}`;
         }
+
         // Inicializar jsPDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -1824,36 +1829,93 @@ async function generarEstadoCuentaPDF() {
         const hoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         doc.text(`Impreso: ${hoy}`, 14, 34);
 
+        // --- BUSCADOR DEL TEXTO DEL ACUERDO (LEYENDO DIRECTO DE LA PANTALLA) ---
+        let textoAcuerdo = "Acuerdo de Refinanciamiento";
+        if (creditoSeleccionadoCobro.estado === 'congelado') {
+            // Truco VIP: Leemos el texto visible en su sistema para robar el "10 semanal" (o el que sea)
+            const textoPantalla = document.body.innerText;
+            const match = textoPantalla.match(/ACUERDO DE REFINANCIAMIENTO ACTIVO[\s\S]*?"([^"]+)"/i);
+            if (match) {
+                textoAcuerdo = match[1];
+            }
+        }
+
         // --- DATOS DEL CLIENTE Y CRÉDITO ---
         doc.setDrawColor(200, 200, 200);
         doc.line(14, 38, 196, 38); // Línea separadora
+        
+        let startYDatos = 46; 
+
+        // 🌟 BANNER AMARILLO VIP (Solo si está congelado) 🌟
+        if (creditoSeleccionadoCobro.estado === 'congelado') {
+             doc.setFillColor(254, 240, 138); 
+             doc.roundedRect(14, 42, 182, 12, 2, 2, 'F');
+             doc.setTextColor(161, 98, 7); 
+             doc.setFontSize(10);
+             doc.setFont(undefined, 'bold');
+             // 🔥 ELIMINAMOS EL EMOJI PARA QUE NO SALGAN CARACTERES RAROS
+             doc.text("ACUERDO DE REFINANCIAMIENTO ACTIVO", 20, 47);
+             doc.setFont(undefined, 'normal');
+             doc.text(`"${textoAcuerdo}"`, 20, 52);
+             
+             startYDatos = 62; 
+             doc.setTextColor(0, 0, 0); 
+        }
 
         doc.setFontSize(11);
         doc.setTextColor(0, 0, 0);
         
-        // Columna Izquierda (4 líneas)
-        doc.text(`Cliente: ${nombreCompleto}`, 14, 46);
-        doc.text(`Cédula: ${cli.cedula}`, 14, 52);
-        doc.text(`Referencia: ${creText}`, 14, 58); 
-        doc.text(`Fecha de Crédito: ${fechaEmisionCredito}`, 14, 64); 
-        
-        // Columna Derecha (4 líneas)
+        // Columna Izquierda 
+        doc.text(`Cliente: ${nombreCompleto}`, 14, startYDatos);
+        doc.text(`Cédula: ${cli.cedula}`, 14, startYDatos + 6);
+        doc.text(`Referencia: ${creText}`, 14, startYDatos + 12); 
+        doc.text(`Fecha de Crédito: ${fechaEmisionCredito}`, 14, startYDatos + 18); 
+
+        // Columna Derecha
         const totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar).toFixed(2);
         const saldoActual = parseFloat(creditoSeleccionadoCobro.saldoNeto).toFixed(2);
         const cuotaFija = parseFloat(creditoSeleccionadoCobro.valor_cuota).toFixed(2);
         
-        // 🧮 Matemática de Cuotas Pendientes
         const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
         let cuotasPendientes = Math.ceil(parseFloat(saldoActual) / parseFloat(cuotaFija));
         if (cuotasPendientes < 0) cuotasPendientes = 0;
 
-        doc.text(`Total del Crédito: $${totalPagar}`, 120, 46);
-        doc.text(`Valor de Cuota: $${cuotaFija}`, 120, 52);
-        doc.text(`N° de Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)`, 120, 58); // 🔥 El toque del gerente
+        doc.text(`Total del Crédito: $${totalPagar}`, 120, startYDatos);
         
-        doc.setFont(undefined, 'bold');
-        doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, 64);
-        doc.setFont(undefined, 'normal');
+        const esCongelado = creditoSeleccionadoCobro.estado === 'congelado';
+        if (esCongelado) {
+            doc.setTextColor(217, 119, 6); 
+            doc.setFont(undefined, 'bold');
+            doc.text(`Valor de Cuota: $${cuotaFija} (CUENTA CONGELADA)`, 120, startYDatos + 6);
+            doc.text(`N° de Cuotas: N/A (${cuotasPendientes} Pendientes Aprox.)`, 120, startYDatos + 12);
+            doc.setTextColor(0, 0, 0); 
+            doc.setFont(undefined, 'normal');
+        } else {
+            doc.text(`Valor de Cuota: $${cuotaFija}`, 120, startYDatos + 6);
+            doc.text(`N° de Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)`, 120, startYDatos + 12);
+        }
+        
+        // 🔥 MOTOR DE MORA Y ORDEN VIP 🔥
+        const moraPDF = parseFloat(creditoSeleccionadoCobro.monto_mora) || 0;
+        let inicioTablaY = startYDatos + 32; 
+
+        if (moraPDF > 0) {
+            doc.setTextColor(220, 38, 38); 
+            doc.setFont(undefined, 'bold');
+            doc.text(`Mora Acumulada: $${moraPDF.toFixed(2)}`, 120, startYDatos + 18);
+            
+            doc.setTextColor(0, 0, 0);
+            const deudaTotalMora = (parseFloat(saldoActual) + moraPDF).toFixed(2);
+            doc.text(`Deuda Total a Pagar: $${deudaTotalMora}`, 120, startYDatos + 24);
+            
+            doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, startYDatos + 30);
+            doc.setFont(undefined, 'normal');
+            inicioTablaY = startYDatos + 42; 
+        } else {
+            doc.setFont(undefined, 'bold');
+            doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, startYDatos + 18);
+            doc.setFont(undefined, 'normal');
+        }
 
         // --- MATEMÁTICA PARA LA TABLA HISTÓRICA ---
         let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
@@ -1864,6 +1926,7 @@ async function generarEstadoCuentaPDF() {
         abonosOrdenados.forEach((abono) => {
             const fPago = new Date(abono.fecha_pago);
             const diaNombre = fPago.toLocaleDateString('es-EC', { weekday: 'short' }); 
+            
             const mesesArr = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             const numDia = String(fPago.getDate()).padStart(2, '0');
             const mesNombre = mesesArr[fPago.getMonth()];
@@ -1889,7 +1952,7 @@ async function generarEstadoCuentaPDF() {
 
         // --- DIBUJAR LA TABLA ---
         doc.autoTable({
-            startY: 78, // Bajamos el inicio de la tabla para que respiren las 4 líneas de arriba
+            startY: inicioTablaY, // Variable Dinámica que respeta el espacio
             head: [['N° Pago', 'Fecha y Hora Exacta', 'Método', 'Abono', 'Saldo Restante']],
             body: filasTabla,
             theme: 'striped',
@@ -1904,7 +1967,7 @@ async function generarEstadoCuentaPDF() {
         });
 
         // --- PIE DE PÁGINA LEGAL ---
-        const finalY = doc.lastAutoTable.finalY || 78;
+        const finalY = doc.lastAutoTable.finalY || inicioTablaY;
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
         doc.text("Este documento es un comprobante de auditoría emitido por Sistema Alpha V5.", 14, finalY + 15);
