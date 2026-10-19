@@ -284,12 +284,30 @@ async function cargarEstadoCuentaCredito(idCredito) {
     const u4 = (cli.cedula || '').trim().slice(-4);
     const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
 
+    // 🔥 FORMATO VIP DE FECHA Y HORA DE EMISIÓN
     let fechaEmisionStr = 'N/A';
     if(encontrado.fecha_emision) {
-        const fEmi = new Date(encontrado.fecha_emision);
-        const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-        fechaEmisionStr = `${dias[fEmi.getDay()]} ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()}`;
+        // Pasamos la fecha con todo y hora al motor (igual que en los recibos)
+        let fEmi = new Date(encontrado.fecha_emision);
+        
+        // Truco de seguridad por si Supabase manda un formato extraño
+        if (isNaN(fEmi.getTime()) && typeof encontrado.fecha_emision === 'string') {
+            fEmi = new Date(encontrado.fecha_emision.replace(/-/g, '/').replace('T', ' ').split('.')[0]);
+        }
+
+        if (!isNaN(fEmi.getTime())) {
+            const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            let horasEmi = fEmi.getHours();
+            let minutosEmi = String(fEmi.getMinutes()).padStart(2, '0');
+            let segundosEmi = String(fEmi.getSeconds()).padStart(2, '0');
+            const ampmEmi = horasEmi >= 12 ? 'p. m.' : 'a. m.';
+            horasEmi = horasEmi % 12; horasEmi = horasEmi ? horasEmi : 12;
+            horasEmi = String(horasEmi).padStart(2, '0');
+
+            fechaEmisionStr = `${dias[fEmi.getDay()]}, ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()} | ${horasEmi}:${minutosEmi}:${segundosEmi} ${ampmEmi}`;
+        }
     }
 
     let numCre = '?';
@@ -328,7 +346,7 @@ async function cargarEstadoCuentaCredito(idCredito) {
 
     const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numCre).toUpperCase() : '?';
 
-    document.getElementById('lbl-recaudacion-ref').innerText = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | CRE #${numCre} [${codigoCifrado}] | 📅 ${fechaEmisionStr}`;
+    document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | CRE #${numCre} [${codigoCifrado}] &nbsp;&nbsp;|&nbsp;&nbsp; 📅 <span style="background:#fff; padding: 2px 6px; border-radius: 4px; border: 1px dashed #cbd5e1; font-weight: bold; color: #475569; font-size: 10px; display: inline-block; transform: translateY(-1px);">${fechaEmisionStr}</span>`;  
     document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
     document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
     
@@ -470,15 +488,20 @@ function renderizarAbonosPaginados() {
         const ahora = new Date().getTime();
         const esEditable = (ahora - fPago.getTime()) < 86400000;
 
-        // Formato de fecha exacto solicitado: "viernes 10/julio/2026 | H:11:20"
+      // 🔥 NUEVO FORMATO DE HORA (12h con segundos, igual a Emisión de Crédito)
         const diasAbono = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
         const mesesAbono = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
         const diaSemana = diasAbono[fPago.getDay()];
         const dia = String(fPago.getDate()).padStart(2, '0');
         const mes = mesesAbono[fPago.getMonth()];
         const anio = fPago.getFullYear();
-        const horas = String(fPago.getHours()).padStart(2, '0');
-        const minutos = String(fPago.getMinutes()).padStart(2, '0');
+        
+        let horas = fPago.getHours();
+        let minutos = String(fPago.getMinutes()).padStart(2, '0');
+        let segundos = String(fPago.getSeconds()).padStart(2, '0');
+        const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+        horas = horas % 12; horas = horas ? horas : 12;
+        horas = String(horas).padStart(2, '0');
         
         const metodoTxt = p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO';
         
@@ -492,9 +515,7 @@ function renderizarAbonosPaginados() {
                         <span style="color: #cbd5e1;">|</span>
                         <span style="color: #65a30d;">${creText}</span>
                         <span style="color: #cbd5e1;">|</span>
-                        <span style="text-transform: lowercase;">📅 ${diaSemana} ${dia}/${mes}/${anio}</span>
-                        <span style="color: #cbd5e1;">|</span>
-                        <span>H:${horas}:${minutos}</span>
+                        <span style="text-transform: lowercase;">📅 ${diaSemana}, ${dia}/${mes}/${anio} | ${horas}:${minutos}:${segundos} ${ampm}</span>
                     </div>
                     
                     <!-- 🔥 AQUÍ ESTÁ LA MAGIA: AGRUPAMOS EL MÉTODO Y EL BANCO A LA DERECHA -->

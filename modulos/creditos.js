@@ -1093,10 +1093,25 @@ async function intentarAnularCredito(idCredito, capitalPrestado) {
             // 🎓 AQUÍ SE APLICA EL CÓDIGO OCULTO PARA EL CLIENTE
             const msjAnulacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n\nHola, tu credito ha sido ANULADO con exito.\n\n💰 Monto devuelto: $${parseFloat(capitalPrestado).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n\nEste es tu soporte oficial. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
             
-            console.log("Enviando SMS de anulación...");
+            console.log("Enviando SMS de anulación al cliente...");
+            // 1. Envío original al cliente
             await enviarSMSAutomatico(infoCliente.whatsapp, msjAnulacion);
-            await new Promise(r => setTimeout(r, 800));
+            
+            // 🕒 2. PAUSA DE 2 SEGUNDOS: Evitamos colapso del chip
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 🔥 3. COPIA DE AUDITORÍA PARA EL GERENTE
+            const numeroGerente = "0939836191";
+            if (infoCliente.whatsapp !== numeroGerente) {
+                console.log("Enviando SMS de anulación al gerente...");
+                await enviarSMSAutomatico(numeroGerente, `[ALERTA DE ANULACIÓN DE CRÉDITO]\n\n${msjAnulacion}`);
+            }
         }
+
+        // =====================================================================
+        // 🌟 PASO 6 MODIFICADO: YA NO BORRAMOS, AHORA ARCHIVAMOS
+        // =====================================================================
+        
 
         // =====================================================================
         // 🌟 PASO 6 MODIFICADO: YA NO BORRAMOS, AHORA ARCHIVAMOS
@@ -1268,8 +1283,16 @@ async function reenviarVoucher(idCredito) {
             }
         }
 
-        const msjReenvio = `=== SISTEMA ALPHA ===\n${etiquetaMensaje}${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n📅 Emitido: ${fechaEmisionTexto}\n\nHola, aqui tienes el respaldo de tu credito.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Nro Cuotas: ${credito.num_cuotas}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+        // 🚨 LÓGICA DE AUDITORÍA: CÁLCULO DE MORA Y DEUDA TOTAL (Solo se activa si el cliente tiene mora)
+        const moraExtra = parseFloat(credito.monto_mora) || 0;
+        let bloqueMora = "";
         
+        if (moraExtra > 0) {
+            const deudaTotal = parseFloat(credito.total_pagar) + moraExtra;
+            bloqueMora = `\n⚠️ Mora: $${moraExtra.toFixed(2)}\n👉 Deuda Total: $${deudaTotal.toFixed(2)}`;
+        }
+
+        const msjReenvio = `=== SISTEMA ALPHA ===\n${etiquetaMensaje}${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n📅 Emitido: ${fechaEmisionTexto}\n\nHola, aqui tienes el respaldo de tu credito.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Nro Cuotas: ${credito.num_cuotas}${bloqueMora}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`; 
      console.log("Reenviando voucher...");
         
         // 1. Envía el mensaje de copia al cliente (o al nuevo número)

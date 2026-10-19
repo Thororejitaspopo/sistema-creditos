@@ -702,12 +702,22 @@ async function reactivarCreditoDesdePapelera(idCredito, capital, formaEntrega, n
             // MENSAJE DE IMPACTO POSITIVO: Se centra en la restauración exitosa
             const msjReactivacion = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreLimpio}\n\nHola, te informamos que tu credito ha sido RESTAURADO exitosamente y se encuentra ACTIVO en nuestro sistema.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidadNombre}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Cuotas: ${credito.num_cuotas}\n\nEste es tu soporte oficial. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
             
-            console.log("Enviando SMS de restauración...");
+            console.log("Enviando SMS de restauración al cliente...");
+            // 1. Envío original al cliente
             await enviarSMSAutomatico(cliente.whatsapp, msjReactivacion);
+            
+            // 🕒 2. PAUSA DE 2 SEGUNDOS: Evitamos colapso del chip
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 🔥 3. COPIA DE AUDITORÍA PARA EL GERENTE
+            const numeroGerente = "0939836191";
+            if (cliente.whatsapp !== numeroGerente) {
+                console.log("Enviando SMS de restauración al gerente...");
+                await enviarSMSAutomatico(numeroGerente, `[ALERTA DE RESTAURACIÓN DE CRÉDITO]\n\n${msjReactivacion}`);
+            }
         }
 
         alert("✅ Crédito reactivado exitosamente. Volvió a la cartera activa y se notificó al cliente.");
-        
         // --- 7. ACTUALIZACIÓN EN VIVO DE LAS PANTALLAS ---
         if (typeof cargarPapelera === 'function') cargarPapelera('creditos');
         if (typeof cargarHistorialCreditos === 'function') cargarHistorialCreditos();
