@@ -1793,14 +1793,19 @@ async function generarEstadoCuentaPDF() {
             }
         }
 
-        // 2. FORMATEAR LA FECHA ORIGINAL DEL CRÉDITO
+        // 2. FORMATEAR LA FECHA ORIGINAL DEL CRÉDITO (CON MES EN LETRAS)
         let fechaEmisionCredito = "Fecha no disponible";
         if (creditoSeleccionadoCobro.fecha_emision) {
             const fObj = new Date(creditoSeleccionadoCobro.fecha_emision);
-            const fLarga = fObj.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-            fechaEmisionCredito = fLarga.charAt(0).toUpperCase() + fLarga.slice(1);
+            const mesesArr = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const diaSemana = fObj.toLocaleDateString('es-EC', { weekday: 'long' });
+            const diaSemanaLimpio = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+            const numDia = String(fObj.getDate()).padStart(2, '0');
+            const mesNombre = mesesArr[fObj.getMonth()];
+            const anio = fObj.getFullYear();
+            
+            fechaEmisionCredito = `${diaSemanaLimpio} ${numDia}/${mesNombre}/${anio}`;
         }
-
         // Inicializar jsPDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -1859,7 +1864,12 @@ async function generarEstadoCuentaPDF() {
         abonosOrdenados.forEach((abono) => {
             const fPago = new Date(abono.fecha_pago);
             const diaNombre = fPago.toLocaleDateString('es-EC', { weekday: 'short' }); 
-            const diaNum = fPago.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }); 
+            const mesesArr = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const numDia = String(fPago.getDate()).padStart(2, '0');
+            const mesNombre = mesesArr[fPago.getMonth()];
+            const anio = fPago.getFullYear();
+            
+            const diaNum = `${numDia}/${mesNombre}/${anio}`; 
             const horaExacta = fPago.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }); 
             
             const fechaTabla = `${diaNombre}. ${diaNum} - ${horaExacta}`;
