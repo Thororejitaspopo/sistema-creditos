@@ -1829,15 +1829,18 @@ async function generarEstadoCuentaPDF() {
         const hoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         doc.text(`Impreso: ${hoy}`, 14, 34);
 
-        // --- BUSCADOR DEL TEXTO DEL ACUERDO (LEYENDO DIRECTO DE LA PANTALLA) ---
+       // --- 🧠 CEREBRO DEL PDF INTELIGENTE: LEER LA PANTALLA ---
+        const panelUI = document.body.innerText;
+        
+        // 1. Detectar Estados Especiales Visuales (Ojos del PDF)
+        const tieneBannerAcuerdo = panelUI.includes("ACUERDO DE REFINANCIAMIENTO ACTIVO");
+        const esRefinanciado = panelUI.includes("(Capital Refinanciado)");
+        const incluyeMora = panelUI.includes("de mora)");
+        
         let textoAcuerdo = "Acuerdo de Refinanciamiento";
-        if (creditoSeleccionadoCobro.estado === 'congelado') {
-            // Truco VIP: Leemos el texto visible en su sistema para robar el "10 semanal" (o el que sea)
-            const textoPantalla = document.body.innerText;
-            const match = textoPantalla.match(/ACUERDO DE REFINANCIAMIENTO ACTIVO[\s\S]*?"([^"]+)"/i);
-            if (match) {
-                textoAcuerdo = match[1];
-            }
+        if (tieneBannerAcuerdo) {
+            const match = panelUI.match(/ACUERDO DE REFINANCIAMIENTO ACTIVO[\s\S]*?"([^"]+)"/i);
+            if (match) textoAcuerdo = match[1];
         }
 
         // --- DATOS DEL CLIENTE Y CRÉDITO ---
@@ -1846,18 +1849,16 @@ async function generarEstadoCuentaPDF() {
         
         let startYDatos = 46; 
 
-        // 🌟 BANNER AMARILLO VIP (Solo si está congelado) 🌟
-        if (creditoSeleccionadoCobro.estado === 'congelado') {
+        // 🌟 BANNER AMARILLO VIP (Solo si está visible en pantalla) 🌟
+        if (tieneBannerAcuerdo) {
              doc.setFillColor(254, 240, 138); 
              doc.roundedRect(14, 42, 182, 12, 2, 2, 'F');
              doc.setTextColor(161, 98, 7); 
              doc.setFontSize(10);
              doc.setFont(undefined, 'bold');
-             // 🔥 ELIMINAMOS EL EMOJI PARA QUE NO SALGAN CARACTERES RAROS
              doc.text("ACUERDO DE REFINANCIAMIENTO ACTIVO", 20, 47);
              doc.setFont(undefined, 'normal');
              doc.text(`"${textoAcuerdo}"`, 20, 52);
-             
              startYDatos = 62; 
              doc.setTextColor(0, 0, 0); 
         }
@@ -1871,8 +1872,15 @@ async function generarEstadoCuentaPDF() {
         doc.text(`Referencia: ${creText}`, 14, startYDatos + 12); 
         doc.text(`Fecha de Crédito: ${fechaEmisionCredito}`, 14, startYDatos + 18); 
 
-        // Columna Derecha
-        const totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar).toFixed(2);
+       // Columna Derecha (Valores base)
+        let totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar).toFixed(2);
+        
+        // 🔥 🧠 CEREBRO VIP: Leer el "Total original" directo de la pantalla
+        const matchTotal = panelUI.match(/Total del Crédito original:\s*\$([\d,.]+)/i);
+        if (matchTotal) {
+            totalPagar = matchTotal[1]; // Atrapamos el 120.00 limpiecito que se ve en la interfaz
+        }
+
         const saldoActual = parseFloat(creditoSeleccionadoCobro.saldoNeto).toFixed(2);
         const cuotaFija = parseFloat(creditoSeleccionadoCobro.valor_cuota).toFixed(2);
         
@@ -1882,8 +1890,7 @@ async function generarEstadoCuentaPDF() {
 
         doc.text(`Total del Crédito: $${totalPagar}`, 120, startYDatos);
         
-        const esCongelado = creditoSeleccionadoCobro.estado === 'congelado';
-        if (esCongelado) {
+        if (tieneBannerAcuerdo) {
             doc.setTextColor(217, 119, 6); 
             doc.setFont(undefined, 'bold');
             doc.text(`Valor de Cuota: $${cuotaFija} (CUENTA CONGELADA)`, 120, startYDatos + 6);
@@ -1894,12 +1901,23 @@ async function generarEstadoCuentaPDF() {
             doc.text(`Valor de Cuota: $${cuotaFija}`, 120, startYDatos + 6);
             doc.text(`N° de Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)`, 120, startYDatos + 12);
         }
-        
-        // 🔥 MOTOR DE MORA Y ORDEN VIP 🔥
-        const moraPDF = parseFloat(creditoSeleccionadoCobro.monto_mora) || 0;
+
+        // 🔥 🧠 RENDERIZADO INTELIGENTE DEL SALDO SEGÚN LA PANTALLA 🔥
         let inicioTablaY = startYDatos + 32; 
 
-        if (moraPDF > 0) {
+        if (esRefinanciado) {
+            // Caso 1: Botón Morado (Capital Refinanciado detectado en pantalla)
+            doc.setTextColor(147, 51, 234); // Color Morado elegante
+            doc.setFont(undefined, 'bold');
+            doc.text(`Estado: CAPITAL REFINANCIADO`, 120, startYDatos + 18);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, startYDatos + 24);
+            doc.setFont(undefined, 'normal');
+            inicioTablaY = startYDatos + 36;
+            
+      } else if (incluyeMora) {
+            // Caso 2: Tiene Mora en pantalla
+            const moraPDF = parseFloat(creditoSeleccionadoCobro.monto_mora) || 0;
             doc.setTextColor(220, 38, 38); 
             doc.setFont(undefined, 'bold');
             doc.text(`Mora Acumulada: $${moraPDF.toFixed(2)}`, 120, startYDatos + 18);
@@ -1908,15 +1926,17 @@ async function generarEstadoCuentaPDF() {
             const deudaTotalMora = (parseFloat(saldoActual) + moraPDF).toFixed(2);
             doc.text(`Deuda Total a Pagar: $${deudaTotalMora}`, 120, startYDatos + 24);
             
-            doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, startYDatos + 30);
+            // 🔥 VIP: Eliminamos el "Saldo de Capital" para evitar excusas del cliente
             doc.setFont(undefined, 'normal');
-            inicioTablaY = startYDatos + 42; 
+            inicioTablaY = startYDatos + 36; // Subimos la tabla un poquito para compensar el espacio
+            
         } else {
+            // Caso 3: Crédito normal al día
             doc.setFont(undefined, 'bold');
-            doc.text(`Saldo Pendiente Actual: $${saldoActual}`, 120, startYDatos + 18);
+            doc.text(`Saldo Pendiente (Al día): $${saldoActual}`, 120, startYDatos + 18);
             doc.setFont(undefined, 'normal');
+            inicioTablaY = startYDatos + 28;
         }
-
         // --- MATEMÁTICA PARA LA TABLA HISTÓRICA ---
         let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
         
@@ -1949,8 +1969,7 @@ async function generarEstadoCuentaPDF() {
                 `$${saldoEnTransito.toFixed(2)}`
             ]);
         });
-
-        // --- DIBUJAR LA TABLA ---
+// --- DIBUJAR LA TABLA PRINCIPAL ---
         doc.autoTable({
             startY: inicioTablaY, // Variable Dinámica que respeta el espacio
             head: [['N° Pago', 'Fecha y Hora Exacta', 'Método', 'Abono', 'Saldo Restante']],
@@ -1966,10 +1985,63 @@ async function generarEstadoCuentaPDF() {
             }
         });
 
+        let finalY = doc.lastAutoTable.finalY || inicioTablaY;
+
+        // 📜 --- ANEXO SEGURO: HISTORIAL DE CASTIGOS (CONECTADO A SUPABASE) --- 📜
+        try {
+            // Vamos directo a la base de datos a traer las moras de este crédito
+            const { data: historial, error } = await supabaseClient
+                .from('historial_moras')
+                .select('*')
+                .eq('credito_id', creditoSeleccionadoCobro.id)
+                .order('fecha_registro', { ascending: false });
+
+            if (!error && historial && historial.length > 0) {
+                finalY += 10; // Espacio estético después de la primera tabla
+                
+                // Título del anexo
+                doc.setFontSize(10);
+                doc.setTextColor(220, 38, 38); 
+                doc.setFont(undefined, 'bold');
+                doc.text("ANEXO: HISTORIAL DE SANCIONES Y REFINANCIAMIENTOS", 14, finalY);
+                
+                // Mapeo usando los nombres de columna correctos de su base de datos
+                const filasCastigos = historial.map(h => {
+                    const f = new Date(h.fecha_registro);
+                    const mesesArr = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                    const fechaStr = `${f.getDate()} ${mesesArr[f.getMonth()]} ${f.getFullYear()}`; 
+                    
+                    const tipo = h.tipo_accion || "Mora s/ Capital";
+                    const monto = parseFloat(h.monto_castigo || 0).toFixed(2);
+                    
+                    return [fechaStr, tipo, `$${monto}`];
+                });
+
+                // Dibujar la tabla de castigos en el PDF
+                doc.autoTable({
+                    startY: finalY + 4,
+                    head: [['FECHA', 'TIPO DE SANCIÓN', 'MONTO']],
+                    body: filasCastigos,
+                    theme: 'plain', 
+                    headStyles: { fillColor: [254, 242, 242], textColor: [220, 38, 38], fontStyle: 'bold' },
+                    styles: { fontSize: 8, cellPadding: 3 },
+                    columnStyles: {
+                        0: { cellWidth: 35 },
+                        1: { cellWidth: 'auto' },
+                        2: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38], cellWidth: 30 }
+                    }
+                });
+                
+                finalY = doc.lastAutoTable.finalY; // Actualizamos el nivel para el pie de página
+            }
+        } catch (errSupabase) {
+            console.warn("No se pudo cargar el historial de moras para el PDF", errSupabase);
+        }
+
         // --- PIE DE PÁGINA LEGAL ---
-        const finalY = doc.lastAutoTable.finalY || inicioTablaY;
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
+        doc.setFont(undefined, 'normal');
         doc.text("Este documento es un comprobante de auditoría emitido por Sistema Alpha V5.", 14, finalY + 15);
         doc.text("Las fechas y horas exactas garantizan la validez e inmutabilidad de cada abono.", 14, finalY + 20);
 
@@ -2055,42 +2127,53 @@ async function enviarResumenSMS() {
         fechaEmisionCredito = `${diaSemanaCap} ${diaNum}/${mesNombre}/${anioNum}`;
     }
 
-    // 4. Montos y Cuotas
-    const totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar);
-    const saldo = parseFloat(creditoSeleccionadoCobro.saldoNeto);
+   // 4. Montos y Cuotas (Con lectura visual inteligente)
+    const panelUI = document.body.innerText;
+    
+    let totalPagar = parseFloat(creditoSeleccionadoCobro.total_pagar);
+    const matchTotal = panelUI.match(/Total del Crédito original:\s*\$([\d,.]+)/i);
+    if (matchTotal) totalPagar = parseFloat(matchTotal[1]); // Atrapa los $120.00 exactos
+
+    let saldo = parseFloat(creditoSeleccionadoCobro.saldoNeto);
+    const matchSaldo = panelUI.match(/Saldo Neto Pendiente:\s*\$([\d,.]+)/i);
+    if (matchSaldo) saldo = parseFloat(matchSaldo[1]); // Atrapa el saldo real visible
+    
     const cuotaFija = parseFloat(creditoSeleccionadoCobro.valor_cuota);
     const cuotasTotales = parseInt(creditoSeleccionadoCobro.num_cuotas) || 1;
     let cuotasPendientes = Math.ceil(saldo / cuotaFija);
     if (cuotasPendientes < 0) cuotasPendientes = 0;
 
-    // 5. Historial (MÁXIMO LOS ÚLTIMOS 3 PAGOS)
+    // 5. Historial (MÁXIMO LOS ÚLTIMOS 5 PAGOS + MAGIA INVERSA)
     let historialTxt = "";
     if (abonosClienteActual && abonosClienteActual.length > 0) {
         let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
         
-        let saldoEnTransito = totalPagar;
+        // Magia Matemática Inversa para que los saldos cuadren perfecto al centavo
+        const totalAbonado = abonosOrdenados.reduce((sum, abono) => sum + parseFloat(abono.abono_total), 0);
+        let saldoEnTransito = saldo + totalAbonado; 
+        
         let abonosConSaldo = abonosOrdenados.map(abono => {
             saldoEnTransito -= parseFloat(abono.abono_total);
             if (saldoEnTransito < 0) saldoEnTransito = 0;
             return { ...abono, saldoRestante: saldoEnTransito };
         });
 
-        let ultimos3 = abonosConSaldo.slice(-3);
+        // 🟢 Cortamos los últimos 5 pagos
+        let ultimos5 = abonosConSaldo.slice(-5);
         
-        historialTxt += `\n🧾 ÚLTIMOS MOVIMIENTOS:\n`;
-        ultimos3.forEach((abono) => {
+        historialTxt += `\n🧾 ÚLTIMOS 5 MOVIMIENTOS:\n`;
+        ultimos5.forEach((abono) => {
             const fPago = new Date(abono.fecha_pago);
             const diaFormato = fPago.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }); 
-            const horaFormato = fPago.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
             const montoPagado = parseFloat(abono.abono_total);
-            let met = abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO';
-            if (met === 'TRANSFERENCIA') met = 'TRANSF.';
             
-            historialTxt += `• N°${abono.numero_pago} | ${diaFormato} - ${horaFormato}\n  Abono: $${montoPagado.toFixed(2)} | Saldo: $${abono.saldoRestante.toFixed(2)} | ${met}\n`;
+            // Sintaxis de texto perfecta y compacta para SMS
+            historialTxt += `• Pago #${abono.numero_pago} | ${diaFormato}\n  Abono: $${montoPagado.toFixed(2)} | Queda: $${abono.saldoRestante.toFixed(2)}\n`;
         });
         
-        if (abonosConSaldo.length > 3) {
-            historialTxt += `(Y ${abonosConSaldo.length - 3} pagos anteriores)\n`;
+        if (abonosConSaldo.length > 5) {
+            const anteriores = abonosConSaldo.length - 5;
+            historialTxt += `*(Y ${anteriores} pagos anteriores)*\n`;
         }
     } else {
         historialTxt += `\n🧾 MOVIMIENTOS:\nSin abonos registrados.\n`;
@@ -2100,7 +2183,17 @@ async function enviarResumenSMS() {
     const etiqueta = cobrar ? "[ESTADO DE CTA] val $1.00\n" : "";
     const msj = `=== SISTEMA ALPHA ===\n${etiqueta}Impreso: ${fechaImpreso} a las ${horaImpreso}\n\n🆔 ${creText}\n👤 Cliente: ${cli.nombres.toUpperCase()} ${cli.apellidos.toUpperCase()}\n💳 Cédula: ${cli.cedula || 'N/A'}\n📅 Fecha Crédito: ${fechaEmisionCredito}\n\n📊 Total Crédito: $${totalPagar.toFixed(2)}\n💵 Valor Cuota: $${cuotaFija.toFixed(2)}\n📉 Saldo Pendiente: $${saldo.toFixed(2)}\n🔢 N° Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)\n${historialTxt}\n¡Gracias por tu confianza!\n🚫 NO RESPONDER AL MENSAJE.`;
 
-    // 🚀 DISPARO A MACRODROID (Viajará instantáneo)
+    // 🚀 1. DISPARO AL CLIENTE
     enviarSMSAutomatico(numeroCliente, msj);
-    alert("✅ Resumen enviado exitosamente a: " + numeroCliente);
+    
+    // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso del chip de MacroDroid
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // 👮‍♂️ 2. DISPARO AL GERENTE (Magia VIP de Auditoría)
+    const numeroGerente = "0939836191"; 
+    if (numeroCliente.toString().trim() !== numeroGerente) {
+        enviarSMSAutomatico(numeroGerente, `[COPIA RESUMEN SMS]\n\n${msj}`);
+    }
+
+    alert("✅ Resumen SMS enviado a: " + numeroCliente + "\n👮‍♂️ Copia de auditoría enviada al Gerente.");
 }
