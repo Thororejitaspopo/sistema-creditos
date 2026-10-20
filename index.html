@@ -827,13 +827,22 @@
                 Cruce automático de fondos físicos vs. contabilidad del sistema.
             </p>
         </div>
-        <button onclick="ejecutarCierreDiario()" style="background: #0284c7; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: transform 0.2s;">
-            🔄 CALCULAR CIERRE DE HOY
-        </button>
+        
+        <!-- 🔥 AQUÍ AGRUPAMOS LOS DOS BOTONES (AZUL Y ROJO) 🔥 -->
+        <div style="display: flex; gap: 10px;">
+            <button onclick="ejecutarCierreDiario()" style="background: #0284c7; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: transform 0.2s;">
+                🔄 CALCULAR CIERRE DE HOY
+            </button>
+            <button onclick="generarPDFCierreDiario()" style="background: #ef4444; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); transition: transform 0.2s;">
+                📑 IMPRIMIR PAPELETA (PDF)
+            </button>
+        </div>
     </div>
 
     <!-- PANEL 1: MOVIMIENTOS BRUTOS DEL DÍA -->
-    <h3 style="color: #334155; font-size: 16px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">1. Movimientos Registrados Hoy</h3>
+    <h3 style="color: #334155; font-size: 16px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
+        1. Movimientos Registrados Hoy
+    </h3>
     
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 30px;">
         
@@ -1074,7 +1083,69 @@
                     📑 Generar Créditos (PDF)
                 </button>
             </div>
+       <!-- ========================================== -->
+            <!-- AQUÍ TERMINA EL PISO 2 (Tarjetas Naranjas) -->
+            <!-- ========================================== -->
         </div>
+
+        <!-- ========================================== -->
+        <!-- PISO 3: AUDITORÍA FINANCIERA (CAPITAL E INTERESES) -->
+        <!-- ========================================== -->
+        <h3 style="color: #0f172a; margin-bottom: 15px; margin-top: 35px; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            🏦 Auditoría Financiera (Capital e Intereses)
+        </h3>
+        
+        <div class="tarjetas-reporte-contenedor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; width: 100%; box-sizing: border-box; margin-bottom: 40px;">
+            
+            <!-- TARJETA: REPORTE DE CAPITAL (Verde) -->
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">💵</span>
+                        <h3 style="margin: 0; color: #10b981; font-size: 18px; font-weight: 600;">Flujo de Capital</h3>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 15px;">
+                        Audita las inyecciones de fondos y retiros. Selecciona el periodo para generar el reporte de las cajas matriz y bancos.
+                    </p>
+                    
+                    <select id="filtro-tiempo-capital-pdf" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-weight: 600; cursor: pointer;">
+                        <option value="Diario">Día Actual (Hoy)</option>
+                        <option value="Semanal">Última Semana (7 días)</option>
+                        <option value="Mensual" selected>Mes Actual Completo</option>
+                        <option value="Anual">Año Fiscal (Anual)</option>
+                    </select>
+                </div>
+                <button onclick="ejecutarExportacionCapital()" style="background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    📑 Generar Reporte Capital (PDF)
+                </button>
+            </div>
+
+            <!-- TARJETA: REPORTE DE INTERÉS/UTILIDAD (Morado) -->
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; flex: 1; min-width: 280px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">💎</span>
+                        <h3 style="margin: 0; color: #8b5cf6; font-size: 18px; font-weight: 600;">Bóveda de Utilidades</h3>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 15px;">
+                        Exporta las ganancias netas, moras cobradas y retiros de utilidad. El balance de la salud de tu negocio.
+                    </p>
+                    
+                    <select id="filtro-tiempo-interes-pdf" style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-weight: 600; cursor: pointer;">
+                        <option value="Diario">Día Actual (Hoy)</option>
+                        <option value="Semanal">Última Semana (7 días)</option>
+                        <option value="Mensual" selected>Mes Actual Completo</option>
+                        <option value="Anual">Año Fiscal (Anual)</option>
+                    </select>
+                </div>
+                <button onclick="ejecutarExportacionInteres()" style="background: #8b5cf6; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
+                    📑 Generar Utilidades (PDF)
+                </button>
+            </div>
+            
+        </div> <!-- AQUÍ CIERRA PERFECTAMENTE EL PISO 3 -->
+
+        
 
 
         <!-- ... (Aquí arriba está su código de Auditoría de Cartera (Créditos)) ... -->

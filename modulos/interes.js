@@ -3,7 +3,8 @@
 // =========================================================================
 
 // VARIABLES GLOBALES (MEMORIA Y MÁQUINA DEL TIEMPO)
-let memoriaBovedaAlpha = [];
+// let memoriaBovedaAlpha = [];
+window.memoriaBovedaAlpha = [];
 let mesSeleccionadoBoveda = 'diario'; // Arranca por defecto en "HOY"
 window.diasAtrasBoveda = 0;
 window.filtroMemoriaBoveda = "";

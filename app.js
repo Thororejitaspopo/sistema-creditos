@@ -841,3 +841,300 @@ window.irACobrarDesdeRuta = async function(idCredito) {
         console.error("Error en el Robot Humanoide:", e);
     }
 };
+
+// =========================================================================
+// 📊 MOTOR VIP DE REPORTES CORPORATIVOS PDF (CAPITAL E INTERÉS)
+// =========================================================================
+
+// 1. EL DIBUJANTE DEL PDF (Crea la hoja con el membrete y las cajitas)
+window.generarReporteFinancieroPDF = function(modulo, filtroTiempo, datosTabla, totales) {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Encabezado Corporativo
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(16, 185, 129);
+        doc.text("SISTEMA ALPHA V5", 14, 20);
+
+        doc.setFontSize(12);
+        doc.setTextColor(15, 23, 42);
+        const tituloModulo = modulo === 'CAPITAL' ? 'CONTROL Y GESTIÓN DE CAPITAL' : 'BÓVEDA DE UTILIDADES ALPHA';
+        doc.text(`REPORTE DE AUDITORÍA: ${tituloModulo}`, 14, 28);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        const fechaImpresion = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        doc.text(`Filtro Aplicado: ${filtroTiempo.toUpperCase()}  |  Impreso: ${fechaImpresion}`, 14, 34);
+
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, 38, 196, 38);
+
+        // Cajas de Totales
+        let startY = 45;
+        
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(14, startY, 55, 20, 2, 2, 'F');
+        doc.setFontSize(9); doc.setTextColor(71, 85, 105);
+        doc.text("EFECTIVO MATRIZ", 18, startY + 7);
+        doc.setFontSize(14); doc.setTextColor(16, 185, 129);
+        doc.text(`$${parseFloat(totales.efectivo).toFixed(2)}`, 18, startY + 15);
+
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(74, startY, 55, 20, 2, 2, 'F');
+        doc.setFontSize(9); doc.setTextColor(71, 85, 105);
+        doc.text("BANCOS TOTAL", 78, startY + 7);
+        doc.setFontSize(14); doc.setTextColor(2, 132, 199);
+        doc.text(`$${parseFloat(totales.bancos).toFixed(2)}`, 78, startY + 15);
+
+        doc.setFillColor(15, 23, 42);
+        doc.roundedRect(134, startY, 62, 20, 2, 2, 'F');
+        doc.setFontSize(9); doc.setTextColor(203, 213, 225);
+        const lblTotal = modulo === 'CAPITAL' ? "CAPITAL GENERAL (SISTEMA)" : "UTILIDAD NETA (PERIODO)";
+        doc.text(lblTotal, 138, startY + 7);
+        doc.setFontSize(14); doc.setTextColor(234, 179, 8);
+        doc.text(`$${parseFloat(totales.totalGeneral).toFixed(2)}`, 138, startY + 15);
+
+        // Tabla de Historial
+        const filasPdf = datosTabla.map(mov => {
+            const esIngreso = parseFloat(mov.monto) >= 0;
+            const montoTexto = esIngreso ? `+$${parseFloat(mov.monto).toFixed(2)}` : `-$${Math.abs(parseFloat(mov.monto)).toFixed(2)}`;
+            return [mov.fechaExacta, mov.descripcion, mov.cajaAfectada, montoTexto];
+        });
+
+        doc.autoTable({
+            startY: startY + 28,
+            head: [['FECHA EXACTA', 'DESCRIPCIÓN DE LA OPERACIÓN', 'CAJA AFECTADA', 'VALOR NETO']],
+            body: filasPdf,
+            theme: 'striped',
+            headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+            styles: { fontSize: 8, cellPadding: 3 },
+            columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 'auto' }, 2: { cellWidth: 40 }, 3: { halign: 'right', fontStyle: 'bold', cellWidth: 30 } },
+            didParseCell: function(data) {
+                if (data.section === 'body' && data.column.index === 3) {
+                    if (data.cell.raw.startsWith('+')) data.cell.styles.textColor = [16, 185, 129]; 
+                    else if (data.cell.raw.startsWith('-')) data.cell.styles.textColor = [220, 38, 38]; 
+                }
+            }
+        });
+
+        const finalY = doc.lastAutoTable.finalY;
+        doc.setFontSize(8); doc.setTextColor(150, 150, 150); doc.setFont(undefined, 'normal');
+        doc.text(`Este documento es un reporte financiero auditado por Sistema Alpha V5.`, 14, finalY + 15);
+        doc.text(`Generado bajo el usuario en sesión. Prohibida su alteración.`, 14, finalY + 20);
+
+        const nombreArchivo = `Reporte_${modulo}_${filtroTiempo.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+        doc.save(nombreArchivo);
+
+    } catch (error) {
+        console.error("Error al generar PDF financiero:", error);
+        alert("❌ Error al generar el reporte PDF. Revise la consola.");
+    }
+}
+
+// 2. EL PUENTE HTML DEL BOTÓN VERDE DE CAPITAL
+window.ejecutarExportacionCapital = function() {
+    const filtroElegido = document.getElementById('filtro-tiempo-capital-pdf').value;
+    descargarReporteCapital(filtroElegido);
+}
+
+// 3. EL EXTRACTOR DE DATOS DE LA BASE DE DATOS PARA CAPITAL (CORREGIDO)
+window.descargarReporteCapital = async function(filtroSeleccionado) {
+    try {
+        const { data: cajas } = await supabaseClient.from('cajas_capital').select('*');
+        let totales = { efectivo: 0, bancos: 0, totalGeneral: 0 };
+        
+        if (cajas) {
+            cajas.forEach(c => {
+                const nombreLimpio = c.nombre_caja.toLowerCase();
+                const saldo = parseFloat(c.saldo_actual || 0);
+                if (nombreLimpio.includes('matriz') || nombreLimpio.includes('central') || nombreLimpio.includes('banco')) {
+                    totales.totalGeneral += saldo;
+                    if (c.tipo === 'efectivo') totales.efectivo += saldo;
+                    else if (c.tipo === 'banco') totales.bancos += saldo;
+                }
+            });
+        }
+
+        const hoy = new Date();
+        let inicioISO, finISO, nombreFiltroPDF;
+
+        if (filtroSeleccionado === 'Diario') {
+            const f = new Date(); f.setHours(0,0,0,0);
+            inicioISO = f.toISOString();
+            finISO = new Date().toISOString(); 
+            nombreFiltroPDF = 'DIARIO (HOY)';
+        } else if (filtroSeleccionado === 'Semanal') {
+            const f = new Date(); f.setDate(f.getDate() - 7); f.setHours(0,0,0,0);
+            inicioISO = f.toISOString();
+            finISO = new Date().toISOString();
+            nombreFiltroPDF = 'ÚLTIMOS 7 DÍAS';
+        } else if (filtroSeleccionado === 'Mensual') {
+            const f = new Date(hoy.getFullYear(), hoy.getMonth(), 1); f.setHours(0,0,0,0);
+            inicioISO = f.toISOString();
+            const f2 = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); f2.setHours(23,59,59,999);
+            finISO = f2.toISOString();
+            nombreFiltroPDF = 'MES DE ' + hoy.toLocaleString('es-EC', { month: 'long' }).toUpperCase();
+        } else {
+            const f = new Date(hoy.getFullYear(), 0, 1); f.setHours(0,0,0,0);
+            inicioISO = f.toISOString();
+            const f2 = new Date(hoy.getFullYear(), 11, 31); f2.setHours(23,59,59,999);
+            finISO = f2.toISOString();
+            nombreFiltroPDF = `AÑO FISCAL ${hoy.getFullYear()}`;
+        }
+
+        const { data: movimientos, error } = await supabaseClient
+            .from('historial_capital')
+            .select('id, created_at, monto, concepto, cajas_capital(nombre_caja)')
+            .gte('created_at', inicioISO)
+            .lte('created_at', finISO)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!movimientos || movimientos.length === 0) {
+            alert(`✅ Caja Cuadrada: No se registraron inyecciones ni retiros de capital en el periodo: ${nombreFiltroPDF}`);
+            return;
+        }
+
+        const mNombres = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+        const datosLimpiosParaPDF = movimientos.map(mov => {
+            const f = new Date(mov.created_at);
+            let h = f.getHours(), min = String(f.getMinutes()).padStart(2, '0');
+            const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+            h = h % 12; h = h ? h : 12;
+            const fechaExacta = `${f.getDate()} ${mNombres[f.getMonth()]} ${f.getFullYear()} | ${String(h).padStart(2,'0')}:${min} ${ampm}`;
+
+            const cajaAfectada = mov.cajas_capital?.nombre_caja || 'CAJA GENERAL';
+            
+            // --- 🔥 CORRECCIÓN VIP: LIMPIEZA DE EMOJIS Y RESCATE DE NOMBRES ---
+            let conceptoRaw = mov.concepto || 'MOVIMIENTO MANUAL';
+            
+            // 1. Eliminamos los emojis para que la impresora PDF no tire basura (Ø=ßâ)
+            let conceptoLimpio = conceptoRaw.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\.,;:\-\_\(\)\[\]\|#\$%&!¿\?]/g, ' ').replace(/\s+/g, ' ').trim();
+
+            // 2. Rescatamos el nombre del cliente y lo armamos elegante
+            let partes = conceptoLimpio.split('|');
+            let descFinal = conceptoLimpio;
+
+            if (partes.length > 1) {
+                // Sacamos la última parte (El ID y el Nombre de la persona)
+                let posibleNombre = partes[partes.length - 1].trim(); 
+                // Sacamos el resto (El detalle del abono)
+                let detalleOperacion = partes.slice(0, partes.length - 1).join(' | ').trim(); 
+                
+                // Lo unimos en dos líneas para que la secretaria lo lea clarito en el PDF
+                descFinal = `${posibleNombre} \nDetalle: ${detalleOperacion}`;
+            }
+
+            return {
+                fechaExacta: fechaExacta,
+                descripcion: descFinal.toUpperCase(),
+                cajaAfectada: cajaAfectada.toUpperCase(),
+                monto: mov.monto 
+            };
+        });
+
+        generarReporteFinancieroPDF('CAPITAL', nombreFiltroPDF, datosLimpiosParaPDF, totales);
+
+    } catch (error) {
+        console.error("Error al exportar Capital:", error);
+        alert("❌ Error al recopilar los datos para el reporte: " + error.message);
+    }
+}
+
+
+// =========================================================================
+// 4. EL EXTRACTOR DE DATOS PARA UTILIDADES (INTERESES)
+// =========================================================================
+
+// Este es el puente que llama el botón morado de su HTML
+window.ejecutarExportacionInteres = function() {
+    const filtroElegido = document.getElementById('filtro-tiempo-interes-pdf').value;
+    descargarReporteInteres(filtroElegido);
+}
+
+window.descargarReporteInteres = async function(filtroSeleccionado) {
+    try {
+        // Asegurarnos de que los datos de la bóveda estén cargados
+        if (!window.memoriaBovedaAlpha || window.memoriaBovedaAlpha.length === 0) {
+            if (typeof window.cargarModuloInteresEnSegundoPlano === 'function') {
+                await window.cargarModuloInteresEnSegundoPlano();
+            } else {
+                alert("⚠️ Error: No se puede acceder a la memoria de la bóveda.");
+                return;
+            }
+        }
+
+        const hoy = new Date();
+        let datosFiltrados = [];
+        let nombreFiltroPDF = '';
+
+        // Filtrar según lo que eligió el gerente
+        if (filtroSeleccionado === 'Diario') {
+            const f = new Date(); f.setHours(0,0,0,0);
+            datosFiltrados = window.memoriaBovedaAlpha.filter(item => {
+                return item.fechaRealObj >= f && item.fechaRealObj <= new Date();
+            });
+            nombreFiltroPDF = 'DIARIO (HOY)';
+        } else if (filtroSeleccionado === 'Semanal') {
+            const f = new Date(); f.setDate(f.getDate() - 7); f.setHours(0,0,0,0);
+            datosFiltrados = window.memoriaBovedaAlpha.filter(item => {
+                return item.fechaRealObj >= f && item.fechaRealObj <= new Date();
+            });
+            nombreFiltroPDF = 'ÚLTIMOS 7 DÍAS';
+        } else if (filtroSeleccionado === 'Mensual') {
+            datosFiltrados = window.memoriaBovedaAlpha.filter(item => {
+                return item.mesNum === hoy.getMonth() && item.anioNum === hoy.getFullYear();
+            });
+            nombreFiltroPDF = 'MES DE ' + hoy.toLocaleString('es-EC', { month: 'long' }).toUpperCase();
+        } else {
+            datosFiltrados = window.memoriaBovedaAlpha.filter(item => {
+                return item.anioNum === hoy.getFullYear();
+            });
+            nombreFiltroPDF = `AÑO FISCAL ${hoy.getFullYear()}`;
+        }
+
+        if (datosFiltrados.length === 0) {
+            alert(`✅ Bóveda Intacta: No se registraron utilidades ni retiros en el periodo: ${nombreFiltroPDF}`);
+            return;
+        }
+
+        // Calcular los totales de las 3 cajas del PDF
+        let totales = { efectivo: 0, bancos: 0, totalGeneral: 0 };
+        datosFiltrados.forEach(item => {
+            totales.totalGeneral += item.ganancia;
+            if (item.metodo === 'EFECTIVO') totales.efectivo += item.ganancia;
+            if (item.metodo === 'BANCO') totales.bancos += item.ganancia;
+        });
+
+        // Formatear los datos para el PDF (Limpiando Emojis)
+        const datosLimpiosParaPDF = datosFiltrados.map(item => {
+            
+            // 1. Limpiamos cualquier emoji del nombre de la operación o del cliente
+            let nombreLimpio = item.nombre.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\.,;:\-\_\(\)\[\]\|#\$%&!¿\?]/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            // 2. Construimos el detalle de la operación (ej. CRE #1 | PAGO #2 REF: ...)
+            let detalleExtra = item.esManual ? item.etiquetaCRE : `${item.etiquetaCRE} | ${item.ref}`;
+            
+            // 3. Unimos todo en un formato corporativo para la columna "Descripción"
+            let descFinal = `${nombreLimpio}\nDetalle: ${detalleExtra}`;
+
+            return {
+                fechaExacta: item.fechaTxt,
+                descripcion: descFinal.toUpperCase(),
+                cajaAfectada: item.metodo.toUpperCase(),
+                monto: item.ganancia
+            };
+        });
+
+        // ¡Disparamos el PDF usando el mismo motor central!
+        window.generarReporteFinancieroPDF('UTILIDADES', nombreFiltroPDF, datosLimpiosParaPDF, totales);
+
+    } catch (error) {
+        console.error("Error al exportar Utilidades:", error);
+        alert("❌ Error al recopilar los datos para el reporte de Utilidades: " + error.message);
+    }
+}
