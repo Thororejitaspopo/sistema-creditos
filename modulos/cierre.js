@@ -165,58 +165,70 @@ window.ejecutarCierreDiario = async function() {
         }
 
         // ========================================================
-        // C. PRÉSTAMOS ENTREGADOS HOY
+        // C. PRÉSTAMOS ENTREGADOS HOY (CORREGIDO VIP)
         // ========================================================
         const { data: creditos, error: errCreditos } = await supabaseClient
             .from('creditos')
             .select(`*, clientes ( * )`)
             .gte('fecha_emision', inicioISO)
             .lte('fecha_emision', finISO)
-            .eq('forma_entrega', '1') 
             .order('fecha_emision', { ascending: false }); 
+            // 🚨 Quitamos el filtro estricto de la base de datos para atraparlos todos
             
         if (errCreditos) throw errCreditos;
 
         let totalPrestadoHoy = 0;
-        if (creditos.length > 0) {
-            htmlDetalle += `<div style="background: #fffbeb; padding: 8px; border-radius: 5px; font-weight: bold; color: #b45309; margin-top: 15px;">💸 PRÉSTAMOS ENTREGADOS (EFECTIVO)</div>`;
-            creditos.forEach(credito => {
-                totalPrestadoHoy += parseFloat(credito.monto_capital || 0);
-                
-                let hora = new Date(credito.fecha_emision).toLocaleTimeString('es-EC', { hour: '2-digit', minute:'2-digit' });
-                let fechaLarga = new Date(credito.fecha_emision).toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
-
-                let clienteObj = credito.clientes ? credito.clientes : null;
-                let nombreCliente = extraerNombreSeguro(clienteObj).toUpperCase();
-                let idCred = credito.id || 'N/A';
-                
-                let sufijoCredito = credito[COL_CODIGO_CREDITO] ? credito[COL_CODIGO_CREDITO] : '';
-                let textoSufijo = sufijoCredito ? ` | ${sufijoCredito}` : '';
-                
-                let iniciales = nombreCliente.substring(0, 2);
-                let u4 = (clienteObj && clienteObj.cedula) ? clienteObj.cedula.trim().slice(-4) : '0000';
-                let refCli = (clienteObj && clienteObj[COL_REF_CLIENTE]) ? clienteObj[COL_REF_CLIENTE] : `REF: ${iniciales}-${u4}`;
-
-                const numLocal = mapNumCreditoLocal[credito.id] || 1;
-                const creCifrado = typeof window.cifrarNumeroCredito === 'function' ? window.cifrarNumeroCredito(numLocal).toUpperCase() : '';
-                const etiquetaCRE = creCifrado ? `CRE #${numLocal} [${creCifrado}]` : `CRE #${numLocal}`;
-
-                htmlDetalle += `
-                <div style="display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px dashed #cbd5e1; font-size: 13px; background: #fffcf0;">
-                    <div style="flex: 1;">
-                        <strong style="color: #92400e; text-transform: uppercase;">DESEMBOLSO: CRE #${idCred}${textoSufijo} | ${nombreCliente}</strong>
-                        <div style="color: #b45309; font-size: 11px; font-weight: bold; margin-top: 4px;">🏦 Efectivo Central (Matriz)</div>
-                        <div style="color: #64748b; font-size: 11px; margin-top: 4px;">
-                            ${refCli} | ${etiquetaCRE} | ENTREGA EN EFECTIVO DIRECTO
-                        </div>
-                    </div>
-                    <div style="text-align: right; min-width: 100px;">
-                        <span style="font-weight: 900; color: #f59e0b; font-size: 15px;">-$${parseFloat(credito.monto_capital||0).toFixed(2)}</span>
-                        <div style="color: #94a3b8; font-size: 10px; margin-top: 4px; text-transform: capitalize;">📅 ${fechaLarga}</div>
-                        <div style="color: #94a3b8; font-size: 10px;">🕒 ${hora}</div>
-                    </div>
-                </div>`;
+        if (creditos && creditos.length > 0) {
+            
+            // 💡 Filtramos manualmente para asegurar que atrape '1', 'EFECTIVO', o vacíos
+            const creditosEfectivo = creditos.filter(c => {
+                const forma = (c.forma_entrega || '').toString().toUpperCase();
+                return forma === '1' || forma.includes('EFECTIVO') || forma === ''; 
             });
+
+            if (creditosEfectivo.length > 0) {
+                htmlDetalle += `<div style="background: #fffbeb; padding: 8px; border-radius: 5px; font-weight: bold; color: #b45309; margin-top: 15px;">💸 PRÉSTAMOS ENTREGADOS (EFECTIVO)</div>`;
+                
+                creditosEfectivo.forEach(credito => {
+                    // 💡 Aseguramos leer el monto sin importar cómo se llame la columna
+                    let montoPrestado = parseFloat(credito.monto_capital || credito.monto || 0);
+                    totalPrestadoHoy += montoPrestado;
+                    
+                    let hora = new Date(credito.fecha_emision).toLocaleTimeString('es-EC', { hour: '2-digit', minute:'2-digit' });
+                    let fechaLarga = new Date(credito.fecha_emision).toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+
+                    let clienteObj = credito.clientes ? credito.clientes : null;
+                    let nombreCliente = extraerNombreSeguro(clienteObj).toUpperCase();
+                    let idCred = credito.id || 'N/A';
+                    
+                    let sufijoCredito = credito[COL_CODIGO_CREDITO] ? credito[COL_CODIGO_CREDITO] : '';
+                    let textoSufijo = sufijoCredito ? ` | ${sufijoCredito}` : '';
+                    
+                    let iniciales = nombreCliente.substring(0, 2);
+                    let u4 = (clienteObj && clienteObj.cedula) ? clienteObj.cedula.trim().slice(-4) : '0000';
+                    let refCli = (clienteObj && clienteObj[COL_REF_CLIENTE]) ? clienteObj[COL_REF_CLIENTE] : `REF: ${iniciales}-${u4}`;
+
+                    const numLocal = mapNumCreditoLocal[credito.id] || 1;
+                    const creCifrado = typeof window.cifrarNumeroCredito === 'function' ? window.cifrarNumeroCredito(numLocal).toUpperCase() : '';
+                    const etiquetaCRE = creCifrado ? `CRE #${numLocal} [${creCifrado}]` : `CRE #${numLocal}`;
+
+                    htmlDetalle += `
+                    <div style="display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px dashed #cbd5e1; font-size: 13px; background: #fffcf0;">
+                        <div style="flex: 1;">
+                            <strong style="color: #92400e; text-transform: uppercase;">DESEMBOLSO: CRE #${idCred}${textoSufijo} | ${nombreCliente}</strong>
+                            <div style="color: #b45309; font-size: 11px; font-weight: bold; margin-top: 4px;">🏦 Efectivo Central (Matriz)</div>
+                            <div style="color: #64748b; font-size: 11px; margin-top: 4px;">
+                                ${refCli} | ${etiquetaCRE} | ENTREGA EN EFECTIVO DIRECTO
+                            </div>
+                        </div>
+                        <div style="text-align: right; min-width: 100px;">
+                            <span style="font-weight: 900; color: #f59e0b; font-size: 15px;">-$${montoPrestado.toFixed(2)}</span>
+                            <div style="color: #94a3b8; font-size: 10px; margin-top: 4px; text-transform: capitalize;">📅 ${fechaLarga}</div>
+                            <div style="color: #94a3b8; font-size: 10px;">🕒 ${hora}</div>
+                        </div>
+                    </div>`;
+                });
+            }
         }
 
         // ========================================================
@@ -502,7 +514,6 @@ window.generarPDFCierreDiario = async function() {
             return;
         }
 
-        // Le avisamos al usuario que estamos armando la radiografía
         alert("⏳ Recopilando la Radiografía del Día para el PDF... Presione Aceptar y espere un momento.");
 
         const { jsPDF } = window.jspdf;
@@ -535,17 +546,14 @@ window.generarPDFCierreDiario = async function() {
         doc.setFontSize(11); doc.setTextColor(15, 23, 42);
         doc.text("RESUMEN DE MOVIMIENTOS DEL DÍA", 14, 78);
         
-        // Cajita Verde (Ingresos)
         doc.setFillColor(236, 253, 245); doc.roundedRect(14, 82, 58, 16, 2, 2, 'F');
         doc.setFontSize(8); doc.setTextColor(6, 78, 59); doc.text("TOTAL RECAUDADO", 17, 88);
         doc.setFontSize(12); doc.text(valIngresos, 17, 95);
 
-        // Cajita Roja (Gastos)
         doc.setFillColor(254, 242, 242); doc.roundedRect(76, 82, 58, 16, 2, 2, 'F');
         doc.setFontSize(8); doc.setTextColor(153, 27, 27); doc.text("GASTOS VARIOS", 79, 88);
         doc.setFontSize(12); doc.text(valGastos, 79, 95);
 
-        // Cajita Naranja (Préstamos)
         doc.setFillColor(255, 251, 235); doc.roundedRect(138, 82, 58, 16, 2, 2, 'F');
         doc.setFontSize(8); doc.setTextColor(180, 83, 9); doc.text("PRÉSTAMOS ENTREGADOS", 141, 88);
         doc.setFontSize(12); doc.text(valPrestamos, 141, 95);
@@ -577,17 +585,29 @@ window.generarPDFCierreDiario = async function() {
 
         let datosTabla = [];
 
-        // Traer Pagos
+       // A. Traer Pagos (Recaudación) CON DESGLOSE DE CAPITAL E INTERÉS
         const { data: pagos } = await supabaseClient.from('historial_pagos')
-            .select(`abono_total, fecha_pago, forma_pago, creditos (clientes (nombres, apellidos))`)
+            .select(`abono_total, monto_capital, monto_interes, fecha_pago, forma_pago, creditos (clientes (nombres, apellidos))`)
             .gte('fecha_pago', isoIni).lte('fecha_pago', isoFin);
         
         if (pagos) pagos.forEach(p => {
             let cli = (p.creditos && p.creditos.clientes) ? `${p.creditos.clientes.nombres} ${p.creditos.clientes.apellidos}` : 'CLIENTE';
-            datosTabla.push({ fechaObj: new Date(p.fecha_pago), hora: new Date(p.fecha_pago).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'INGRESO (ABONO)', detalle: cli.toUpperCase(), caja: (p.forma_pago || 'EFECTIVO').toUpperCase(), monto: `+$${parseFloat(p.abono_total).toFixed(2)}`, valorNum: parseFloat(p.abono_total) });
+            
+            // 🔥 Agregamos el detalle exacto de la pantalla al PDF
+            let detalleConDesglose = `${cli.toUpperCase()}\n[Capital: $${parseFloat(p.monto_capital || 0).toFixed(2)} | Interés: $${parseFloat(p.monto_interes || 0).toFixed(2)}]`;
+            
+            datosTabla.push({ 
+                fechaObj: new Date(p.fecha_pago), 
+                hora: new Date(p.fecha_pago).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), 
+                operacion: 'INGRESO (ABONO)', 
+                detalle: detalleConDesglose, 
+                caja: (p.forma_pago || 'EFECTIVO').toUpperCase(), 
+                monto: `+$${parseFloat(p.abono_total).toFixed(2)}`, 
+                valorNum: parseFloat(p.abono_total) 
+            });
         });
 
-        // Traer Gastos
+        // B. Traer Gastos
         const { data: gastos } = await supabaseClient.from('gastos_varios')
             .select('monto, concepto, fecha_gasto').gte('fecha_gasto', isoIni).lte('fecha_gasto', isoFin);
         
@@ -595,17 +615,63 @@ window.generarPDFCierreDiario = async function() {
             datosTabla.push({ fechaObj: new Date(g.fecha_gasto), hora: new Date(g.fecha_gasto).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'GASTO DEL DÍA', detalle: (g.concepto || 'VARIO').toUpperCase(), caja: 'EFECTIVO', monto: `-$${parseFloat(g.monto).toFixed(2)}`, valorNum: -parseFloat(g.monto) });
         });
 
-        // Traer Préstamos (Desembolsos en Efectivo)
+        // C. Traer Préstamos (Desembolsos) - CORREGIDO
         const { data: creditos } = await supabaseClient.from('creditos')
-            .select('monto_capital, fecha_emision, clientes (nombres, apellidos)')
-            .gte('fecha_emision', isoIni).lte('fecha_emision', isoFin).eq('forma_entrega', '1');
+            .select('monto_capital, monto, fecha_emision, forma_entrega, clientes (nombres, apellidos)')
+            .gte('fecha_emision', isoIni).lte('fecha_emision', isoFin);
         
-        if (creditos) creditos.forEach(c => {
-            let cli = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}` : 'CLIENTE';
-            datosTabla.push({ fechaObj: new Date(c.fecha_emision), hora: new Date(c.fecha_emision).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'NUEVO PRÉSTAMO', detalle: cli.toUpperCase(), caja: 'EFECTIVO', monto: `-$${parseFloat(c.monto_capital).toFixed(2)}`, valorNum: -parseFloat(c.monto_capital) });
-        });
+        if (creditos) {
+            const creditosEfectivo = creditos.filter(c => {
+                const forma = (c.forma_entrega || '').toString().toUpperCase();
+                return forma === '1' || forma.includes('EFECTIVO') || forma === ''; 
+            });
+            
+            creditosEfectivo.forEach(c => {
+                let cli = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}` : 'CLIENTE';
+                let montoPrestado = parseFloat(c.monto_capital || c.monto || 0);
+                
+                datosTabla.push({ 
+                    fechaObj: new Date(c.fecha_emision), 
+                    hora: new Date(c.fecha_emision).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), 
+                    operacion: 'NUEVO PRÉSTAMO', 
+                    detalle: cli.toUpperCase(), 
+                    caja: 'EFECTIVO', 
+                    monto: `-$${montoPrestado.toFixed(2)}`, 
+                    valorNum: -montoPrestado 
+                });
+            });
+        }
 
-        // Ordenamos cronológicamente
+       // D. Traer INYECCIONES DE CAPITAL (El dinero de su bolsillo / Fondeo)
+        const { data: movsCapital } = await supabaseClient.from('historial_capital')
+            .select('monto, concepto, fecha_movimiento')
+            .gte('fecha_movimiento', isoIni).lte('fecha_movimiento', isoFin);
+        
+        if (movsCapital) {
+            movsCapital.forEach(mov => {
+                let montoNum = parseFloat(mov.monto || 0);
+                let conceptoRaw = mov.concepto || '';
+                
+                // 1. Limpiamos los emojis para que no salga Ø=ßâ en el PDF impreso
+                let conceptoLimpio = conceptoRaw.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\.,;:\-\_\(\)\[\]\|#\$%&!¿\?]/g, ' ').replace(/\s+/g, ' ').trim();
+                let conceptoTexto = conceptoLimpio.toUpperCase();
+                
+                // 2. Filtramos solo el dinero físico real (monto > 0) y que NO sea un cobro automático
+                if (montoNum > 0 && !conceptoTexto.includes('RECUPERACION') && !conceptoTexto.includes('RECUPERACIÓN')) {
+                    datosTabla.push({ 
+                        fechaObj: new Date(mov.fecha_movimiento), 
+                        hora: new Date(mov.fecha_movimiento).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), 
+                        operacion: 'INYECCIÓN DE CAPITAL', 
+                        detalle: conceptoTexto || 'FONDEO DE CAJA', 
+                        caja: 'EFECTIVO', 
+                        monto: `+$${montoNum.toFixed(2)}`, 
+                        valorNum: montoNum 
+                    });
+                }
+            });
+        }
+
+        // Ordenamos toda la tabla por la hora exacta en la que pasaron las cosas
         datosTabla.sort((a, b) => a.fechaObj - b.fechaObj);
 
         // Preparamos las filas para el PDF
@@ -632,12 +698,9 @@ window.generarPDFCierreDiario = async function() {
 
         // 7. FIRMAS DE RESPONSABILIDAD
         let finalY = doc.lastAutoTable.finalY + 30;
-        
-        // Si no hay espacio para las firmas en esta página, creamos una nueva
         if (finalY > 260) { doc.addPage(); finalY = 40; }
 
-        doc.setDrawColor(0, 0, 0);
-        doc.line(30, finalY, 80, finalY);
+        doc.setDrawColor(0, 0, 0); doc.line(30, finalY, 80, finalY);
         doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.setTextColor(15, 23, 42);
         doc.text("Firma del Cajero / Operador", 55, finalY + 5, { align: 'center' });
 
@@ -656,3 +719,4 @@ window.generarPDFCierreDiario = async function() {
         alert("❌ Ocurrió un error al intentar generar la papeleta. Revise la consola.");
     }
 }
+
