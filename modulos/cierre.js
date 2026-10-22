@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// 🖨️ MOTOR PDF DE CIERRE DE CAJA DIARIO OFICIAL 
+// 🖨️ MOTOR PDF DE CIERRE DE CAJA DIARIO OFICIAL (BLINDADO V6)
 // =========================================================================
 window.generarPDFCierreDiario = async function() {
     try {
@@ -551,7 +551,7 @@ window.generarPDFCierreDiario = async function() {
 
         let datosTabla = [];
         
-        // 🔥 INYECTAR CAJA CHICA AL PDF
+        // 1. BASE DE CAJA CHICA (Ya estaba funcionando)
         let baseCajaChica = window.ultimaCajaChicaGuardada || 0;
         if (baseCajaChica > 0) {
             let fechaBase = new Date(); fechaBase.setHours(8, 0, 0, 0);
@@ -562,19 +562,22 @@ window.generarPDFCierreDiario = async function() {
             });
         }
 
-        const { data: pagos } = await supabaseClient.from('historial_pagos').select(`abono_total, monto_capital, monto_interes, fecha_pago, forma_pago, creditos (clientes (nombres, apellidos))`).gte('fecha_pago', isoIni).lte('fecha_pago', isoFin);
+        // 2. PAGOS / RECAUDACIÓN (AHORA CON CONSULTAS CIEGAS *)
+        const { data: pagos } = await supabaseClient.from('historial_pagos').select(`*, creditos (*, clientes (*))`).gte('fecha_pago', isoIni).lte('fecha_pago', isoFin);
         if (pagos) pagos.forEach(p => {
             let cli = (p.creditos && p.creditos.clientes) ? `${p.creditos.clientes.nombres} ${p.creditos.clientes.apellidos}` : 'CLIENTE';
             let detalleConDesglose = `${cli.toUpperCase()}\n[Capital: $${parseFloat(p.monto_capital || 0).toFixed(2)} | Interés: $${parseFloat(p.monto_interes || 0).toFixed(2)}]`;
             datosTabla.push({ fechaObj: new Date(p.fecha_pago), hora: new Date(p.fecha_pago).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'INGRESO (ABONO)', detalle: detalleConDesglose, caja: (p.forma_pago || 'EFECTIVO').toUpperCase(), monto: `+$${parseFloat(p.abono_total).toFixed(2)}`, valorNum: parseFloat(p.abono_total) });
         });
 
-        const { data: gastos } = await supabaseClient.from('gastos_varios').select('monto, concepto, fecha_gasto').gte('fecha_gasto', isoIni).lte('fecha_gasto', isoFin);
+        // 3. GASTOS (CONSULTA CIEGA *)
+        const { data: gastos } = await supabaseClient.from('gastos_varios').select('*').gte('fecha_gasto', isoIni).lte('fecha_gasto', isoFin);
         if (gastos) gastos.forEach(g => {
             datosTabla.push({ fechaObj: new Date(g.fecha_gasto), hora: new Date(g.fecha_gasto).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'GASTO DEL DÍA', detalle: (g.concepto || 'VARIO').toUpperCase(), caja: 'EFECTIVO', monto: `-$${parseFloat(g.monto).toFixed(2)}`, valorNum: -parseFloat(g.monto) });
         });
 
-        const { data: creditos } = await supabaseClient.from('creditos').select('monto_capital, monto, fecha_emision, forma_entrega, clientes (nombres, apellidos)').gte('fecha_emision', isoIni).lte('fecha_emision', isoFin);
+        // 4. 🔥 PRÉSTAMOS (EL ERROR CORREGIDO USANDO CONSULTA CIEGA *) 🔥
+        const { data: creditos } = await supabaseClient.from('creditos').select('*, clientes (*)').gte('fecha_emision', isoIni).lte('fecha_emision', isoFin);
         if (creditos) {
             const creditosEfectivo = creditos.filter(c => {
                 const forma = (c.forma_entrega || '').toString().toUpperCase();
@@ -587,7 +590,8 @@ window.generarPDFCierreDiario = async function() {
             });
         }
 
-        const { data: movsCapital } = await supabaseClient.from('historial_capital').select('monto, concepto, fecha_movimiento').gte('fecha_movimiento', isoIni).lte('fecha_movimiento', isoFin);
+        // 5. INYECCIONES DE CAPITAL (CONSULTA CIEGA *)
+        const { data: movsCapital } = await supabaseClient.from('historial_capital').select('*').gte('fecha_movimiento', isoIni).lte('fecha_movimiento', isoFin);
         if (movsCapital) {
             movsCapital.forEach(mov => {
                 let montoNum = parseFloat(mov.monto || 0);
@@ -600,6 +604,7 @@ window.generarPDFCierreDiario = async function() {
             });
         }
 
+        // 6. ORDENAR TABLA Y GENERAR PDF
         datosTabla.sort((a, b) => a.fechaObj - b.fechaObj);
         const filasPDF = datosTabla.map(d => [d.hora, d.operacion, d.detalle, d.caja, d.monto]);
 
