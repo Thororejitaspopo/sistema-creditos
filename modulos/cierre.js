@@ -1,5 +1,5 @@
 // =========================================================================
-// 🔒 MÓDULO DE CIERRE DE CAJA DIARIO Y AUDITORÍA (SISTEMA ALPHA V5)
+// 🔒 MÓDULO DE CIERRE DE CAJA DIARIO Y AUDITORÍA (SISTEMA ALPHA V6 - BLINDADO)
 // =========================================================================
 
 // ⚙️ CONFIGURACIÓN DE AUDITORÍA
@@ -16,6 +16,11 @@ function extraerNombreSeguro(clienteObj) {
 }
 
 window.ejecutarCierreDiario = async function() {
+    // 1. LEER LA CAJA CHICA ANTES DE QUE SE ACTUALICE LA PANTALLA
+    let cajaChicaInput = document.getElementById('input-base-caja');
+    let baseCajaChica = cajaChicaInput ? parseFloat(cajaChicaInput.value || 0) : (window.ultimaCajaChicaGuardada || 0);
+    window.ultimaCajaChicaGuardada = baseCajaChica; // Guardamos en memoria
+
     document.getElementById('cierre-total-ingresos').innerText = "Calculando...";
     document.getElementById('cierre-total-gastos').innerText = "Calculando...";
     document.getElementById('cierre-total-prestamos').innerText = "Calculando...";
@@ -32,6 +37,11 @@ window.ejecutarCierreDiario = async function() {
 
         let htmlDetalle = ''; 
 
+        // MOSTRAR CAJA CHICA EN EL REPORTE VISUAL
+        if (baseCajaChica > 0) {
+            htmlDetalle += `<div style="background: #f1f5f9; padding: 12px; border-radius: 5px; font-weight: bold; color: #334155; margin-bottom: 15px; border-left: 4px solid #475569;">💼 BASE INICIAL (CAJA CHICA FÍSICA): <span style="float: right; color: #0f172a;">$${baseCajaChica.toFixed(2)}</span></div>`;
+        }
+
         const { data: historialTodos } = await supabaseClient.from('creditos').select('id, cliente_id').order('id', { ascending: true });
         const mapNumCreditoLocal = {};
         if (historialTodos) {
@@ -47,13 +57,8 @@ window.ejecutarCierreDiario = async function() {
         // ========================================================
         const { data: pagos, error: errPagos } = await supabaseClient
             .from('historial_pagos') 
-            .select(`
-                id, numero_pago, id_credito, monto_capital, monto_interes, abono_total, fecha_pago, forma_pago,
-                creditos ( *, clientes ( * ) )
-            `)
-            .gte('fecha_pago', inicioISO)
-            .lte('fecha_pago', finISO)
-            .order('fecha_pago', { ascending: false });
+            .select(`id, numero_pago, id_credito, monto_capital, monto_interes, abono_total, fecha_pago, forma_pago, creditos ( *, clientes ( * ) )`)
+            .gte('fecha_pago', inicioISO).lte('fecha_pago', finISO).order('fecha_pago', { ascending: false });
             
         if (errPagos) throw errPagos;
 
@@ -135,9 +140,7 @@ window.ejecutarCierreDiario = async function() {
         const { data: gastos, error: errGastos } = await supabaseClient
             .from('gastos_varios')
             .select('monto, concepto, fecha_gasto')
-            .gte('fecha_gasto', inicioISO)
-            .lte('fecha_gasto', finISO)
-            .order('fecha_gasto', { ascending: false });
+            .gte('fecha_gasto', inicioISO).lte('fecha_gasto', finISO).order('fecha_gasto', { ascending: false });
             
         if (errGastos) throw errGastos;
 
@@ -165,22 +168,16 @@ window.ejecutarCierreDiario = async function() {
         }
 
         // ========================================================
-        // C. PRÉSTAMOS ENTREGADOS HOY (CORREGIDO VIP)
+        // C. PRÉSTAMOS ENTREGADOS HOY 
         // ========================================================
         const { data: creditos, error: errCreditos } = await supabaseClient
-            .from('creditos')
-            .select(`*, clientes ( * )`)
-            .gte('fecha_emision', inicioISO)
-            .lte('fecha_emision', finISO)
-            .order('fecha_emision', { ascending: false }); 
-            // 🚨 Quitamos el filtro estricto de la base de datos para atraparlos todos
+            .from('creditos').select(`*, clientes ( * )`)
+            .gte('fecha_emision', inicioISO).lte('fecha_emision', finISO).order('fecha_emision', { ascending: false }); 
             
         if (errCreditos) throw errCreditos;
 
         let totalPrestadoHoy = 0;
         if (creditos && creditos.length > 0) {
-            
-            // 💡 Filtramos manualmente para asegurar que atrape '1', 'EFECTIVO', o vacíos
             const creditosEfectivo = creditos.filter(c => {
                 const forma = (c.forma_entrega || '').toString().toUpperCase();
                 return forma === '1' || forma.includes('EFECTIVO') || forma === ''; 
@@ -190,7 +187,6 @@ window.ejecutarCierreDiario = async function() {
                 htmlDetalle += `<div style="background: #fffbeb; padding: 8px; border-radius: 5px; font-weight: bold; color: #b45309; margin-top: 15px;">💸 PRÉSTAMOS ENTREGADOS (EFECTIVO)</div>`;
                 
                 creditosEfectivo.forEach(credito => {
-                    // 💡 Aseguramos leer el monto sin importar cómo se llame la columna
                     let montoPrestado = parseFloat(credito.monto_capital || credito.monto || 0);
                     totalPrestadoHoy += montoPrestado;
                     
@@ -200,10 +196,8 @@ window.ejecutarCierreDiario = async function() {
                     let clienteObj = credito.clientes ? credito.clientes : null;
                     let nombreCliente = extraerNombreSeguro(clienteObj).toUpperCase();
                     let idCred = credito.id || 'N/A';
-                    
                     let sufijoCredito = credito[COL_CODIGO_CREDITO] ? credito[COL_CODIGO_CREDITO] : '';
                     let textoSufijo = sufijoCredito ? ` | ${sufijoCredito}` : '';
-                    
                     let iniciales = nombreCliente.substring(0, 2);
                     let u4 = (clienteObj && clienteObj.cedula) ? clienteObj.cedula.trim().slice(-4) : '0000';
                     let refCli = (clienteObj && clienteObj[COL_REF_CLIENTE]) ? clienteObj[COL_REF_CLIENTE] : `REF: ${iniciales}-${u4}`;
@@ -232,17 +226,12 @@ window.ejecutarCierreDiario = async function() {
         }
 
         // ========================================================
-        // 🔥 NUEVO: D. INYECCIONES DE CAPITAL (EL BOTÓN ROJO) 🔥
-        // ========================================================
-        // ========================================================
-        // 🔥 NUEVO: D. INYECCIONES DE CAPITAL (EL BOTÓN ROJO)
+        // D. INYECCIONES DE CAPITAL
         // ========================================================
         const { data: movsCapital, error: errCapital } = await supabaseClient
             .from('historial_capital')
             .select('monto, concepto, fecha_movimiento')
-            .gte('fecha_movimiento', inicioISO)
-            .lte('fecha_movimiento', finISO)
-            .order('fecha_movimiento', { ascending: false });
+            .gte('fecha_movimiento', inicioISO).lte('fecha_movimiento', finISO).order('fecha_movimiento', { ascending: false });
             
         if (errCapital) throw errCapital;
 
@@ -256,12 +245,9 @@ window.ejecutarCierreDiario = async function() {
                 let monto = parseFloat(mov.monto || 0);
                 if (monto > 0) {
                     huboInyeccion = true;
-                    
-                    // 💡 LA REGLA DE ORO: Verificamos si es un abono automático
                     let conceptoTexto = (mov.concepto || '').toUpperCase();
                     let esRecuperacion = conceptoTexto.includes('RECUPERACIÓN');
 
-                    // SOLO sumamos a la caja si NO es un abono automático (informativo)
                     if (!esRecuperacion) {
                         totalInyeccionesCapitalHoy += monto;
                     }
@@ -293,14 +279,12 @@ window.ejecutarCierreDiario = async function() {
         }
 
         // ========================================================
-        // 🔥 NUEVO: D.2 INYECCIONES DE INTERÉS / UTILIDAD (INFORMATIVO)
+        // D.2 INYECCIONES DE INTERÉS (INFORMATIVO)
         // ========================================================
         const { data: movsInteres, error: errInteres } = await supabaseClient
             .from('movimientos_utilidad')
             .select('monto, concepto, fecha, tipo')
-            .gte('fecha', inicioISO)
-            .lte('fecha', finISO)
-            .order('fecha', { ascending: false });
+            .gte('fecha', inicioISO).lte('fecha', finISO).order('fecha', { ascending: false });
 
         if (!errInteres && movsInteres && movsInteres.length > 0) {
             let htmlInteres = '';
@@ -308,10 +292,8 @@ window.ejecutarCierreDiario = async function() {
 
             movsInteres.forEach(mov => {
                 let monto = parseFloat(mov.monto || 0);
-                // Mostrar solo ingresos (ignoramos los retiros de ajuste)
                 if (monto > 0 && mov.tipo !== 'RETIRO') {
                     huboInyeccionInteres = true;
-                    
                     let hora = new Date(mov.fecha).toLocaleTimeString('es-EC', { hour: '2-digit', minute:'2-digit' });
                     let fechaLarga = new Date(mov.fecha).toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -338,22 +320,19 @@ window.ejecutarCierreDiario = async function() {
             }
         }
 
-        // ========================================================
-        // IMPRESIÓN DEL DETALLE EN PANTALLA
-        // ========================================================
-        if (pagos.length === 0 && gastos.length === 0 && creditos.length === 0 && totalInyeccionesCapitalHoy === 0 && (!movsInteres || movsInteres.length === 0)) {
+        if (pagos.length === 0 && gastos.length === 0 && creditos.length === 0 && totalInyeccionesCapitalHoy === 0 && (!movsInteres || movsInteres.length === 0) && baseCajaChica === 0) {
             htmlDetalle = `<div style="text-align: center; color: #64748b; padding: 20px;">No se registraron movimientos en efectivo el día de hoy.</div>`;
         }
 
         document.getElementById('cierre-detalle-lista').innerHTML = htmlDetalle;
 
         // ========================================================
-        // E. EL CÁLCULO FÍSICO Y DIGITAL (ACTUALIZADO)
+        // E. EL CÁLCULO FÍSICO Y DIGITAL (CON CAJA CHICA INCLUIDA)
         // ========================================================
         let salidasDeEfectivo = totalGastosHoy + totalPrestadoHoy;
         
-        // Sumamos las inyecciones (el botón rojo) a la maleta física
-        let efectivoFisicoEnMano = totalRecaudadoFisico + totalInyeccionesCapitalHoy - salidasDeEfectivo; 
+        // Sumamos la Base (Caja Chica), los Cobros y las Inyecciones, menos las salidas
+        let efectivoFisicoEnMano = baseCajaChica + totalRecaudadoFisico + totalInyeccionesCapitalHoy - salidasDeEfectivo; 
         
         let totalRecaudadoDiaFisicoYDigital = totalRecaudadoFisico + totalCapitalEntranteBanco + totalInteresEntranteBanco;
 
@@ -371,36 +350,34 @@ window.ejecutarCierreDiario = async function() {
         }
 
         // ========================================================
-        // F. EL JUEZ CONTABLE (FÍSICO) Y BÓVEDAS
+        // F. EL JUEZ CONTABLE (FÍSICO) - LÓGICA CORREGIDA V6
         // ========================================================
-        // El Capital que hay que guardar incluye lo que inyectamos con el botón
-        let capitalAGuardar = totalCapitalEntranteFisico + totalInyeccionesCapitalHoy;
+        // Capital disponible = Base Inicial + Entradas Capital Físico + Inyecciones - PRÉSTAMOS
+        let capitalAGuardar = baseCajaChica + totalCapitalEntranteFisico + totalInyeccionesCapitalHoy - totalPrestadoHoy;
         let interesAGuardar = totalInteresEntranteFisico;
         
         let deudaInterna = 0;
         window.deudaPendienteCierre = 0; 
         
-        if (salidasDeEfectivo <= interesAGuardar) {
-            // Escenario Perfecto
-            interesAGuardar = interesAGuardar - salidasDeEfectivo;
+        // LOS GASTOS (comida, gasolina, etc) se pagan exclusivamente con el Interés
+        if (totalGastosHoy <= interesAGuardar) {
+            interesAGuardar = interesAGuardar - totalGastosHoy;
             document.getElementById('alerta-cruce-bovedas').style.display = 'none';
         } else {
-            // Hubo déficit
-            let diferenciaFaltante = salidasDeEfectivo - interesAGuardar;
+            // Si el gasto superó el interés, el sistema tuvo que usar Capital
+            let gastosNoCubiertos = totalGastosHoy - interesAGuardar;
             interesAGuardar = 0; 
-            capitalAGuardar = capitalAGuardar - diferenciaFaltante; 
+            capitalAGuardar = capitalAGuardar - gastosNoCubiertos; 
             
-            // Calculamos cuánto DEBEMOS restándole lo que YA REPUSIMOS hoy con el botón
-            deudaInterna = diferenciaFaltante - totalInyeccionesCapitalHoy;
+            deudaInterna = gastosNoCubiertos - totalInyeccionesCapitalHoy;
 
-            // Si la deuda sigue siendo mayor a 0 (aunque sea por 1 centavo)
             if (deudaInterna > 0.001) {
                 window.deudaPendienteCierre = deudaInterna;
                 document.getElementById('alerta-cruce-bovedas').style.display = 'block';
                 document.getElementById('alerta-cruce-bovedas').innerHTML = `
                     <h4 style="color: #b91c1c; margin: 0 0 10px 0; font-size: 16px;">⚠️ ATENCIÓN: REPOSICIÓN DE FONDOS REQUERIDA</h4>
                     <p style="color: #991b1b; font-size: 14px; margin: 0 0 15px 0;">
-                        El Capital físico fue usado para pagar los gastos de hoy. 
+                        El Capital físico fue usado para pagar los <strong>gastos</strong> de hoy. 
                         La Bóveda de Intereses histórica <strong>LE DEBE $${deudaInterna.toFixed(2)}</strong> al Capital para cuadrar su maleta real.
                     </p>
                     <button onclick="ejecutarAjusteDeCruce()" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3); transition: transform 0.1s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
@@ -408,7 +385,6 @@ window.ejecutarCierreDiario = async function() {
                     </button>
                 `;
             } else {
-                // Si la inyección cubrió la deuda, apagamos la alerta roja
                 document.getElementById('alerta-cruce-bovedas').style.display = 'none';
             }
         }
@@ -419,11 +395,9 @@ window.ejecutarCierreDiario = async function() {
             document.getElementById('cierre-efectivo-mano').style.color = "#38bdf8";
         }
 
-        // Cajas Físicas
         document.getElementById('cierre-guardar-capital').innerText = `$${capitalAGuardar.toFixed(2)}`;
         document.getElementById('cierre-guardar-interes').innerText = `$${interesAGuardar.toFixed(2)}`;
 
-        // Cajas Bancarias
         if (document.getElementById('cierre-banco-capital')) {
             document.getElementById('cierre-banco-capital').innerText = `$${totalCapitalEntranteBanco.toFixed(2)}`;
         }
@@ -437,9 +411,6 @@ window.ejecutarCierreDiario = async function() {
     }
 };
 
-// =========================================================================
-// 🚀 FUNCIÓN MÁGICA: EL BOTÓN DE AJUSTE AUTOMÁTICO
-// =========================================================================
 window.ejecutarAjusteDeCruce = async function() {
     const monto = window.deudaPendienteCierre;
     
@@ -451,18 +422,11 @@ window.ejecutarAjusteDeCruce = async function() {
 
     try {
         await supabaseClient.from('movimientos_utilidad').insert([{
-            tipo: 'RETIRO',
-            monto: monto,
-            concepto: 'AJUSTE AUTOMÁTICO: COBERTURA DE DÉFICIT DE CAPITAL (CIERRE DIARIO)',
-            origen: 'EFECTIVO',
-            fecha: new Date().toISOString()
+            tipo: 'RETIRO', monto: monto, concepto: 'AJUSTE AUTOMÁTICO: COBERTURA DE DÉFICIT DE CAPITAL (CIERRE DIARIO)', origen: 'EFECTIVO', fecha: new Date().toISOString()
         }]);
 
         await supabaseClient.from('historial_capital').insert([{
-            caja_id: 1, // 1 = Efectivo Matriz
-            monto: monto,
-            concepto: 'REPOSICIÓN AUTOMÁTICA DESDE BÓVEDA DE UTILIDADES (CIERRE DIARIO)',
-            fecha_movimiento: new Date().toISOString()
+            caja_id: 1, monto: monto, concepto: 'REPOSICIÓN AUTOMÁTICA DESDE BÓVEDA DE UTILIDADES (CIERRE DIARIO)', fecha_movimiento: new Date().toISOString()
         }]);
 
         const { data: caja } = await supabaseClient.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
@@ -472,7 +436,6 @@ window.ejecutarAjusteDeCruce = async function() {
         }
 
         alert(`✅ ¡Ajuste mágico realizado! Se han transferido $${monto.toFixed(2)} al capital.\n\nLa contabilidad vuelve a estar perfecta y el sistema está balanceado.`);
-        
         ejecutarCierreDiario();
 
     } catch (error) {
@@ -481,25 +444,36 @@ window.ejecutarAjusteDeCruce = async function() {
     }
 };
 
+// =========================================================================
+// 🪄 CREADOR DE CAJA CHICA DINÁMICA (SIN TOCAR HTML)
+// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     const originalCambiarModuloCierre = window.cambiarModulo;
     if (typeof originalCambiarModuloCierre === 'function') {
         window.cambiarModulo = function(idModulo) {
             originalCambiarModuloCierre(idModulo);
             if (idModulo === 'cierre') {
+                window.ultimaCajaChicaGuardada = 0; // Resetear en memoria
                 document.getElementById('cierre-total-ingresos').innerText = "$0.00";
                 document.getElementById('cierre-efectivo-mano').innerText = "$0.00";
                 document.getElementById('alerta-cruce-bovedas').style.display = 'none';
-                document.getElementById('cierre-detalle-lista').innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 14px;">Presione "Calcular Cierre de Hoy" para generar el reporte detallado de los movimientos.</div>';
+                
+                // INYECTA EL CUADRO DE TEXTO AUTOMÁTICAMENTE
+                document.getElementById('cierre-detalle-lista').innerHTML = `
+                    <div style="background: #f8fafc; padding: 25px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 2px dashed #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                        <h4 style="margin: 0 0 10px 0; color: #1e293b; font-size: 16px;">💼 Ingrese su Base Inicial (Caja Chica)</h4>
+                        <p style="font-size: 13px; color: #64748b; margin-top:0; margin-bottom: 15px;">Escriba el dinero físico con el que salió a la calle HOY antes de cobrar y presione Calcular.</p>
+                        <input type="number" id="input-base-caja" placeholder="Ej: 200" style="padding: 12px; font-size: 24px; font-weight: bold; width: 180px; text-align: center; border: 2px solid #38bdf8; border-radius: 8px; color: #0f172a; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='#38bdf8'">
+                    </div>
+                `;
             }
         };
     }
 });
 
 // =========================================================================
-// 🖨️ MOTOR PDF DE CIERRE DE CAJA DIARIO OFICIAL (VERSIÓN AUDITORÍA VIP)
+// 🖨️ MOTOR PDF DE CIERRE DE CAJA DIARIO OFICIAL 
 // =========================================================================
-
 window.generarPDFCierreDiario = async function() {
     try {
         if (typeof window.jspdf === 'undefined') {
@@ -507,7 +481,6 @@ window.generarPDFCierreDiario = async function() {
             return;
         }
 
-        // Verificamos que ya se haya calculado
         const valEfectivoMano = document.getElementById('cierre-efectivo-mano').innerText;
         if (valEfectivoMano === "$0.00" || valEfectivoMano === "Calculando...") {
             alert("⚠️ Por favor, primero presione 'CALCULAR CIERRE DE HOY' antes de generar el PDF.");
@@ -519,9 +492,8 @@ window.generarPDFCierreDiario = async function() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait', 'mm', 'a4'); 
 
-        // 1. MEMBRETES DEL BANCO
         doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(15, 23, 42);
-        doc.text("SISTEMA ALPHA V5", 14, 20);
+        doc.text("SISTEMA ALPHA V6", 14, 20);
 
         doc.setFontSize(14); doc.setTextColor(2, 132, 199);
         doc.text("ARQUEO Y CIERRE DE CAJA DIARIO (AUDITORÍA DETALLADA)", 14, 28);
@@ -531,14 +503,12 @@ window.generarPDFCierreDiario = async function() {
         doc.text(`Fecha y Hora de Auditoría: ${fImpresion.toUpperCase()}`, 14, 34);
         doc.setDrawColor(200, 200, 200); doc.line(14, 37, 196, 37);
 
-        // 2. LA CAJA NEGRA (EFECTIVO FÍSICO ESPERADO)
         doc.setFillColor(15, 23, 42); doc.roundedRect(14, 43, 182, 26, 3, 3, 'F');
         doc.setFontSize(10); doc.setTextColor(148, 163, 184); doc.setFont(undefined, 'bold');
         doc.text("EFECTIVO FÍSICO TOTAL QUE DEBE TENER EN SU MANO:", 20, 52);
         doc.setFontSize(22); doc.setTextColor(56, 189, 248); 
         doc.text(valEfectivoMano, 20, 62);
 
-        // 3. RESUMEN DE OPERACIONES (El detalle para no confundirse con los gastos)
         const valIngresos = document.getElementById('cierre-total-ingresos').innerText;
         const valGastos = document.getElementById('cierre-total-gastos').innerText;
         const valPrestamos = document.getElementById('cierre-total-prestamos').innerText;
@@ -558,7 +528,6 @@ window.generarPDFCierreDiario = async function() {
         doc.setFontSize(8); doc.setTextColor(180, 83, 9); doc.text("PRÉSTAMOS ENTREGADOS", 141, 88);
         doc.setFontSize(12); doc.text(valPrestamos, 141, 95);
 
-        // 4. INSTRUCCIONES DE SEPARACIÓN
         doc.setFontSize(11); doc.setTextColor(15, 23, 42); doc.text("SEPARACIÓN DE FONDOS", 14, 108);
         doc.setDrawColor(200, 200, 200); doc.line(14, 111, 196, 111);
 
@@ -576,117 +545,69 @@ window.generarPDFCierreDiario = async function() {
         pintarCajita("CAPITAL EN BANCOS (Transferencias)", 'cierre-banco-capital', [245, 243, 255], [109, 40, 217]);
         pintarCajita("UTILIDADES EN BANCOS (Transferencias)", 'cierre-banco-interes', [253, 244, 255], [192, 38, 211]);
 
-        // ========================================================
-        // 5. EXTRACCIÓN DE DATOS PARA LA RADIOGRAFÍA (TABLA)
-        // ========================================================
         const inicioDia = new Date(); inicioDia.setHours(0, 0, 0, 0);
         const finDia = new Date(); finDia.setHours(23, 59, 59, 999);
         const isoIni = inicioDia.toISOString(); const isoFin = finDia.toISOString();
 
         let datosTabla = [];
-
-       // A. Traer Pagos (Recaudación) CON DESGLOSE DE CAPITAL E INTERÉS
-        const { data: pagos } = await supabaseClient.from('historial_pagos')
-            .select(`abono_total, monto_capital, monto_interes, fecha_pago, forma_pago, creditos (clientes (nombres, apellidos))`)
-            .gte('fecha_pago', isoIni).lte('fecha_pago', isoFin);
         
+        // 🔥 INYECTAR CAJA CHICA AL PDF
+        let baseCajaChica = window.ultimaCajaChicaGuardada || 0;
+        if (baseCajaChica > 0) {
+            let fechaBase = new Date(); fechaBase.setHours(8, 0, 0, 0);
+            datosTabla.push({ 
+                fechaObj: fechaBase, hora: "08:00 a. m.", operacion: 'BASE INICIAL', 
+                detalle: 'CAJA CHICA DEL DÍA', caja: 'EFECTIVO', 
+                monto: `+$${baseCajaChica.toFixed(2)}`, valorNum: baseCajaChica 
+            });
+        }
+
+        const { data: pagos } = await supabaseClient.from('historial_pagos').select(`abono_total, monto_capital, monto_interes, fecha_pago, forma_pago, creditos (clientes (nombres, apellidos))`).gte('fecha_pago', isoIni).lte('fecha_pago', isoFin);
         if (pagos) pagos.forEach(p => {
             let cli = (p.creditos && p.creditos.clientes) ? `${p.creditos.clientes.nombres} ${p.creditos.clientes.apellidos}` : 'CLIENTE';
-            
-            // 🔥 Agregamos el detalle exacto de la pantalla al PDF
             let detalleConDesglose = `${cli.toUpperCase()}\n[Capital: $${parseFloat(p.monto_capital || 0).toFixed(2)} | Interés: $${parseFloat(p.monto_interes || 0).toFixed(2)}]`;
-            
-            datosTabla.push({ 
-                fechaObj: new Date(p.fecha_pago), 
-                hora: new Date(p.fecha_pago).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), 
-                operacion: 'INGRESO (ABONO)', 
-                detalle: detalleConDesglose, 
-                caja: (p.forma_pago || 'EFECTIVO').toUpperCase(), 
-                monto: `+$${parseFloat(p.abono_total).toFixed(2)}`, 
-                valorNum: parseFloat(p.abono_total) 
-            });
+            datosTabla.push({ fechaObj: new Date(p.fecha_pago), hora: new Date(p.fecha_pago).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'INGRESO (ABONO)', detalle: detalleConDesglose, caja: (p.forma_pago || 'EFECTIVO').toUpperCase(), monto: `+$${parseFloat(p.abono_total).toFixed(2)}`, valorNum: parseFloat(p.abono_total) });
         });
 
-        // B. Traer Gastos
-        const { data: gastos } = await supabaseClient.from('gastos_varios')
-            .select('monto, concepto, fecha_gasto').gte('fecha_gasto', isoIni).lte('fecha_gasto', isoFin);
-        
+        const { data: gastos } = await supabaseClient.from('gastos_varios').select('monto, concepto, fecha_gasto').gte('fecha_gasto', isoIni).lte('fecha_gasto', isoFin);
         if (gastos) gastos.forEach(g => {
             datosTabla.push({ fechaObj: new Date(g.fecha_gasto), hora: new Date(g.fecha_gasto).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'GASTO DEL DÍA', detalle: (g.concepto || 'VARIO').toUpperCase(), caja: 'EFECTIVO', monto: `-$${parseFloat(g.monto).toFixed(2)}`, valorNum: -parseFloat(g.monto) });
         });
 
-        // C. Traer Préstamos (Desembolsos) - CORREGIDO
-        const { data: creditos } = await supabaseClient.from('creditos')
-            .select('monto_capital, monto, fecha_emision, forma_entrega, clientes (nombres, apellidos)')
-            .gte('fecha_emision', isoIni).lte('fecha_emision', isoFin);
-        
+        const { data: creditos } = await supabaseClient.from('creditos').select('monto_capital, monto, fecha_emision, forma_entrega, clientes (nombres, apellidos)').gte('fecha_emision', isoIni).lte('fecha_emision', isoFin);
         if (creditos) {
             const creditosEfectivo = creditos.filter(c => {
                 const forma = (c.forma_entrega || '').toString().toUpperCase();
                 return forma === '1' || forma.includes('EFECTIVO') || forma === ''; 
             });
-            
             creditosEfectivo.forEach(c => {
                 let cli = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}` : 'CLIENTE';
                 let montoPrestado = parseFloat(c.monto_capital || c.monto || 0);
-                
-                datosTabla.push({ 
-                    fechaObj: new Date(c.fecha_emision), 
-                    hora: new Date(c.fecha_emision).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), 
-                    operacion: 'NUEVO PRÉSTAMO', 
-                    detalle: cli.toUpperCase(), 
-                    caja: 'EFECTIVO', 
-                    monto: `-$${montoPrestado.toFixed(2)}`, 
-                    valorNum: -montoPrestado 
-                });
+                datosTabla.push({ fechaObj: new Date(c.fecha_emision), hora: new Date(c.fecha_emision).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'NUEVO PRÉSTAMO', detalle: cli.toUpperCase(), caja: 'EFECTIVO', monto: `-$${montoPrestado.toFixed(2)}`, valorNum: -montoPrestado });
             });
         }
 
-       // D. Traer INYECCIONES DE CAPITAL (El dinero de su bolsillo / Fondeo)
-        const { data: movsCapital } = await supabaseClient.from('historial_capital')
-            .select('monto, concepto, fecha_movimiento')
-            .gte('fecha_movimiento', isoIni).lte('fecha_movimiento', isoFin);
-        
+        const { data: movsCapital } = await supabaseClient.from('historial_capital').select('monto, concepto, fecha_movimiento').gte('fecha_movimiento', isoIni).lte('fecha_movimiento', isoFin);
         if (movsCapital) {
             movsCapital.forEach(mov => {
                 let montoNum = parseFloat(mov.monto || 0);
-                let conceptoRaw = mov.concepto || '';
-                
-                // 1. Limpiamos los emojis para que no salga Ø=ßâ en el PDF impreso
-                let conceptoLimpio = conceptoRaw.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\.,;:\-\_\(\)\[\]\|#\$%&!¿\?]/g, ' ').replace(/\s+/g, ' ').trim();
+                let conceptoLimpio = (mov.concepto || '').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\.,;:\-\_\(\)\[\]\|#\$%&!¿\?]/g, ' ').replace(/\s+/g, ' ').trim();
                 let conceptoTexto = conceptoLimpio.toUpperCase();
                 
-                // 2. Filtramos solo el dinero físico real (monto > 0) y que NO sea un cobro automático
                 if (montoNum > 0 && !conceptoTexto.includes('RECUPERACION') && !conceptoTexto.includes('RECUPERACIÓN')) {
-                    datosTabla.push({ 
-                        fechaObj: new Date(mov.fecha_movimiento), 
-                        hora: new Date(mov.fecha_movimiento).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), 
-                        operacion: 'INYECCIÓN DE CAPITAL', 
-                        detalle: conceptoTexto || 'FONDEO DE CAJA', 
-                        caja: 'EFECTIVO', 
-                        monto: `+$${montoNum.toFixed(2)}`, 
-                        valorNum: montoNum 
-                    });
+                    datosTabla.push({ fechaObj: new Date(mov.fecha_movimiento), hora: new Date(mov.fecha_movimiento).toLocaleTimeString('es-EC', {hour:'2-digit', minute:'2-digit'}), operacion: 'INYECCIÓN DE CAPITAL', detalle: conceptoTexto || 'FONDEO DE CAJA', caja: 'EFECTIVO', monto: `+$${montoNum.toFixed(2)}`, valorNum: montoNum });
                 }
             });
         }
 
-        // Ordenamos toda la tabla por la hora exacta en la que pasaron las cosas
         datosTabla.sort((a, b) => a.fechaObj - b.fechaObj);
-
-        // Preparamos las filas para el PDF
         const filasPDF = datosTabla.map(d => [d.hora, d.operacion, d.detalle, d.caja, d.monto]);
 
-        // 6. DIBUJAR LA TABLA EN EL PDF
         doc.setFontSize(11); doc.setTextColor(15, 23, 42); doc.text("DETALLE DE AUDITORÍA (RADIOGRAFÍA DEL DÍA)", 14, yPos + 10);
         
         doc.autoTable({
-            startY: yPos + 14,
-            head: [['HORA', 'OPERACIÓN', 'CLIENTE / CONCEPTO', 'CAJA', 'VALOR']],
-            body: filasPDF,
-            theme: 'striped',
-            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontSize: 8 },
-            styles: { fontSize: 8, cellPadding: 3 },
+            startY: yPos + 14, head: [['HORA', 'OPERACIÓN', 'CLIENTE / CONCEPTO', 'CAJA', 'VALOR']], body: filasPDF, theme: 'striped',
+            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontSize: 8 }, styles: { fontSize: 8, cellPadding: 3 },
             columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 35 }, 2: { cellWidth: 'auto' }, 3: { cellWidth: 25 }, 4: { halign: 'right', fontStyle: 'bold', cellWidth: 20 } },
             didParseCell: function(data) {
                 if (data.section === 'body' && data.column.index === 4) {
@@ -696,7 +617,6 @@ window.generarPDFCierreDiario = async function() {
             }
         });
 
-        // 7. FIRMAS DE RESPONSABILIDAD
         let finalY = doc.lastAutoTable.finalY + 30;
         if (finalY > 260) { doc.addPage(); finalY = 40; }
 
@@ -708,9 +628,8 @@ window.generarPDFCierreDiario = async function() {
         doc.text("Firma de Gerencia / Auditoría", 155, finalY + 5, { align: 'center' });
 
         doc.setFontSize(8); doc.setTextColor(150, 150, 150); 
-        doc.text(`Documento auditado por Sistema Alpha V5. Todo sobrante o faltante es responsabilidad del operador.`, 14, 280);
+        doc.text(`Documento auditado por Sistema Alpha V6. Todo sobrante o faltante es responsabilidad del operador.`, 14, 280);
 
-        // DISPARAR DESCARGA
         const fechaFile = new Date().toISOString().split('T')[0];
         doc.save(`Arqueo_Caja_Detallado_${fechaFile}.pdf`);
 
@@ -719,4 +638,3 @@ window.generarPDFCierreDiario = async function() {
         alert("❌ Ocurrió un error al intentar generar la papeleta. Revise la consola.");
     }
 }
-
