@@ -340,8 +340,18 @@ window.aplicarMoraSobreCapital = async function(idCredito, cantidadASumar, saldo
         let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre el capital?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
 
         if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') { 
+            // 1. Envía el mensaje original al cliente
             await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_capital', cantidadASumar, nuevoSaldo); 
-        } 
+            
+            // 2. Envía la copia exacta al teléfono del Gerente
+            let datosGerente = {
+                nombres: credito.clientes.nombres,
+                apellidos: credito.clientes.apellidos,
+                cedula: credito.clientes.cedula,
+                whatsapp: "0939836191" // 👈 BÓRRELO Y PONGA SU NÚMERO PERSONAL AQUÍ
+            };
+            await window.notificarResolucionManualSMS(datosGerente, etiquetaCRE, 'mora_capital', cantidadASumar, nuevoSaldo); 
+        }
 
         alert(`✅ Proceso completado.\nEl cliente ha sido renovado por ${diasExtension} días y sale de la ruta y alertas.`); 
         
@@ -429,11 +439,21 @@ window.aplicarMoraSobreSaldo = async function(idCredito, cantidadASumar, saldoAc
             detalle: `Mora aplicada manualmente. Nuevo ciclo extendido por ${diasExtension} días. Próximo vencimiento: ${dia}/${mes}/${año}.` 
         }); 
 
-        let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre su saldo?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
+       let enviarSMS = confirm(`💰 MORA APLICADA CON ÉXITO\n\n¿Deseas enviar la notificación por SMS a este cliente notificando la mora sobre su saldo?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
 
         if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') { 
+            // 1. Envía el mensaje original al cliente
             await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_saldo', cantidadASumar, nuevoSaldo); 
-        } 
+            
+            // 2. Envía la copia exacta al teléfono del Gerente
+            let datosGerente = {
+                nombres: credito.clientes.nombres,
+                apellidos: credito.clientes.apellidos,
+                cedula: credito.clientes.cedula,
+                whatsapp: "0939836191" // 👈 PONGA SU NÚMERO PERSONAL AQUÍ
+            };
+            await window.notificarResolucionManualSMS(datosGerente, etiquetaCRE, 'mora_saldo', cantidadASumar, nuevoSaldo); 
+        }
 
         alert(`✅ Proceso completado.\nEl cliente ha sido renovado por ${diasExtension} días y sale de la ruta y alertas.`); 
         
@@ -473,32 +493,27 @@ window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
         const frecuencia = (credito.frecuencia_pago || '').toLowerCase(); 
 
         // ====================================================================
-        // 🔥 NUEVO INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V6) 🔥
+        // 🔥 CEREBRO INTELIGENTE ALPHA V6 (DETECTA MESES, QUINCENAS, DÍAS) 🔥
         // ====================================================================
-        // REGLA DE ORO DEL GERENTE: ¡NUNCA TOCAR LA FECHA DE EMISIÓN!
-        
-        const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
-        const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
-
         let diasExtension = 1;
-        
-        if (esDiario || esMensualUnico) {
-            // REGLA A: Diarios y de 1 Mes -> Saltan el ciclo completo (Ej: +60, +40, +30 días)
-            diasExtension = numeroCuotas;
-            if (frecuencia.includes('mensual')) diasExtension = 30; 
+        let textoInteligente = "";
+
+        if (frecuencia.includes('mensual')) {
+            diasExtension = numeroCuotas * 30;
+            textoInteligente = numeroCuotas === 1 ? "1 mes" : `${numeroCuotas} meses`;
+        } else if (frecuencia.includes('quincenal')) {
+            diasExtension = numeroCuotas * 15;
+            textoInteligente = numeroCuotas === 1 ? "1 quincena" : `${numeroCuotas} quincenas`;
+        } else if (frecuencia.includes('semanal')) {
+            diasExtension = numeroCuotas * 7;
+            textoInteligente = numeroCuotas === 1 ? "1 semana" : `${numeroCuotas} semanas`;
         } else {
-            // REGLA B: Semanales, Quincenales, Mensuales Largos -> SOLO SALTAN 1 CUOTA
-            // El cliente tiene que dar la cara en el próximo pago de su ciclo
-            if (frecuencia.includes('semanal')) diasExtension = 7;
-            else if (frecuencia.includes('quincenal')) diasExtension = 15;
-            else if (frecuencia.includes('mensual')) diasExtension = 30;
+            diasExtension = numeroCuotas; // Diarios
+            textoInteligente = `${numeroCuotas} días`;
         }
         
-        // Tomamos el día de HOY como punto de partida para el nuevo ciclo de gracia
         let fechaBase = new Date(); 
         fechaBase.setHours(0,0,0,0);
-        
-        // Disparamos la nueva fecha hacia el futuro según la regla
         fechaBase.setDate(fechaBase.getDate() + diasExtension);
 
         const año = fechaBase.getFullYear(); 
@@ -507,7 +522,7 @@ window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
         const nuevaFechaVencimiento = `${año}-${mes}-${dia}`; 
         // ====================================================================
 
-        // 🛡️ ACTUALIZACIÓN EN MODO PAZ: Solo movemos la fecha, no tocamos la plata
+        // 🛡️ ACTUALIZACIÓN EN MODO PAZ
         const { error } = await supabaseClient.from('creditos').update({  
             fecha_vencimiento_actual: nuevaFechaVencimiento  
         }).eq('id', idCredito); 
@@ -518,16 +533,26 @@ window.perdonarMoraEsteMes = async function(idCredito, etiquetaCRE) {
             credito_id: idCredito, 
             tipo_accion: 'Perdón de Mora (Social)', 
             monto_castigo: 0.00, 
-            detalle: `Perdón manual aplicado. Nuevo ciclo extendido por ${diasExtension} días sin recargo. Próximo vencimiento: ${dia}/${mes}/${año}.` 
+            detalle: `Perdón manual aplicado. Nuevo ciclo extendido por ${textoInteligente} sin recargo. Próximo vencimiento: ${dia}/${mes}/${año}.` 
         }); 
 
         let enviarSMS = confirm(`🛡️ PERDÓN APLICADO CON ÉXITO\n\n¿Deseas enviar un SMS de aviso al cliente informándole de su nuevo plazo sin recargos?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`); 
 
         if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') { 
-            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'perdonar', 0, saldoMatematicoReal); 
+            // 1. Envía el mensaje original al cliente con la frase inteligente
+            await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'perdonar', textoInteligente, saldoMatematicoReal); 
+            
+            // 2. Envía la copia exacta al teléfono del Gerente
+            let datosGerente = {
+                nombres: credito.clientes.nombres,
+                apellidos: credito.clientes.apellidos,
+                cedula: credito.clientes.cedula,
+                whatsapp: "0939836191" // Su número personal
+            };
+            await window.notificarResolucionManualSMS(datosGerente, etiquetaCRE, 'perdonar', textoInteligente, saldoMatematicoReal); 
         } 
 
-        alert(`✅ Cliente perdonado.\nEl plazo ha sido extendido por ${diasExtension} días y el historial ha sido actualizado.`); 
+        alert(`✅ Cliente perdonado.\nEl plazo ha sido extendido por ${textoInteligente} y el historial ha sido actualizado.`); 
         
         if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove(); 
         
@@ -593,25 +618,26 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
         const cuotaOriginal = parseFloat(credito.valor_cuota) || 0;
 
         // ====================================================================
-        // 🔥 NUEVO INTERRUPTOR MAESTRO DE FECHAS (CEREBRO ALPHA V6) 🔥
+        // 🔥 CEREBRO INTELIGENTE ALPHA V6 (DETECTA MESES, QUINCENAS, DÍAS) 🔥
         // ====================================================================
         const numeroCuotas = parseInt(credito.num_cuotas) || 1;
         const frecuencia = (credito.frecuencia_pago || '').toLowerCase();
         
-        const esDiario = frecuencia.includes('diario') || frecuencia.includes('diaria');
-        const esMensualUnico = frecuencia.includes('mensual') && numeroCuotas === 1;
-
         let diasExtension = 1;
-        
-        if (esDiario || esMensualUnico) {
-            // REGLA A: Diarios y de 1 Mes -> Saltan el ciclo completo (Ej: +60, +40, +30 días)
-            diasExtension = numeroCuotas;
-            if (frecuencia.includes('mensual')) diasExtension = 30; 
+        let textoInteligente = "";
+
+        if (frecuencia.includes('mensual')) {
+            diasExtension = numeroCuotas * 30;
+            textoInteligente = numeroCuotas === 1 ? "1 mes" : `${numeroCuotas} meses`;
+        } else if (frecuencia.includes('quincenal')) {
+            diasExtension = numeroCuotas * 15;
+            textoInteligente = numeroCuotas === 1 ? "1 quincena" : `${numeroCuotas} quincenas`;
+        } else if (frecuencia.includes('semanal')) {
+            diasExtension = numeroCuotas * 7;
+            textoInteligente = numeroCuotas === 1 ? "1 semana" : `${numeroCuotas} semanas`;
         } else {
-            // REGLA B: Semanales, Quincenales, Mensuales Largos -> SOLO SALTAN 1 CUOTA
-            if (frecuencia.includes('semanal')) diasExtension = 7;
-            else if (frecuencia.includes('quincenal')) diasExtension = 15;
-            else if (frecuencia.includes('mensual')) diasExtension = 30;
+            diasExtension = numeroCuotas; // Diarios
+            textoInteligente = `${numeroCuotas} días`;
         }
         
         // Tomamos el día de hoy como punto de partida para el nuevo ciclo
@@ -645,13 +671,23 @@ window.renovarPlazoCredito = async function(idCredito, etiquetaCRE) {
             credito_id: idCredito,
             tipo_accion: 'Refinanciamiento de Plazo',
             monto_castigo: Number(nuevoInteresGenerado.toFixed(2)),
-            detalle: `Renovación sobre Saldo Real de $${saldoMatematicoReal.toFixed(2)}. Interés cobrado: $${nuevoInteresGenerado.toFixed(2)}. Vence: ${dia}/${mes}/${año}.`
+            detalle: `Renovación sobre Saldo Real de $${saldoMatematicoReal.toFixed(2)}. Interés cobrado: $${nuevoInteresGenerado.toFixed(2)}. Nuevo ciclo de ${textoInteligente}. Vence: ${dia}/${mes}/${año}.`
         });
 
-        let enviarSMS = confirm(`✅ CONTRATO REFINANCIADO CON ÉXITO\n\nSaldo Base: $${saldoMatematicoReal.toFixed(2)}\nNuevo Interés (${tasa}%): $${nuevoInteresGenerado.toFixed(2)}\nNUEVO SALDO TOTAL: $${nuevoSaldoPendiente.toFixed(2)}\nVence el ${dia}/${mes}/${año}.\n\n¿Desea enviar un SMS al cliente avisándole de su nuevo saldo y fecha?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar silencioso`);
+        let enviarSMS = confirm(`✅ CONTRATO REFINANCIADO CON ÉXITO\n\nSaldo Base: $${saldoMatematicoReal.toFixed(2)}\nNuevo Interés (${tasa}%): $${nuevoInteresGenerado.toFixed(2)}\nNUEVO SALDO TOTAL: $${nuevoSaldoPendiente.toFixed(2)}\nExtensión: ${textoInteligente}\nVence el ${dia}/${mes}/${año}.\n\n¿Desea enviar un SMS al cliente avisándole de su nuevo saldo y fecha?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar silencioso`);
 
         if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
+            // 1. Envía mensaje original al cliente
             await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'mora_saldo', nuevoInteresGenerado, nuevoSaldoPendiente);
+            
+            // 2. Envía copia al Gerente
+            let datosGerente = {
+                nombres: credito.clientes.nombres,
+                apellidos: credito.clientes.apellidos,
+                cedula: credito.clientes.cedula,
+                whatsapp: "0939836191" // Su número personal
+            };
+            await window.notificarResolucionManualSMS(datosGerente, etiquetaCRE, 'mora_saldo', nuevoInteresGenerado, nuevoSaldoPendiente);
         }
 
         alert("✅ Refinanciamiento completado en el mismo crédito.");
@@ -782,19 +818,39 @@ window.alternarCongelamiento = async function(idCredito, nuevoEstado, etiquetaCR
 
         if (error) throw error;
 
-        let msjExito = nuevoEstado === 'congelado' 
+       let msjExito = nuevoEstado === 'congelado' 
             ? "🧊 Cuenta CONGELADA exitosamente." + (notaAcuerdo ? `\n\nPróxima fecha calculada para: ${nuevaFechaVencimiento}\nAcuerdo: ${notaAcuerdo}` : "\n\nCongelada sin acuerdo (No aparecerá en rutas).")
             : "🔥 Cuenta DESCONGELADA. El cliente vuelve al radar normal.";
             
         if (nuevoEstado === 'congelado') {
             let enviarSMS = confirm(`❄️ CUENTA CONGELADA\n\n¿Deseas enviar un SMS al cliente avisándole que su cuenta está en pausa y adjuntando el convenio de pago?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
             if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
+                // 1. Envía al cliente
                 await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'congelar', 0, saldoAmarilloReal, notaAcuerdo, null);
+                
+                // 2. Envía copia al Gerente
+                let datosGerente = {
+                    nombres: credito.clientes.nombres,
+                    apellidos: credito.clientes.apellidos,
+                    cedula: credito.clientes.cedula,
+                    whatsapp: "0939836191" 
+                };
+                await window.notificarResolucionManualSMS(datosGerente, etiquetaCRE, 'congelar', 0, saldoAmarilloReal, notaAcuerdo, null);
             }
         } else if (nuevoEstado === 'activo') {
             let enviarSMS = confirm(`🔥 CUENTA DESCONGELADA\n\n¿Deseas enviar un SMS al cliente avisándole que su crédito fue RESTAURADO y vuelve a estar ACTIVO?\n\n🟢 ACEPTAR = Enviar SMS\n🔴 CANCELAR = Guardar en silencio`);
             if (enviarSMS && typeof window.notificarResolucionManualSMS === 'function') {
+                // 1. Envía al cliente
                 await window.notificarResolucionManualSMS(credito.clientes, etiquetaCRE, 'descongelar', 0, saldoAmarilloReal, "", credito);
+                
+                // 2. Envía copia al Gerente
+                let datosGerente = {
+                    nombres: credito.clientes.nombres,
+                    apellidos: credito.clientes.apellidos,
+                    cedula: credito.clientes.cedula,
+                    whatsapp: "0939836191" 
+                };
+                await window.notificarResolucionManualSMS(datosGerente, etiquetaCRE, 'descongelar', 0, saldoAmarilloReal, "", credito);
             }
         }
 
@@ -888,9 +944,9 @@ window.notificarResolucionManualSMS = async function(clienteObj, etiquetaCRE, ti
             let textoConvenio = notaAcuerdo && notaAcuerdo.trim() !== "" ? `\n🤝 Convenio de Pago: ${notaAcuerdo}` : "";
             msjSalida = `${encabezado}Hola, te informamos que tu crédito ha sido CONGELADO temporalmente.\n\n❄️ Motivo: Congelamiento Preventivo\n📉 Saldo Actual: $${parseFloat(saldoActual).toFixed(2)}${textoConvenio}\n\nTu cuenta ha sido pausada y blindada para no generar nuevos recargos automáticos.${pie}`;
         
-        } else if (tipoAccion === 'perdonar') {
-            msjSalida = `${encabezado}Hola, te traemos buenas noticias. Se ha aplicado una extensión a tu crédito.\n\n🛡️ Motivo: Perdón de Mora\n📉 Saldo Actual: $${parseFloat(saldoActual).toFixed(2)}\n\nTe hemos otorgado 30 días adicionales para regularizar tus pagos sin sufrir recargos.${pie}`;
-        
+       } else if (tipoAccion === 'perdonar') {
+            let tiempoAdicional = montoMulta || "30 días"; 
+            msjSalida = `${encabezado}Hola, te traemos buenas noticias. Se ha aplicado una extensión a tu crédito.\n\n🛡️ Motivo: Perdón de Mora\n📉 Saldo Actual: $${parseFloat(saldoActual).toFixed(2)}\n\nTe hemos otorgado ${tiempoAdicional} adicionales para regularizar tus pagos sin sufrir recargos.${pie}`;
         } else if (tipoAccion === 'descongelar') {
             let cap = creditoExtra && creditoExtra.monto_capital ? parseFloat(creditoExtra.monto_capital).toFixed(2) : "0.00";
             let cuota = creditoExtra && creditoExtra.valor_cuota ? parseFloat(creditoExtra.valor_cuota).toFixed(2) : "0.00";
@@ -1323,9 +1379,14 @@ window.notificarMoraSMS = async function(clienteObj, etiquetaCRE, multaAplicada,
         // 4. Armado de la Plantilla de Texto Exacta
         const msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${etiquetaCRE}\n👤 Cliente: ${nombre}\n\nHola, te notificamos que se ha aplicado un recargo por atraso en tu cuenta.\n\n⚠️ Motivo: Mora Automática\n💰 Multa Aplicada: $${parseFloat(multaAplicada).toFixed(2)}\n📉 Nuevo Saldo: $${parseFloat(nuevoSaldo).toFixed(2)}\n⏳ Días de Atraso: ${diasAtraso} días\n\nPor favor, regulariza tu pago lo antes posible.\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
 
-        // 5. Disparo silencioso a través de su app MacroDroid
+       // 5. Disparo silencioso a través de su app MacroDroid
+        // -> PRIMERO: Envía el mensaje original al cliente
         await enviarSMSAutomatico(clienteObj.whatsapp.toString(), msjSalida);
-        console.log("✅ SMS de Mora enviado con éxito al número: " + clienteObj.whatsapp);
+        
+        // -> SEGUNDO: Envía la copia exacta a su teléfono personal
+        await enviarSMSAutomatico("0939836191", msjSalida);
+        
+        console.log("✅ SMS enviado al cliente y copia de seguridad enviada al Gerente.");
 
     } catch (errorSMS) {
         console.error(`❌ Falló el armado o envío del SMS de Mora: ${errorSMS.message}`);
@@ -1384,8 +1445,13 @@ window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActu
         const msjAviso = `=== SISTEMA ALPHA (Aviso) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refLimpia}${cifradoFinal}\n👤 Cliente: ${nombreCliente}\n\nHola, este es un recordatorio automático. Le informamos que su crédito por el saldo de $${saldoActual}, emitido el pasado ${fechaEmisionTxt}, ha superado su fecha límite de pago.\n\n🛡️ Estado actual: PERIODO DE GRACIA.\n\nPara evitar que el sistema le aplique multas y recargos financieros, le invitamos a regularizar su cuenta en los próximos días. ¡Agradecemos su puntualidad!\n\n🚫 NO RESPONDER A ESTE MENSAJE AUTOMÁTICO.`;
 
         if (typeof enviarSMSAutomatico === 'function') {
+            // 1. Envía el aviso preventivo al cliente
             await enviarSMSAutomatico(cli.whatsapp.toString(), msjAviso);
-            alert(`✅ Mensaje de Aviso de Gracia enviado exitosamente a ${nombreCliente}.`);
+            
+            // 2. Envía la copia exacta a su teléfono personal
+            await enviarSMSAutomatico("0939836191", msjAviso);
+            
+            alert(`✅ Aviso enviado exitosamente a ${nombreCliente} y copia enviada a su número.`);
             if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
         } else {
             alert("❌ La conexión con MacroDroid no se encontró.");
