@@ -875,6 +875,32 @@
         </div>
     </div>
 
+  <!-- 🔥 TÍTULO Y PANEL DE CAJA CHICA 🔥 -->
+    <h3 style="color: #334155; font-size: 16px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
+        💵 Registro de Caja Chica (Base en Bolsillo)
+    </h3>
+    
+    <div style="background: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 30px; border-left: 5px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; align-items: flex-end; gap: 15px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 150px;">
+            <label style="font-size: 12px; font-weight: bold; color: #475569; margin-bottom: 5px; display: block;">MONTO ($)</label>
+            <input type="number" id="caja-chica-monto" placeholder="0.00" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-weight: bold; color: #0f172a; box-sizing: border-box;">
+        </div>
+        <div style="flex: 2; min-width: 200px;">
+            <label style="font-size: 12px; font-weight: bold; color: #475569; margin-bottom: 5px; display: block;">DETALLE</label>
+            <input type="text" id="caja-chica-detalle" placeholder="Ej: Para sueltos" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; color: #0f172a; box-sizing: border-box;">
+        </div>
+        <div>
+            <button style="background: #10b981; color: white; border: none; padding: 11px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(16,185,129,0.2);">
+                INGRESAR
+            </button>
+        </div>
+    </div>
+
+
+
+
+
+
     <!-- PANEL 2: EL EFECTIVO FÍSICO QUE DEBE ESTAR EN LA MALETA -->
     <div style="background: #0f172a; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center; border: 2px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
         <h3 style="color: #94a3b8; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 2px;">💵 Efectivo Físico que debe tener en su mano</h3>
@@ -892,6 +918,21 @@
         </p>
 
         <div style="display: flex; flex-direction: column; gap: 15px;">
+            
+           // nuevo talvez elimine
+            <!-- 🔥 NUEVA CAJA CHICA (TEXTO FIJO - ESTILO CAPITAL) 🔥 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">💵</span>
+                    <div>
+                        <div style="font-weight: bold; color: #334155; font-size: 15px;">Caja Chica (Base en Bolsillo)</div>
+                        <div style="font-size: 12px; color: #64748b;">Dinero físico que trajo de casa para sueltos o fondeo</div>
+                    </div>
+                </div>
+                <!-- Aquí está el valor fijo, tal como lo pidió -->
+                <div id="valor-caja-chica" style="font-size: 22px; font-weight: 900; color: #16a34a;">$0.00</div>
+            </div>
+
             
             <!-- Guardar en Capital (Físico) -->
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
@@ -997,6 +1038,35 @@
         </select>
     </div>
 </div>
+
+<!-- ========================================== -->
+        <!-- 👑 PISO VIP: AUDITORÍA CORPORATIVA (MEGA-REPORTE) -->
+        <!-- ========================================== -->
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 30px; border-radius: 12px; margin-bottom: 35px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #334155;">
+            <h3 style="color: #f8fafc; margin-top: 0; margin-bottom: 10px; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 28px;">👑</span> AUDITORÍA CORPORATIVA Y CIERRE DE EJERCICIO
+            </h3>
+            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 25px; line-height: 1.5;">
+                Consolida todas las operaciones de la empresa en un rango de fechas. Genera un Estado de Resultados con la <strong>Utilidad Neta Real</strong> para la toma de decisiones ejecutivas.
+            </p>
+            
+            <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="color: #cbd5e1; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block;">FECHA DE INICIO (DESDE)</label>
+                    <input type="date" id="mega-fecha-desde" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 15px; outline: none; box-sizing: border-box; color-scheme: dark;">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="color: #cbd5e1; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block;">FECHA DE CORTE (HASTA)</label>
+                    <input type="date" id="mega-fecha-hasta" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 15px; outline: none; box-sizing: border-box; color-scheme: dark;">
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <button onclick="generarAuditoriaCorporativaPDF()" style="width: 100%; background: #f59e0b; color: #0f172a; border: none; padding: 14px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);" onmouseover="this.style.background='#fbbf24'" onmouseout="this.style.background='#f59e0b'">
+                        📑 GENERAR MEGA-REPORTE
+                    </button>
+                </div>
+            </div>
+        </div>
+
         
         <!-- ========================================== -->
         <!-- PISO 1: REPORTES DE CLIENTES               -->
