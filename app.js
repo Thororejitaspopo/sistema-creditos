@@ -8,7 +8,8 @@ const SUPABASE_ANON_KEY = "sb_publishable_0irYiV3D_rlOKayPYXHeIg_kdn5Kb1t";
 
 // Inicialización de la instancia de cliente de Supabase
 // Une la URL y la llave para activar de forma oficial el motor de conexión en tu sistema
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Inicialización de la instancia de cliente de Supabase (AHORA GLOBAL)
+window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ==========================================================================
    2. VARIABLES DE CONTROL DE ESTADO GLOBAL

@@ -27,32 +27,87 @@
 </head>
 <body>
 
-<!-- 🔒 PUERTA DE SEGURIDAD ALPHA -->
-<div id="pantalla-seguridad" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-family: sans-serif;">
-    <h1 style="color: #10b981; letter-spacing: 2px;">SISTEMA ALPHA V5</h1>
-    <p style="color: #64748b; font-size: 14px; margin-bottom: 30px;">ACCESO RESTRINGIDO GERENCIAL</p>
+<!-- =========================================================================
+     🔒 PANTALLA DE SEGURIDAD ALPHA - SISTEMA DE ROLES
+     ========================================================================= -->
+<div id="pantalla-seguridad" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background-color: #0f172a; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999;">
     
-    <input type="password" id="pin-acceso" placeholder="Ingrese PIN" style="padding: 15px; font-size: 20px; text-align: center; border-radius: 8px; border: 2px solid #334155; background: #1e293b; color: white; margin-bottom: 20px; width: 250px; letter-spacing: 5px;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #10b981; font-size: 32px; font-weight: 900; letter-spacing: 2px; margin: 0; text-transform: uppercase;">SISTEMA ALPHA V6</h1>
+        <p style="color: #64748b; font-size: 13px; letter-spacing: 1px; margin-top: 5px; text-transform: uppercase;">Portal de Acceso Corporativo</p>
+    </div>
     
-    <button onclick="verificarAcceso()" style="padding: 15px 40px; font-size: 16px; font-weight: bold; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">INGRESAR AL SISTEMA</button>
-    <p id="msg-error-pin" style="color: #ef4444; margin-top: 15px; font-weight: bold; display: none;">❌ PIN INCORRECTO</p>
+    <div style="background: #1e293b; padding: 40px; border-radius: 12px; width: 100%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155;">
+        
+        <div style="margin-bottom: 20px;">
+            <label style="color: #94a3b8; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block;">USUARIO / CORREO</label>
+            <input type="email" id="login-email" placeholder="ejemplo@empresa.com" style="width: 100%; padding: 12px 15px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 15px; box-sizing: border-box; outline: none; transition: 0.3s;" onfocus="this.style.borderColor='#10b981'">
+        </div>
+        
+        <div style="margin-bottom: 25px;">
+            <label style="color: #94a3b8; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block;">CONTRASEÑA</label>
+            <input type="password" id="login-password" placeholder="••••••••" style="width: 100%; padding: 12px 15px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 15px; box-sizing: border-box; outline: none; transition: 0.3s;" onfocus="this.style.borderColor='#10b981'">
+        </div>
+        
+        <button onclick="iniciarSesionAlpha()" style="width: 100%; background: #10b981; color: white; font-weight: bold; font-size: 15px; padding: 14px; border: none; border-radius: 6px; cursor: pointer; text-transform: uppercase; transition: background 0.3s; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">
+            Autenticar
+        </button>
+        
+        <div id="login-error" style="color: #ef4444; font-size: 13px; text-align: center; margin-top: 15px; font-weight: bold; display: none;">
+            Credenciales incorrectas.
+        </div>
+    </div>
 </div>
 
 <script>
     // Bloquear el sistema visualmente
     document.body.style.overflow = 'hidden';
 
-    function verificarAcceso() {
-        const pin = document.getElementById('pin-acceso').value;
-        // 🔥 AQUÍ PONE SU CONTRASEÑA SECRETA 🔥
-        if (pin === "8080") { 
-            document.getElementById('pantalla-seguridad').style.display = 'none';
-            document.body.style.overflow = 'auto'; // Desbloquea el sistema
-        } else {
-            document.getElementById('msg-error-pin').style.display = 'block';
-            document.getElementById('pin-acceso').value = '';
-        }
+    // =========================================================================
+// 🔐 MOTOR DE AUTENTICACIÓN CORPORATIVA (SUPABASE AUTH) - CONEXIÓN GLOBAL
+// =========================================================================
+window.iniciarSesionAlpha = async function() {
+    const emailInput = document.getElementById('login-email').value.trim();
+    const passwordInput = document.getElementById('login-password').value.trim();
+    const msgError = document.getElementById('login-error');
+    const btnAutenticar = document.querySelector('#pantalla-seguridad button');
+
+    if (!emailInput || !passwordInput) {
+        msgError.innerText = "⚠️ Ingrese su correo y contraseña.";
+        msgError.style.display = "block";
+        return;
     }
+
+    msgError.style.display = "none";
+    const textoOriginal = btnAutenticar.innerText;
+    btnAutenticar.innerText = "⏳ VERIFICANDO...";
+    btnAutenticar.disabled = true;
+    btnAutenticar.style.opacity = "0.7";
+
+    try {
+        // 🔥 EL PUENTE PERFECTO: Llamamos a su variable global exacta 🔥
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+            email: emailInput,
+            password: passwordInput,
+        });
+
+        if (error) throw error;
+
+        console.log("Ingreso exitoso. Usuario:", data.user.email);
+        document.getElementById('pantalla-seguridad').style.display = 'none';
+        
+        if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
+
+    } catch (error) {
+        console.error("Alerta de Seguridad:", error.message);
+        msgError.innerText = "❌ Credenciales incorrectas o error de conexión.";
+        msgError.style.display = "block";
+    } finally {
+        btnAutenticar.innerText = textoOriginal;
+        btnAutenticar.disabled = false;
+        btnAutenticar.style.opacity = "1";
+    }
+};
 </script>
 <!-- FIN PUERTA DE SEGURIDAD -->
 
