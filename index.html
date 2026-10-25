@@ -15,6 +15,14 @@
     <!-- 🚀 CONEXIÓN A LA BASE DE DATOS SUPABASE (INTOCABLE) 🚀 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- 📧 MOTOR DE CORREOS AUTOMÁTICOS (EMAILJS) -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+       (function(){
+          emailjs.init("jgQsMzxhzUYqDl82S"); 
+       })();
+    </script>
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -816,9 +824,9 @@
 </div>
 
         <div id="mod-interes" class="modulo-contenido"></div>
-        <div id="mod-cierre" class="modulo-contenido" style="padding: 20px; background: #f1f5f9; border-radius: 12px; min-height: 80vh;">
+       <div id="mod-cierre" class="modulo-contenido" style="padding: 20px; background: #f1f5f9; border-radius: 12px; min-height: 80vh;">
     
-          <div style="margin-bottom: 25px; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div style="margin-bottom: 25px; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <div>
             <h2 style="color: #0f172a; margin: 0; font-size: 24px; font-weight: 900;">
                 ⚖️ Auditoría y Cierre de Caja Diario
@@ -828,13 +836,17 @@
             </p>
         </div>
         
-        <!-- 🔥 AQUÍ AGRUPAMOS LOS DOS BOTONES (AZUL Y ROJO) 🔥 -->
-        <div style="display: flex; gap: 10px;">
+        <!-- 🔥 AQUÍ AGRUPAMOS LOS TRES BOTONES 🔥 -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button onclick="ejecutarCierreDiario()" style="background: #0284c7; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); transition: transform 0.2s;">
                 🔄 CALCULAR CIERRE DE HOY
             </button>
             <button onclick="generarPDFCierreDiario()" style="background: #ef4444; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); transition: transform 0.2s;">
                 📑 IMPRIMIR PAPELETA (PDF)
+            </button>
+            <!-- 🛡️ NUEVO BOTÓN DE RESPALDO ANTI-DESASTRES -->
+            <button onclick="ejecutarRespaldoCorreo()" style="background: #0f172a; color: #10b981; border: 2px solid #10b981; padding: 12px 25px; border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); transition: transform 0.2s; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='#0f172a'">
+                <span style="font-size: 16px;">🛡️</span> ENVIAR RESPALDO
             </button>
         </div>
     </div>

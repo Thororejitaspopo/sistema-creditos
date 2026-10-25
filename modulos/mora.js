@@ -1392,17 +1392,16 @@ window.notificarMoraSMS = async function(clienteObj, etiquetaCRE, multaAplicada,
         console.error(`❌ Falló el armado o envío del SMS de Mora: ${errorSMS.message}`);
     }
 };
-
 // =========================================================================
-// 📲 MOTOR DE AVISO DE GRACIA (SMS INTERNACIONAL) - CON LÉXICO Y CRE CIFRADO
+// 📲 MOTOR DE AVISO DE GRACIA (SMS INTERNACIONAL) - CALENDARIO EXACTO V3
 // =========================================================================
 window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActual, etiquetaCRE, refBancaria) {
-    if (!confirm(`📲 ¿Desea enviar el Aviso de Periodo de Gracia por SMS a ${nombreCliente}?\n\nSe le notificará que tiene pocos días para evitar recargos.`)) return;
+    if (!confirm(`📲 ¿Desea enviar el Aviso de Periodo de Gracia por SMS a ${nombreCliente}?\n\nSe calcularán los días exactos de retraso.`)) return;
 
     try {
         const { data: credito, error: errBusq } = await supabaseClient
             .from('creditos')
-            .select('fecha_vencimiento_actual, fecha_emision, clientes(whatsapp)')
+            .select('fecha_vencimiento_actual, fecha_emision, frecuencia_pago, num_cuotas, clientes(whatsapp)')
             .eq('id', idCredito).single();
 
         if (errBusq) throw errBusq;
@@ -1413,45 +1412,70 @@ window.enviarAvisoGraciaSMS = async function(idCredito, nombreCliente, saldoActu
             return;
         }
 
-        // 🔥 EXTRAEMOS LA FECHA DE CREACIÓN EXACTA
+        // 🔥 MOTOR MATEMÁTICO CON CORTE A MEDIANOCHE 🔥
+        const hoy = new Date();
+        const hoyParaSMS = new Date(); // Guardamos la hora real para el texto del SMS
+        
+        hoy.setHours(0, 0, 0, 0); // Reseteamos "hoy" a la medianoche para el cálculo
+
+        let fechaLimite;
+        if (credito.fecha_vencimiento_actual) {
+            fechaLimite = new Date(credito.fecha_vencimiento_actual);
+        } else {
+            fechaLimite = new Date(credito.fecha_emision);
+            const modalidad = (credito.frecuencia_pago || "").toUpperCase();
+            const totalCuotas = parseInt(credito.num_cuotas) || 1; 
+            
+            if (modalidad.includes('MENSUAL')) {
+                fechaLimite.setMonth(fechaLimite.getMonth() + totalCuotas);
+            } else if (modalidad.includes('QUINCENAL')) {
+                fechaLimite.setDate(fechaLimite.getDate() + (15 * totalCuotas));
+            } else if (modalidad.includes('SEMANAL')) {
+                fechaLimite.setDate(fechaLimite.getDate() + (7 * totalCuotas));
+            } else {
+                fechaLimite.setDate(fechaLimite.getDate() + totalCuotas);
+            }
+        }
+        
+        fechaLimite.setHours(0, 0, 0, 0); // Reseteamos la "fecha límite" a la medianoche
+
+        // Usamos Math.round para mayor precisión en cambios de horario
+        const diferenciaMilisegundos = hoy.getTime() - fechaLimite.getTime();
+        let diasVencidos = Math.round(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+        
+        if (diasVencidos < 1) diasVencidos = 1;
+
+        // EXTRAEMOS LA FECHA DE CREACIÓN EXACTA
         const fechaEmision = new Date(credito.fecha_emision);
         const opcionesFecha = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
         let fechaEmisionTxt = fechaEmision.toLocaleDateString('es-ES', opcionesFecha);
         fechaEmisionTxt = fechaEmisionTxt.charAt(0).toUpperCase() + fechaEmisionTxt.slice(1);
 
-        const ahora = new Date();
         const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         
-        let horas = ahora.getHours();
-        let minutos = String(ahora.getMinutes()).padStart(2, '0');
+        let horas = hoyParaSMS.getHours();
+        let minutos = String(hoyParaSMS.getMinutes()).padStart(2, '0');
         const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
         horas = horas % 12; horas = horas ? horas : 12;
         
-        const fechaHoraSMS = `${dias[ahora.getDay()]} ${String(ahora.getDate()).padStart(2, '0')}/${meses[ahora.getMonth()]}/${String(ahora.getFullYear()).slice(-2)} | ${String(horas).padStart(2, '0')}:${minutos} ${ampm}`;
+        const fechaHoraSMS = `${dias[hoyParaSMS.getDay()]} ${String(hoyParaSMS.getDate()).padStart(2, '0')}/${meses[hoyParaSMS.getMonth()]}/${String(hoyParaSMS.getFullYear()).slice(-2)} | ${String(horas).padStart(2, '0')}:${minutos} ${ampm}`;
 
-        // 1. Limpiamos la referencia bancaria para no repetir "REF:"
         let refLimpia = refBancaria.replace(/^REF:\s*/i, '');
         refLimpia = refLimpia.split('|')[0].trim();
 
-        // 2. 🔥 MAGIA PARA EL CÓDIGO CRE (Extraemos solo las letras entre corchetes, ej: HV)
         let cifradoFinal = "";
         const matchCod = etiquetaCRE.match(/\[(.*?)\]/);
         if (matchCod && matchCod[1]) {
-            cifradoFinal = ` | CRE #${matchCod[1]}`; // Esto genera el " | CRE #HV"
+            cifradoFinal = ` | CRE #${matchCod[1]}`; 
         }
 
-        // 🔥 EL NUEVO MENSAJE IMPLACABLE
-        const msjAviso = `=== SISTEMA ALPHA (Aviso) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refLimpia}${cifradoFinal}\n👤 Cliente: ${nombreCliente}\n\nHola, este es un recordatorio automático. Le informamos que su crédito por el saldo de $${saldoActual}, emitido el pasado ${fechaEmisionTxt}, ha superado su fecha límite de pago.\n\n🛡️ Estado actual: PERIODO DE GRACIA.\n\nPara evitar que el sistema le aplique multas y recargos financieros, le invitamos a regularizar su cuenta en los próximos días. ¡Agradecemos su puntualidad!\n\n🚫 NO RESPONDER A ESTE MENSAJE AUTOMÁTICO.`;
+        const msjAviso = `=== SISTEMA ALPHA (Aviso) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refLimpia}${cifradoFinal}\n👤 Cliente: ${nombreCliente}\n\nHola, este es un recordatorio automático. Le informamos que su crédito por el saldo de $${saldoActual}, emitido el pasado ${fechaEmisionTxt}, ha superado su fecha límite de pago hace ${diasVencidos} días.\n\n🛡️ Estado actual: PERIODO DE GRACIA.\n\nPara evitar que el sistema le aplique multas y recargos financieros, le invitamos a regularizar su cuenta. ¡Agradecemos su puntualidad!\n\n🚫 NO RESPONDER A ESTE MENSAJE AUTOMÁTICO.`;
 
         if (typeof enviarSMSAutomatico === 'function') {
-            // 1. Envía el aviso preventivo al cliente
             await enviarSMSAutomatico(cli.whatsapp.toString(), msjAviso);
-            
-            // 2. Envía la copia exacta a su teléfono personal
             await enviarSMSAutomatico("0939836191", msjAviso);
-            
-            alert(`✅ Aviso enviado exitosamente a ${nombreCliente} y copia enviada a su número.`);
+            alert(`✅ Aviso enviado exitosamente a ${nombreCliente} (Registra ${diasVencidos} días de atraso).`);
             if(document.getElementById('modal-sancion-alpha')) document.getElementById('modal-sancion-alpha').remove();
         } else {
             alert("❌ La conexión con MacroDroid no se encontró.");

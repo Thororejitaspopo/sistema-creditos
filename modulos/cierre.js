@@ -643,3 +643,131 @@ window.generarPDFCierreDiario = async function() {
         alert("❌ Ocurrió un error al intentar generar la papeleta. Revise la consola.");
     }
 }
+// =========================================================================
+// 🛡️ MOTOR DE RESPALDO TOTAL (FULL BACKUP CIFRADO - GRADO MILITAR)
+// =========================================================================
+window.ejecutarRespaldoCorreo = async function() {
+    const correoDestino = "micredi2020@gmail.com"; 
+
+    try {
+        const btn = event.currentTarget;
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = "⏳ CIFRANDO TODA LA EMPRESA...";
+        btn.style.opacity = "0.7";
+        btn.disabled = true;
+
+        // 1. DESCARGAMOS LA DATA CRUDA
+        const [resClientes, resCreditos, resCajas] = await Promise.all([
+            supabaseClient.from('clientes').select('nombres, apellidos, cedula').order('nombres', { ascending: true }),
+            supabaseClient.from('creditos').select('id, monto_capital, total_pagar, monto_mora, estado, clientes(nombres, apellidos), historial_pagos(abono_total)').in('estado', ['activo', 'congelado']).order('id', { ascending: true }),
+            supabaseClient.from('cajas_capital').select('saldo_actual')
+        ]);
+
+        const fechaCorte = new Date().toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).toUpperCase();
+
+        // 🔥 FUNCIONES NINJA PARA CAMUFLAR LA IDENTIDAD Y EL DINERO 🔥
+        const ocultarNombre = (nombres, apellidos) => {
+            const n = nombres ? nombres.trim().charAt(0).toUpperCase() + "." : "";
+            const a = apellidos ? apellidos.trim().split(" ")[0].toUpperCase() : "";
+            return `${n} ${a}`.trim() || "CLIENTE";
+        };
+        const ocultarCedula = (ced) => ced && ced.length > 4 ? `******${ced.slice(-4)}` : "N/A";
+        
+        // EL DICCIONARIO SECRETO DEL GERENTE
+        const encriptarDinero = (monto) => {
+            const dicc = { '1': 'h', '2': 'y', '3': 'r', '4': 'v', '5': 't', '6': 'n', '7': 'g', '8': 'j', '9': 'ñ', '0': 'p' };
+            const textoNumero = parseFloat(monto).toFixed(2);
+            return textoNumero.split('').map(caracter => dicc[caracter] || caracter).join('');
+        };
+
+        // 2. CONSTRUIMOS EL MEGA REPORTE CIFRADO
+        let cuerpo = `===========================================\n`;
+        cuerpo += `🏛️ ALPHA FINANCIAL - RESPALDO DE SEGURIDAD\n`;
+        cuerpo += `===========================================\n`;
+        cuerpo += `FECHA DE LA FOTO: ${fechaCorte}\n\n`;
+
+        // BLOQUE 1: CLIENTES
+        cuerpo += `1. 👥 BASE DE DATOS DE CLIENTES\n`;
+        cuerpo += `-------------------------------------------\n`;
+        if (resClientes.data && resClientes.data.length > 0) {
+            resClientes.data.forEach(c => {
+                cuerpo += `• ${ocultarNombre(c.nombres, c.apellidos)} | ID: ${ocultarCedula(c.cedula)}\n`;
+            });
+            cuerpo += `\n`;
+        } else {
+            cuerpo += `(Base vacía)\n\n`;
+        }
+
+        // BLOQUE 2: CRÉDITOS
+        cuerpo += `2. 💸 ESTADO DE CRÉDITOS ACTIVOS\n`;
+        cuerpo += `-------------------------------------------\n`;
+        let capitalEnCalle = 0;
+
+        if (resCreditos.data && resCreditos.data.length > 0) {
+            resCreditos.data.forEach(cred => {
+                const cli = cred.clientes || {};
+                
+                const deudaTotal = parseFloat(cred.total_pagar || 0) + parseFloat(cred.monto_mora || 0);
+                const todosLosPagos = cred.historial_pagos || [];
+                const totalAbonado = todosLosPagos.reduce((sum, hist) => sum + (parseFloat(hist.abono_total) || 0), 0);
+                let saldoRestante = deudaTotal - totalAbonado;
+                if (saldoRestante < 0) saldoRestante = 0;
+
+                capitalEnCalle += saldoRestante;
+
+                // Mostramos el monto individual normal porque son montos pequeños (no llaman tanto la atención)
+                cuerpo += `• CRE #${cred.id} | ${ocultarNombre(cli.nombres, cli.apellidos)} -> SALDO: $${saldoRestante.toFixed(2)} [${cred.estado.toUpperCase()}]\n`;
+            });
+            
+            // 🔥 AQUÍ ENCRIPTAMOS EL BOTÍN GORDO DE LA CALLE 🔥
+            cuerpo += `\n📊 INDICADOR GLOBAL DE CARTERA: ${encriptarDinero(capitalEnCalle)}\n\n`;
+        } else {
+            cuerpo += `(Sin créditos activos)\n\n`;
+        }
+
+        // BLOQUE 3: BÓVEDA
+        cuerpo += `3. 🏦 RESERVA INTERNA\n`;
+        cuerpo += `-------------------------------------------\n`;
+        if (resCajas.data && resCajas.data.length > 0) {
+            let totalCaja = 0;
+            resCajas.data.forEach(c => totalCaja += parseFloat(c.saldo_actual || 0));
+            
+            // 🔥 AQUÍ ENCRIPTAMOS EL DINERO EN EFECTIVO QUE TIENE EN CAJA 🔥
+            cuerpo += `• ÍNDICE DE LIQUIDEZ: ${encriptarDinero(totalCaja)}\n`;
+        }
+
+        // ========================================================
+        // 🚀 DESPACHO SILENCIOSO A EMAILJS
+        // ========================================================
+        const SERVICE_ID = "service_dmkw6fk"; 
+        const TEMPLATE_ID = "template_j0udm4n"; 
+
+        const parametrosCorreo = {
+            asunto_reporte: `FULL BACKUP - ALPHA V6`,
+            mensaje_respaldo: cuerpo,
+            correo_admin: correoDestino
+        };
+
+        await emailjs.send(SERVICE_ID, TEMPLATE_ID, parametrosCorreo);
+
+        // Mensaje de éxito
+        btn.innerHTML = "✅ ¡BACKUP MILITAR ENVIADO!";
+        btn.style.background = "#10b981";
+        btn.style.color = "white";
+        
+        setTimeout(() => {
+            btn.innerHTML = textoOriginal;
+            btn.style.background = "#0f172a";
+            btn.style.opacity = "1";
+            btn.disabled = false;
+        }, 4000);
+
+    } catch (error) {
+        console.error("Error EmailJS:", error);
+        alert("❌ Error al enviar. Revise la consola.");
+        const btn = event.currentTarget;
+        btn.innerHTML = "<span style='font-size: 16px;'>🛡️</span> ENVIAR RESPALDO";
+        btn.style.opacity = "1";
+        btn.disabled = false;
+    }
+}
