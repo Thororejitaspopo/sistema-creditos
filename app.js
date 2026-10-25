@@ -514,24 +514,38 @@ document.addEventListener('DOMContentLoaded', () => {
 // 🗺️ MOTOR INDEPENDIENTE: RUTA DE COBRO DEL DÍA (CLON PERFECTO DE ALERTAS)
 // =========================================================================
 // =========================================================================
-// 🗺️ MOTOR INDEPENDIENTE: RUTA DE COBRO DEL DÍA (CLON PERFECTO DE ALERTAS)
+// 🔍 BUSCADOR RELÁMPAGO PARA LA RUTA DE COBRO
 // =========================================================================
-async function cargarRutaCobroDia() {
+window.filtrarRutaDash = function() {
+    const textoInput = document.getElementById('buscador-ruta');
+    if (!textoInput) return;
+    
+    const texto = textoInput.value.toUpperCase();
+    const tarjetas = document.querySelectorAll('.tarjeta-ruta-dia');
+    
+    tarjetas.forEach(tarjeta => {
+        const nombre = tarjeta.getAttribute('data-nombre') || "";
+        if (nombre.includes(texto)) {
+            tarjeta.style.display = 'block';
+        } else {
+            tarjeta.style.display = 'none';
+        }
+    });
+};
+
+// =========================================================================
+// 🗺️ MOTOR INDEPENDIENTE: RUTA DE COBRO DEL DÍA (ESTÉTICA, BUSCADOR V6 Y RETROACTIVO V5)
+// =========================================================================
+window.cargarRutaCobroDia = async function() {
     try {
         const contenedor = document.getElementById('contenedor-ruta-dia');
         const contador = document.getElementById('contador-ruta-dia');
         if (!contenedor) return;
 
-        // 1. Conseguimos la fecha exacta de HOY para comparar
         const hoy = new Date();
         hoy.setHours(0,0,0,0); 
-        
-        const añoHoy = hoy.getFullYear();
-        const mesHoy = String(hoy.getMonth() + 1).padStart(2, '0');
-        const diaHoy = String(hoy.getDate()).padStart(2, '0');
-        const stringHoy = `${añoHoy}-${mesHoy}-${diaHoy}`;
 
-        // 🔥 EL CEREBRO DEL CRE: Contamos el historial para tener el número exacto
+        // 🔥 EL CEREBRO DEL CRE
         const { data: historialTodos } = await supabaseClient.from('creditos').select('id, cliente_id').order('id', { ascending: true });
         const mapNumCreditoLocal = {};
         if (historialTodos) {
@@ -542,30 +556,55 @@ async function cargarRutaCobroDia() {
             });
         }
 
-        // 2. Traemos a TODOS los clientes activos ¡USANDO EL NOMBRE DE TABLA CORRECTO: historial_pagos!
         const { data: creditosActivos, error } = await supabaseClient
             .from('creditos')
             .select(`
                 id, saldo_pendiente, fecha_vencimiento_actual, frecuencia_pago, estado, valor_cuota, acuerdo_pago, total_pagar, num_cuotas, monto_capital, fecha_emision, monto_mora,
                 clientes(nombres, apellidos, cedula),
-                historial_pagos(abono_total)
+                historial_pagos(abono_total) 
             `)
             .in('estado', ['activo', 'congelado']);
 
         if (error) throw error;
 
-        // 3. LA INTELIGENCIA DE FILTRADO
+        // 3. 🔥 LA INTELIGENCIA MATEMÁTICA SEGURA Y RETROACTIVA
         const clientesDeHoy = creditosActivos.filter(credito => {
             const freq = (credito.frecuencia_pago || '').toLowerCase();
             const esDiario = freq.includes('diario') && credito.estado !== 'congelado';
             
             if (esDiario) return false;
+            if (credito.saldo_pendiente <= 0) return false; 
             if (!credito.fecha_vencimiento_actual) return false;
-            
+
+            // Candado 1: ¿Ya llegó su fecha de visita según el sistema?
             const fechaVencimiento = new Date(credito.fecha_vencimiento_actual + 'T00:00:00');
-            if (fechaVencimiento.getTime() > hoy.getTime()) return false;
+            if (fechaVencimiento.getTime() > hoy.getTime()) return false; 
+
+            // Candado 2: ESCUDO RETROACTIVO (Cálculo sin romper la fecha)
+            let fechaEmi = credito.fecha_emision ? new Date(credito.fecha_emision) : new Date();
+            fechaEmi.setHours(0,0,0,0);
             
-            if (credito.saldo_pendiente <= 0) return false; // Filtro de seguridad
+            const diasDesdeEmision = Math.floor((hoy.getTime() - fechaEmi.getTime()) / (1000 * 60 * 60 * 24));
+            
+            let cuotasEsperadas = 0;
+            if (freq.includes('semanal')) {
+                cuotasEsperadas = Math.floor(diasDesdeEmision / 7);
+            } else if (freq.includes('quincenal')) {
+                cuotasEsperadas = Math.floor(diasDesdeEmision / 15);
+            } else if (freq.includes('mensual')) {
+                cuotasEsperadas = Math.floor(diasDesdeEmision / 30);
+            } else {
+                cuotasEsperadas = Math.floor(diasDesdeEmision);
+            }
+
+            const valorCuota = parseFloat(credito.valor_cuota) || 1;
+            const pagos = credito.historial_pagos || [];
+            const totalAbonado = pagos.reduce((sum, pago) => sum + (parseFloat(pago.abono_total) || 0), 0);
+            
+            const cuotasPagadas = Math.floor(totalAbonado / valorCuota);
+
+            if (cuotasPagadas >= cuotasEsperadas && cuotasEsperadas > 0) return false;
+            if (cuotasEsperadas === 0 && totalAbonado >= valorCuota) return false;
 
             return true;
         });
@@ -592,7 +631,6 @@ async function cargarRutaCobroDia() {
             const inicialA = cli.apellidos ? cli.apellidos.charAt(0).toUpperCase() : 'X';
             const ultimos4 = cli.cedula ? String(cli.cedula).slice(-4) : '0000';
             
-            // 🔥 CÁLCULO REAL DEL CRE PARA LA RUTA
             const numLocal = mapNumCreditoLocal[c.id] || 1;
             let creCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numLocal).toUpperCase() : 'H';
             const refCompleta = `🆔 REF: ${inicialN}${inicialA}-${ultimos4} | CRÉDITO #${c.id} | CRE #${numLocal} [${creCifrado}]`;
@@ -617,9 +655,6 @@ async function cargarRutaCobroDia() {
             let colorFondo = "#f0fdf4";
             let colorBorde = "#10b981";
             
-            // =========================================================
-            // 🔥 CÁLCULO DE ABONOS Y SALDOS EXACTAMENTE IGUAL A LAS ALERTAS 🔥
-            // =========================================================
             const moraActual = parseFloat(c.monto_mora || 0);
             const deudaTotalReal = parseFloat(c.total_pagar || 0) + moraActual;
             
@@ -629,9 +664,6 @@ async function cargarRutaCobroDia() {
             let saldoPendiente = deudaTotalReal - totalAbonado;
             if (saldoPendiente < 0) saldoPendiente = 0;
             
-           // =========================================================
-            // 🔥 CALCULADORA DE CUOTAS ACUMULADAS (CON DOBLE CANDADO)
-            // =========================================================
             let cuotasAcumuladas = 1;
             let diasAtraso = 0;
             
@@ -651,15 +683,12 @@ async function cargarRutaCobroDia() {
                     cuotasPorTiempo = Math.floor(diasAtraso / 30) + 1;
                 }
                 
-                // CANDADO 1: El tiempo no puede exigir más cuotas del total del crédito
                 const totalCuotasCredito = parseInt(c.num_cuotas) || 1;
                 let cuotasExigibles = Math.min(cuotasPorTiempo, totalCuotasCredito);
                 
-                // CANDADO 2: Damos "vida" al texto restando las cuotas que el cliente ya pagó
                 let cuotasYaPagadas = Math.floor(totalAbonado / parseFloat(c.valor_cuota));
                 cuotasAcumuladas = cuotasExigibles - cuotasYaPagadas;
                 
-                // Seguridad: Si la resta da 0 o menos, pero aún hay saldo pendiente, al menos debe 1 cuota (o una fracción)
                 if (cuotasAcumuladas < 1 && saldoPendiente > 0) {
                     cuotasAcumuladas = 1;
                 }
@@ -697,8 +726,9 @@ async function cargarRutaCobroDia() {
 
             let etiquetaCapitalizada = etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1).toLowerCase();
 
+            // 🔥 AQUI ESTÁ LA MAGIA DEL BUSCADOR: class="tarjeta-ruta-dia" y data-nombre 🔥
             htmlTarjetas += `
-            <div style="border: 1px solid ${colorFondo}; background: #ffffff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${colorBorde}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="tarjeta-ruta-dia" data-nombre="${nombreCompleto}" style="scroll-snap-align: start; scroll-snap-stop: always; border: 1px solid ${colorFondo}; background: #ffffff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${colorBorde}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                     <div>
@@ -760,7 +790,6 @@ async function cargarRutaCobroDia() {
         if (contenedor) contenedor.innerHTML = `<div style="color: red; font-size: 12px; text-align: center;">Error al calcular ruta.</div>`;
     }
 }
-
 // =========================================================================
 // 🚀 MOTOR DE SALTO AUTOMÁTICO (DE RUTA A PAGOS)
 // =========================================================================

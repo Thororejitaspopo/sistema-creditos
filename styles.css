@@ -76,12 +76,13 @@ aside {
     margin: 15px 0 5px 12px; /* Márgenes para acomodar el texto sin que toque las paredes */
 }
 
-/* BOTONES INDIVIDUALES DEL MENÚ */
+/* BOTONES INDIVIDUALES DEL MENÚ (UNIFICADO) */
 .btn-menu {
-    display: flex; /* Alinea de forma horizontal el icono y el texto del botón */
-    align-items: center; /* Centra verticalmente el contenido interno del botón */
-    gap: 12px; /* Espacio de separación entre el icono y el texto descriptor */
-    padding: 10px 12px; /* Colchón de clic interno para que sea cómodo presionar el botón */
+    display: flex !important; /* Alinea de forma horizontal el icono y el texto del botón */
+    align-items: center !important; /* Centra verticalmente el contenido interno del botón */
+    gap: 12px !important; /* Espacio de separación entre el icono y el texto descriptor */
+    padding: 10px 15px !important; /* Colchón de clic interno simétrico y parejo */
+    width: 100% !important; /* ¡Candado maestro para que todos midan exactamente lo mismo! */
     color: var(--sidebar-text); /* Color gris suave predeterminado para botones inactivos */
     background: none; /* Elimina fondos grises automáticos de los botones HTML */
     border: none; /* Elimina los bordes rígidos nativos del navegador */
@@ -90,6 +91,7 @@ aside {
     text-align: left; /* Alinea el texto a la izquierda de forma natural */
     font-size: 14px; /* Tamaño de fuente estándar para sistemas informáticos */
     font-weight: 500; /* Grosor de letra intermedio y de alta legibilidad */
+    box-sizing: border-box !important; /* Protege los márgenes internos */
     transition: all 0.2s ease; /* Transición suave de color al interactuar con el mouse */
 }
 
@@ -883,4 +885,22 @@ main {
         min-width: 100% !important;
         width: 100% !important;
     }
+}
+
+
+/* ==========================================================================
+   🛡️ CHALECO DE FUERZA UNIVERSAL (ESTÁNDAR PARA TODOS LOS MÓDULOS)
+   ========================================================================== */
+
+/* 1. Blindamos el panel central para que respete los márgenes y nunca se desborde */
+main {
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+
+/* 2. Estandarizamos todos los módulos para que midan exactamente lo mismo al abrirse */
+.modulo-contenido {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
 }
