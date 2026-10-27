@@ -92,8 +92,11 @@
 
             if (error) throw error;
 
-            // Destruimos la puerta de seguridad para entrar al sistema
+            // 1. Destruimos la puerta de seguridad para entrar al sistema
             document.getElementById('pantalla-seguridad').style.display = 'none';
+            
+            // 🔥 LA LLAVE MÁGICA: Le quitamos el candado al celular para que pueda bajar (hacer scroll) 🔥
+            document.body.style.overflow = 'auto'; 
             
             // =========================================================
             // 🧠 CEREBRO DE NAVEGACIÓN: COMPUTADORA VS CELULAR
@@ -102,7 +105,7 @@
 
             if (correo === "patron@alpha.com") {
                 console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
-                // Todo queda exactamente igual (menú a la izq, contenido a la der).
+                // Todo queda exactamente igual.
 
             } else if (correo === "patron1@alpha.com") {
                 console.log("📱 MODO CELULAR: Navegación por pantallas completas");
@@ -110,34 +113,38 @@
                 const menuLateral = document.querySelector('aside');
                 const panelPrincipal = document.querySelector('main');
                 
-                // 1. Mostrar SOLO el menú oscuro al 100% y ocultar el resto
+                // Forzamos al menú a comportarse como una pantalla normal de celular
                 menuLateral.style.width = '100%';
-                menuLateral.style.maxWidth = '450px'; // 📱 Le da el ancho exacto de un celular
-                menuLateral.style.margin = '0 auto';  // 🎯 Lo centra perfectamente en pantallas grandes
+                menuLateral.style.maxWidth = '100%'; 
                 menuLateral.style.minHeight = '100vh';
-                panelPrincipal.style.display = 'none';
+                menuLateral.style.position = 'relative'; // Evita que flote raro
+                menuLateral.style.display = 'block';
+                panelPrincipal.style.display = 'none'; 
 
-                // 2. Darle comportamiento de "App" a todos los botones del menú
+                // Darle comportamiento de "App" a todos los botones del menú
                 const botonesMenu = document.querySelectorAll('.btn-menu');
                 botonesMenu.forEach(boton => {
                     boton.addEventListener('click', () => {
-                        // Al tocar un botón, ocultamos menú y mostramos la pantalla elegida
+                        // Al tocar, mostramos contenido y volvemos a asegurar el scroll arriba
+                        window.scrollTo(0, 0); 
                         menuLateral.style.display = 'none';
+                        
                         panelPrincipal.style.display = 'block';
                         panelPrincipal.style.width = '100%';
+                        panelPrincipal.style.padding = '10px';
+                        panelPrincipal.style.boxSizing = 'border-box';
                         
-                        // 3. Crear automáticamente el botón para regresar al menú
+                        // Crear el botón para regresar al menú
                         if(!document.getElementById('btn-volver-menu')) {
                             const btnVolver = document.createElement('button');
                             btnVolver.id = 'btn-volver-menu';
                             btnVolver.innerHTML = '⬅️ VOLVER AL MENÚ PRINCIPAL';
-                            btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                            btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;';
                             btnVolver.onclick = () => {
-                                // Al tocar regresar, ocultamos contenido y mostramos menú
+                                window.scrollTo(0, 0);
                                 panelPrincipal.style.display = 'none';
                                 menuLateral.style.display = 'block';
                             };
-                            // Lo pegamos justo arriba del título principal
                             document.querySelector('.header-main').prepend(btnVolver);
                         }
                     });
