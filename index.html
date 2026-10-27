@@ -60,54 +60,103 @@
 </div>
 
 <script>
-    // Bloquear el sistema visualmente
+    // Bloquear el sistema visualmente al inicio
     document.body.style.overflow = 'hidden';
 
     // =========================================================================
-// 🔐 MOTOR DE AUTENTICACIÓN CORPORATIVA (SUPABASE AUTH) - CONEXIÓN GLOBAL
-// =========================================================================
-window.iniciarSesionAlpha = async function() {
-    const emailInput = document.getElementById('login-email').value.trim();
-    const passwordInput = document.getElementById('login-password').value.trim();
-    const msgError = document.getElementById('login-error');
-    const btnAutenticar = document.querySelector('#pantalla-seguridad button');
+    // 🔐 MOTOR DE AUTENTICACIÓN (SUPABASE AUTH) - MODO CELULAR 100% ADMIN
+    // =========================================================================
+    window.iniciarSesionAlpha = async function() {
+        const emailInput = document.getElementById('login-email').value.trim();
+        const passwordInput = document.getElementById('login-password').value.trim();
+        const msgError = document.getElementById('login-error');
+        const btnAutenticar = document.querySelector('#pantalla-seguridad button');
 
-    if (!emailInput || !passwordInput) {
-        msgError.innerText = "⚠️ Ingrese su correo y contraseña.";
-        msgError.style.display = "block";
-        return;
-    }
+        if (!emailInput || !passwordInput) {
+            msgError.innerText = "⚠️ Ingrese su correo y contraseña.";
+            msgError.style.display = "block";
+            return;
+        }
 
-    msgError.style.display = "none";
-    const textoOriginal = btnAutenticar.innerText;
-    btnAutenticar.innerText = "⏳ VERIFICANDO...";
-    btnAutenticar.disabled = true;
-    btnAutenticar.style.opacity = "0.7";
+        msgError.style.display = "none";
+        const textoOriginal = btnAutenticar.innerText;
+        btnAutenticar.innerText = "⏳ VERIFICANDO...";
+        btnAutenticar.disabled = true;
+        btnAutenticar.style.opacity = "0.7";
 
-    try {
-        // 🔥 EL PUENTE PERFECTO: Llamamos a su variable global exacta 🔥
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-            email: emailInput,
-            password: passwordInput,
-        });
+        try {
+            const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+                email: emailInput,
+                password: passwordInput,
+            });
 
-        if (error) throw error;
+            if (error) throw error;
 
-        console.log("Ingreso exitoso. Usuario:", data.user.email);
-        document.getElementById('pantalla-seguridad').style.display = 'none';
-        
-        if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
+            // Destruimos la puerta de seguridad para entrar al sistema
+            document.getElementById('pantalla-seguridad').style.display = 'none';
+            
+            // =========================================================
+            // 🧠 CEREBRO DE NAVEGACIÓN: COMPUTADORA VS CELULAR
+            // =========================================================
+            const correo = data.user.email;
 
-    } catch (error) {
-        console.error("Alerta de Seguridad:", error.message);
-        msgError.innerText = "❌ Credenciales incorrectas o error de conexión.";
-        msgError.style.display = "block";
-    } finally {
-        btnAutenticar.innerText = textoOriginal;
-        btnAutenticar.disabled = false;
-        btnAutenticar.style.opacity = "1";
-    }
-};
+            if (correo === "patron@alpha.com") {
+                console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
+                // Todo queda exactamente igual (menú a la izq, contenido a la der).
+
+            } else if (correo === "patron1@alpha.com") {
+                console.log("📱 MODO CELULAR: Navegación por pantallas completas");
+                
+                const menuLateral = document.querySelector('aside');
+                const panelPrincipal = document.querySelector('main');
+                
+                // 1. Mostrar SOLO el menú oscuro al 100% y ocultar el resto
+                menuLateral.style.width = '100%';
+                menuLateral.style.maxWidth = '450px'; // 📱 Le da el ancho exacto de un celular
+                menuLateral.style.margin = '0 auto';  // 🎯 Lo centra perfectamente en pantallas grandes
+                menuLateral.style.minHeight = '100vh';
+                panelPrincipal.style.display = 'none';
+
+                // 2. Darle comportamiento de "App" a todos los botones del menú
+                const botonesMenu = document.querySelectorAll('.btn-menu');
+                botonesMenu.forEach(boton => {
+                    boton.addEventListener('click', () => {
+                        // Al tocar un botón, ocultamos menú y mostramos la pantalla elegida
+                        menuLateral.style.display = 'none';
+                        panelPrincipal.style.display = 'block';
+                        panelPrincipal.style.width = '100%';
+                        
+                        // 3. Crear automáticamente el botón para regresar al menú
+                        if(!document.getElementById('btn-volver-menu')) {
+                            const btnVolver = document.createElement('button');
+                            btnVolver.id = 'btn-volver-menu';
+                            btnVolver.innerHTML = '⬅️ VOLVER AL MENÚ PRINCIPAL';
+                            btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                            btnVolver.onclick = () => {
+                                // Al tocar regresar, ocultamos contenido y mostramos menú
+                                panelPrincipal.style.display = 'none';
+                                menuLateral.style.display = 'block';
+                            };
+                            // Lo pegamos justo arriba del título principal
+                            document.querySelector('.header-main').prepend(btnVolver);
+                        }
+                    });
+                });
+            }
+            // =========================================================
+
+            if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
+
+        } catch (error) {
+            console.error("Alerta de Seguridad:", error.message);
+            msgError.innerText = "❌ Credenciales incorrectas o error de conexión.";
+            msgError.style.display = "block";
+        } finally {
+            btnAutenticar.innerText = textoOriginal;
+            btnAutenticar.disabled = false;
+            btnAutenticar.style.opacity = "1";
+        }
+    };
 </script>
 <!-- FIN PUERTA DE SEGURIDAD -->
 
