@@ -92,10 +92,7 @@
 
             if (error) throw error;
 
-            // 1. Destruimos la puerta de seguridad para entrar al sistema
             document.getElementById('pantalla-seguridad').style.display = 'none';
-            
-            // 🔥 LA LLAVE MÁGICA: Le quitamos el candado al celular para que pueda bajar
             document.body.style.overflow = 'auto'; 
             
             const correo = data.user.email;
@@ -105,17 +102,28 @@
             } else if (correo === "patron1@alpha.com") {
                 console.log("📱 MODO CELULAR: Navegación por pantallas completas");
                 
+                // 🔥 LA BOMBA NUCLEAR: Inyectamos CSS para obligar a que TODO el menú se vea sí o sí 🔥
+                const estiloInyectado = document.createElement('style');
+                estiloInyectado.innerHTML = `
+                    aside nav, aside ul, aside li, aside a, aside .menu-items {
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                    }
+                `;
+                document.head.appendChild(estiloInyectado);
+
                 const menuLateral = document.querySelector('aside');
                 const panelPrincipal = document.querySelector('main');
                 
                 if (menuLateral) {
-                    // 🛑 Rompemos el CSS viejo y liberamos el scroll interno
                     if(menuLateral.parentElement) {
                         menuLateral.parentElement.style.setProperty('display', 'block', 'important');
                         menuLateral.parentElement.style.setProperty('height', '100vh', 'important');
                     }
 
-                    // 🎯 Poder absoluto para el menú celular y desbloqueo de altura
                     menuLateral.style.setProperty('display', 'block', 'important');
                     menuLateral.style.setProperty('width', '100%', 'important');
                     menuLateral.style.setProperty('max-width', '450px', 'important');
@@ -124,22 +132,12 @@
                     menuLateral.style.setProperty('overflow-y', 'auto', 'important');    
                     menuLateral.style.setProperty('position', 'static', 'important'); 
                     menuLateral.style.setProperty('float', 'none', 'important');
-                    
-                    // 🔥 Forzar que todos los botones que estaban "cortados" se muestren
-                    const hijos = menuLateral.querySelectorAll('ul, li, div');
-                    hijos.forEach(hijo => {
-                        hijo.style.setProperty('visibility', 'visible', 'important');
-                        hijo.style.setProperty('height', 'auto', 'important');
-                        hijo.style.setProperty('overflow', 'visible', 'important');
-                        hijo.style.setProperty('display', 'block', 'important');
-                    });
                 }
                 
                 if (panelPrincipal) {
                     panelPrincipal.style.setProperty('display', 'none', 'important'); 
                 }
 
-                // 📱 Darle comportamiento de "App" a los botones con fuerza bruta
                 const botonesMenu = document.querySelectorAll('.btn-menu');
                 botonesMenu.forEach(boton => {
                     boton.addEventListener('click', () => {
