@@ -113,26 +113,63 @@
                 const menuLateral = document.querySelector('aside');
                 const panelPrincipal = document.querySelector('main');
                 
-                // 🛑 Rompemos el CSS viejo que esconde el menú en celulares
+                // 🛑 Rompemos el CSS viejo y liberamos el scroll interno
                 if(menuLateral.parentElement) {
                     menuLateral.parentElement.style.setProperty('display', 'block', 'important');
+                    menuLateral.parentElement.style.setProperty('height', '100vh', 'important');
                 }
 
-                // 🎯 Forzamos al menú con "poder absoluto" (!important) para vencer al celular
+                // 🎯 Poder absoluto para el menú celular y desbloqueo de altura
                 menuLateral.style.setProperty('display', 'block', 'important');
                 menuLateral.style.setProperty('width', '100%', 'important');
                 menuLateral.style.setProperty('max-width', '450px', 'important');
                 menuLateral.style.setProperty('margin', '0 auto', 'important');
-                menuLateral.style.setProperty('min-height', '100vh', 'important');
-                menuLateral.style.setProperty('position', 'relative', 'important'); 
+                menuLateral.style.setProperty('height', '100vh', 'important');      // Altura completa
+                menuLateral.style.setProperty('overflow-y', 'auto', 'important');    // 🔥 LA CLAVE: permite deslizar el menú interno
+                menuLateral.style.setProperty('position', 'static', 'important'); 
                 menuLateral.style.setProperty('float', 'none', 'important');
-                menuLateral.style.setProperty('visibility', 'visible', 'important');
-                menuLateral.style.setProperty('opacity', '1', 'important');
+                
+                // 🔥 Forzar que todos los botones que estaban "cortados" se muestren
+                const hijos = menuLateral.querySelectorAll('ul, li, div');
+                hijos.forEach(hijo => {
+                    hijo.style.setProperty('visibility', 'visible', 'important');
+                    hijo.style.setProperty('height', 'auto', 'important');
+                    hijo.style.setProperty('overflow', 'visible', 'important');
+                    hijo.style.setProperty('display', 'block', 'important');
+                });
                 
                 panelPrincipal.style.setProperty('display', 'none', 'important'); 
 
-                // Darle comportamiento de "App" a todos los botones del menú
+                // 📱 Darle comportamiento de "App" a los botones con fuerza bruta
                 const botonesMenu = document.querySelectorAll('.btn-menu');
+                botonesMenu.forEach(boton => {
+                    boton.addEventListener('click', () => {
+                        window.scrollTo(0, 0); 
+                        // Ocultamos el menú con poder absoluto al hacer clic
+                        menuLateral.style.setProperty('display', 'none', 'important');
+                        
+                        panelPrincipal.style.setProperty('display', 'block', 'important');
+                        panelPrincipal.style.width = '100%';
+                        panelPrincipal.style.padding = '10px';
+                        panelPrincipal.style.boxSizing = 'border-box';
+                        
+                        if(!document.getElementById('btn-volver-menu')) {
+                            const btnVolver = document.createElement('button');
+                            btnVolver.id = 'btn-volver-menu';
+                            btnVolver.innerHTML = '⬅️ VOLVER AL MENÚ PRINCIPAL';
+                            btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;';
+                            
+                            btnVolver.onclick = () => {
+                                window.scrollTo(0, 0);
+                                // Volvemos al menú con poder absoluto
+                                panelPrincipal.style.setProperty('display', 'none', 'important');
+                                menuLateral.style.setProperty('display', 'block', 'important');
+                            };
+                            document.querySelector('.header-main').prepend(btnVolver);
+                        }
+                    });
+                });
+            }
                 botonesMenu.forEach(boton => {
                     boton.addEventListener('click', () => {
                         // Al tocar, mostramos contenido y volvemos a asegurar el scroll arriba
