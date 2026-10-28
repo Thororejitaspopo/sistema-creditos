@@ -107,18 +107,26 @@
                 console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
                 // Todo queda exactamente igual.
 
-            } else if (correo === "patron1@alpha.com") {
+           } else if (correo === "patron1@alpha.com") {
                 console.log("📱 MODO CELULAR: Navegación por pantallas completas");
                 
                 const menuLateral = document.querySelector('aside');
                 const panelPrincipal = document.querySelector('main');
                 
-                // Forzamos al menú a comportarse como una pantalla normal de celular
+                // 🛑 Rompemos cualquier regla vieja que pegue el menú a la izquierda
+                if(menuLateral.parentElement) {
+                    menuLateral.parentElement.style.display = 'block';
+                }
+
+                // 🎯 Forzamos al menú a comportarse como un celular centrado
                 menuLateral.style.width = '100%';
-                menuLateral.style.maxWidth = '100%'; 
+                menuLateral.style.maxWidth = '450px';   // Ancho de celular
+                menuLateral.style.margin = '0 auto';   // Esto es lo que lo CENTRA
                 menuLateral.style.minHeight = '100vh';
-                menuLateral.style.position = 'relative'; // Evita que flote raro
+                menuLateral.style.position = 'static'; // Lo despega de la izquierda
+                menuLateral.style.float = 'none';      // Evita que flote a un lado
                 menuLateral.style.display = 'block';
+                
                 panelPrincipal.style.display = 'none'; 
 
                 // Darle comportamiento de "App" a todos los botones del menú
