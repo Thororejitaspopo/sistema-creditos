@@ -102,10 +102,10 @@
             } else if (correo === "patron1@alpha.com") {
                 console.log("📱 MODO CELULAR: Navegación por pantallas completas");
                 
-                // 🔥 LA BOMBA NUCLEAR: Inyectamos CSS para obligar a que TODO el menú se vea sí o sí 🔥
+                // 🔥 LA BOMBA NUCLEAR V2: Incluimos explícitamente a los botones (button) y divs 🔥
                 const estiloInyectado = document.createElement('style');
                 estiloInyectado.innerHTML = `
-                    aside nav, aside ul, aside li, aside a, aside .menu-items {
+                    aside nav, aside ul, aside li, aside a, aside .menu-items, aside button, aside .btn-menu, aside div {
                         display: block !important;
                         visibility: visible !important;
                         opacity: 1 !important;
