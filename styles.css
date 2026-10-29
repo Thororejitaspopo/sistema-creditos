@@ -837,12 +837,15 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
-    /* 6. ROMPER COLUMNAS DOBLES Y APILAR TODO VERTICALMENTE EN MÓDULOS */
+    /* 6. ROMPER COLUMNAS DOBLES Y APILAR TODO VERTICALMENTE EN MÓDULOS REBELDES */
     .distribucion-clientes.contenedor-sistema-alpha,
+    .distribucion-clientes,
     .credito-fila-doble,
     .rec-flex-row {
+        display: flex !important;
         flex-direction: column !important;
         gap: 20px !important;
+        width: 100% !important;
     }
 
     /* 7. DARLE EL ANCHO COMPLETO A CADA SECCIÓN INTERNA */
@@ -871,7 +874,7 @@ main {
         justify-content: flex-start !important;
         margin-top: 10px !important;
     }
-    
+
     /* Que todos los contenedores tomen el 100% del ancho del celular */
     div[style*="flex: 1"] {
         min-width: 100% !important;
