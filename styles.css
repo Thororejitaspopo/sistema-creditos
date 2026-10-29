@@ -827,6 +827,16 @@ main {
         flex-direction: column !important;
         gap: 15px !important;
     }
+    /* 5. CENTRAR EL MENÚ PERFECTAMENTE EN CELULARES */
+    aside {
+        align-items: center !important; 
+    }
+    
+    .menu-nav {
+        width: 92% !important;
+        max-width: 380px !important;
+        margin: 0 auto !important; 
+    }
     
     /* Que todos los contenedores tomen el 100% del ancho del celular */
     div[style*="flex: 1"] {
