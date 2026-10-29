@@ -794,7 +794,7 @@ main {
 /* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO CELULAR)                */
 /* ========================================================================= */
 /* ========================================================================= */
-/* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO WHATSAPP)               */
+/* 📱 MODO APLICACIÓN MÓVIL (PANTALLAS PEQUEÑAS TIPO CELULAR)                */
 /* ========================================================================= */
 @media screen and (max-width: 768px) {
     /* Forzar que el cuerpo se adapte al celular */
@@ -805,63 +805,11 @@ main {
         background-color: #f8fafc !important;
     }
 
-    /* 1. EL MENÚ NEGRO PASA A SER LA BARRA INFERIOR (TIPO APP BANCARIA) */
-    aside {
-        width: 100% !important;
-        height: 70px !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        background: #0f172a !important;
-        z-index: 9999 !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        box-shadow: 0 -4px 15px rgba(0,0,0,0.3) !important;
-    }
-
-    /* Esconder lo que no sirve en el celular (logo, tasas, textos) para ahorrar espacio */
-    .logo-sistema, .config-rapida, .menu-categoria {
-        display: none !important;
-    }
-
-    /* Hacer que los botones del menú se deslicen horizontalmente con el dedo */
-    .menu-nav {
-        display: flex !important;
-        flex-direction: row !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        padding: 0 15px !important;
-        gap: 10px !important;
-        align-items: center !important;
-        height: 100% !important;
-        margin: 0 !important;
-    }
-
-    .menu-nav::-webkit-scrollbar {
-        display: none !important; /* Esconde la barra de scroll de PC */
-    }
-
-    .btn-menu {
-        flex: 0 0 auto !important;
-        margin: 0 !important;
-        padding: 12px 18px !important;
-        font-size: 14px !important;
-        border-radius: 8px !important;
-        background: rgba(255,255,255,0.05) !important;
-    }
-    
-    .btn-menu.active {
-        background: #0284c7 !important;
-    }
-
     /* 2. EL CONTENIDO PRINCIPAL OCUPA TODO EL ESPACIO */
     main {
         width: 100% !important;
         margin-left: 0 !important;
         padding: 15px !important;
-        margin-bottom: 75px !important; /* Deja espacio para la barra inferior */
     }
 
     /* 3. ARREGLO DEL LOGIN (PUERTA DE SEGURIDAD) */
