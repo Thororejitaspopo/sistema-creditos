@@ -837,6 +837,40 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
+    /* 6. ROMPER COLUMNAS DOBLES Y APILAR TODO VERTICALMENTE EN MÓDULOS */
+    .distribucion-clientes.contenedor-sistema-alpha,
+    .credito-fila-doble,
+    .rec-flex-row {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    /* 7. DARLE EL ANCHO COMPLETO A CADA SECCIÓN INTERNA */
+    .seccion-formulario, 
+    .seccion-lista,
+    .credito-columna,
+    .rec-input,
+    .rec-tarjeta,
+    .boveda-box-interes,
+    .boveda-box-capital {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+    }
+
+    /* 8. ARREGLAR LA LISTA DE CLIENTES Y TARJETAS APLASTADAS */
+    .info-perfil {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        gap: 5px !important;
+    }
+    
+    .acciones-cliente {
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        margin-top: 10px !important;
+    }
     
     /* Que todos los contenedores tomen el 100% del ancho del celular */
     div[style*="flex: 1"] {
