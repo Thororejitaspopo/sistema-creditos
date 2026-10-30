@@ -837,39 +837,37 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
-    /* 6. MODO BLOQUE FORZADO: ANULA EL JAVASCRIPT DEL MÓDULO CLIENTES */
+    /* 6. MODO REJILLA: FUERZA MATEMÁTICAMENTE A UNA SOLA COLUMNA */
     .distribucion-clientes.contenedor-sistema-alpha,
     .distribucion-clientes {
-        display: block !important; /* Destruye las columnas y fuerza la caída vertical */
+        display: grid !important;
+        grid-template-columns: 1fr !important; /* EL CANDADO: Obliga a 1 sola columna vertical */
+        gap: 25px !important;
         width: 100% !important;
     }
     
-    /* Restaurar el comportamiento normal en Recaudación (Cierre de caja) */
+    /* Restaurar el comportamiento normal en Recaudación */
     .rec-flex-row {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 10px !important;
     }
 
-    /* 7. EXPANDIR SECCIONES AL 100% DEL CELULAR */
+    /* 7. BLINDAR EL ANCHO DE CADA SECCIÓN AL 100% */
     .seccion-formulario.seccion-registro,
     .seccion-lista.seccion-tabla-clientes,
     .seccion-formulario, 
-    .seccion-lista {
-        display: block !important; /* Fuerza a que cada caja ocupe toda su propia línea */
-        width: 100% !important;
-        max-width: 100% !important;
-        margin-bottom: 25px !important; /* Separa el formulario verde de la lista roja */
-        box-sizing: border-box !important;
-    }
-    
+    .seccion-lista,
     .credito-columna {
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 100% !important; /* Candado extra para que no se encoja */
         flex: none !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
     }
     
-    /* Ajustar campos internos de Recaudación para que no se estiren al 100% innecesariamente */
+    /* Ajustar campos internos de Recaudación */
     .rec-input { flex: 1; min-width: 200px; }
     .rec-tarjeta { flex: 1; min-width: 300px; }
 
