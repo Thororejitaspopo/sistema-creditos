@@ -23,7 +23,35 @@
        })();
     </script>
     
-    <link rel="stylesheet" href="styles.css">
+   <link rel="stylesheet" href="styles.css">
+    
+    <!-- 📱 ANTÍDOTO SUPREMO PARA CELULARES (FUERZA EL APILAMIENTO) -->
+    <style>
+        @media screen and (max-width: 768px) {
+            #mod-clientes .distribucion-clientes {
+                display: flex !important;
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 20px !important;
+            }
+            #mod-clientes .seccion-formulario,
+            #mod-clientes .seccion-lista {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 100% !important;
+                flex: none !important;
+                margin-bottom: 20px !important;
+            }
+            /* Repara también el módulo de créditos */
+            #mod-creditos div[style*="flex: 1"] {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 100% !important;
+                flex: none !important;
+                margin-bottom: 20px !important;
+            }
+        }
+    </style>
 </head>
 <body>
 
