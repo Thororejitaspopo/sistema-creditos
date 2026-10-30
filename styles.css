@@ -837,38 +837,36 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
-    /* 6. HACK FLEXBOX: INFLAR LOS HIJOS PARA ROMPER EL CONTENEDOR PADRE */
-    .seccion-formulario, 
-    .seccion-lista {
-        flex: 0 0 100% !important; /* Fuerza matemática: Expulsa al hermano hacia abajo */
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
+    /* 6. DOMINIO ABSOLUTO POR ID (APLASTA CUALQUIER REGLA REBELDE) */
+    #mod-clientes .distribucion-clientes {
         display: block !important;
-        margin-bottom: 30px !important; /* Espacio para que no se peguen */
+        width: 100% !important;
+    }
+
+    #mod-clientes .seccion-formulario,
+    #mod-clientes .seccion-lista {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        flex: none !important;
+        margin-bottom: 30px !important;
         box-sizing: border-box !important;
     }
-    
-    /* 7. ASEGURAR QUE CUALQUIER PADRE PERMITA EL QUIEBRE DE LÍNEA */
-    .distribucion-clientes,
-    .contenedor-sistema-alpha,
-    .credito-fila-doble {
-        display: flex !important;
-        flex-wrap: wrap !important; /* La clave: Permite que los elementos caigan si no caben */
+
+    /* 7. REPARACIÓN DEL MÓDULO DE CRÉDITOS */
+    #mod-creditos > div {
+        display: block !important;
+    }
+    #mod-creditos .credito-columna,
+    #mod-creditos div[style*="flex: 1"] {
+        display: block !important;
         width: 100% !important;
-        padding: 0 !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        flex: none !important;
+        margin-bottom: 25px !important;
     }
-    
-    /* Restaurar el comportamiento normal en Recaudación */
-    .rec-flex-row {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 10px !important;
-    }
-    
-    /* Ajustes internos de Cierre de Caja */
-    .rec-input { flex: 1; min-width: 200px; }
-    .rec-tarjeta { flex: 1; min-width: 300px; }
 
     /* 8. ARREGLAR LA LISTA DE CLIENTES Y TARJETAS APLASTADAS */
     .info-perfil {
