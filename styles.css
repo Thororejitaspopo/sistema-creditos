@@ -837,13 +837,26 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
-    /* 6. MODO REJILLA: FUERZA MATEMÁTICAMENTE A UNA SOLA COLUMNA */
-    .distribucion-clientes.contenedor-sistema-alpha,
-    .distribucion-clientes {
-        display: grid !important;
-        grid-template-columns: 1fr !important; /* EL CANDADO: Obliga a 1 sola columna vertical */
-        gap: 25px !important;
+    /* 6. HACK FLEXBOX: INFLAR LOS HIJOS PARA ROMPER EL CONTENEDOR PADRE */
+    .seccion-formulario, 
+    .seccion-lista {
+        flex: 0 0 100% !important; /* Fuerza matemática: Expulsa al hermano hacia abajo */
         width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+        margin-bottom: 30px !important; /* Espacio para que no se peguen */
+        box-sizing: border-box !important;
+    }
+    
+    /* 7. ASEGURAR QUE CUALQUIER PADRE PERMITA EL QUIEBRE DE LÍNEA */
+    .distribucion-clientes,
+    .contenedor-sistema-alpha,
+    .credito-fila-doble {
+        display: flex !important;
+        flex-wrap: wrap !important; /* La clave: Permite que los elementos caigan si no caben */
+        width: 100% !important;
+        padding: 0 !important;
     }
     
     /* Restaurar el comportamiento normal en Recaudación */
@@ -852,22 +865,8 @@ main {
         flex-wrap: wrap !important;
         gap: 10px !important;
     }
-
-    /* 7. BLINDAR EL ANCHO DE CADA SECCIÓN AL 100% */
-    .seccion-formulario.seccion-registro,
-    .seccion-lista.seccion-tabla-clientes,
-    .seccion-formulario, 
-    .seccion-lista,
-    .credito-columna {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 100% !important; /* Candado extra para que no se encoja */
-        flex: none !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-    }
     
-    /* Ajustar campos internos de Recaudación */
+    /* Ajustes internos de Cierre de Caja */
     .rec-input { flex: 1; min-width: 200px; }
     .rec-tarjeta { flex: 1; min-width: 300px; }
 
