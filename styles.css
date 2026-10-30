@@ -837,28 +837,39 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
-    /* 6. ROMPER COLUMNAS DOBLES Y APILAR TODO VERTICALMENTE EN MÓDULOS REBELDES */
-    .distribucion-clientes.contenedor-sistema-alpha,
+    /* 6. ROMPER COLUMNAS DOBLES SOLO EN MÓDULOS REBELDES (SIN DAÑAR EL RESTO) */
     .distribucion-clientes,
-    .credito-fila-doble,
-    .rec-flex-row {
+    .credito-fila-doble {
         display: flex !important;
         flex-direction: column !important;
         gap: 20px !important;
         width: 100% !important;
     }
+    
+    /* Restaurar el comportamiento normal en Recaudación (Cierre de caja) */
+    .rec-flex-row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
 
     /* 7. DARLE EL ANCHO COMPLETO A CADA SECCIÓN INTERNA */
     .seccion-formulario, 
     .seccion-lista,
-    .credito-columna,
-    .rec-input,
-    .rec-tarjeta,
-    .boveda-box-interes,
-    .boveda-box-capital {
+    .credito-columna {
         width: 100% !important;
         max-width: 100% !important;
         flex: none !important;
+    }
+    
+    /* Ajustar campos internos de Recaudación para que no se estiren al 100% innecesariamente */
+    .rec-input {
+        flex: 1;
+        min-width: 200px;
+    }
+    .rec-tarjeta {
+        flex: 1;
+        min-width: 300px;
     }
 
     /* 8. ARREGLAR LA LISTA DE CLIENTES Y TARJETAS APLASTADAS */
