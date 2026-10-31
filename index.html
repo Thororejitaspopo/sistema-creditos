@@ -130,7 +130,7 @@
             } else if (correo === "patron1@alpha.com") {
                 console.log("📱 MODO CELULAR: Navegación por pantallas completas");
                 
-                // 🔥 LA BOMBA NUCLEAR V2: Incluimos explícitamente a los botones (button) y divs 🔥
+               // 🔥 LA BOMBA NUCLEAR V2: Incluimos explícitamente a los botones (button) y divs 🔥
                 const estiloInyectado = document.createElement('style');
                 estiloInyectado.innerHTML = `
                     aside nav, aside ul, aside li, aside a, aside .menu-items, aside button, aside .btn-menu, aside div {
@@ -139,6 +139,24 @@
                         opacity: 1 !important;
                         height: auto !important;
                         overflow: visible !important;
+                    }
+                    /* 🔥 EL VERDADERO MARTILLO: ORDEN DIRECTA PARA CLIENTES Y CRÉDITOS EN MÓVIL 🔥 */
+                    #mod-clientes .distribucion-clientes,
+                    .credito-fila-doble {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        width: 100% !important;
+                        gap: 20px !important;
+                    }
+                    #mod-clientes .seccion-formulario,
+                    #mod-clientes .seccion-lista,
+                    .credito-columna,
+                    #mod-creditos div[style*="flex: 1"] {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        min-width: 100% !important;
+                        flex: none !important;
+                        display: block !important;
                     }
                 `;
                 document.head.appendChild(estiloInyectado);
