@@ -1517,5 +1517,35 @@
     <script src="modulos/cierre.js"></script>
     <!-- Conexión del Módulo de Reportes Ejecutivos -->
     <script src="modulos/reportes.js"></script>
+
+
+
+
+
+
+<!-- 🔨 EL MARTILLO DEFINITIVO: FUERZA BRUTA PARA CELULARES -->
+    <script>
+        setInterval(function() {
+            if(window.innerWidth <= 768) {
+                // Destruye las columnas del modulo de clientes y creditos
+                let contenedores = document.querySelectorAll('.distribucion-clientes, .credito-fila-doble, .contenedor-sistema-alpha');
+                contenedores.forEach(c => {
+                    c.style.setProperty('display', 'flex', 'important');
+                    c.style.setProperty('flex-direction', 'column', 'important');
+                    c.style.setProperty('width', '100%', 'important');
+                });
+                
+                // Infla los formularios y listas al 100% de la pantalla
+                let hijos = document.querySelectorAll('.seccion-formulario, .seccion-lista, .credito-columna');
+                hijos.forEach(h => {
+                    h.style.setProperty('width', '100%', 'important');
+                    h.style.setProperty('max-width', '100%', 'important');
+                    h.style.setProperty('min-width', '100%', 'important');
+                    h.style.setProperty('flex', 'none', 'important');
+                    h.style.setProperty('display', 'block', 'important');
+                });
+            }
+        }, 500); // Dispara 2 veces por segundo, es físicamente imposible que falle.
+    </script>
 </body>
 </html>
