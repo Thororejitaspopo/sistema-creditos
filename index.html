@@ -91,142 +91,174 @@
     // Bloquear el sistema visualmente al inicio
     document.body.style.overflow = 'hidden';
 
-    // =========================================================================
-    // 🔐 MOTOR DE AUTENTICACIÓN (SUPABASE AUTH) - MODO CELULAR 100% ADMIN
-    // =========================================================================
-    window.iniciarSesionAlpha = async function() {
-        const emailInput = document.getElementById('login-email').value.trim();
-        const passwordInput = document.getElementById('login-password').value.trim();
-        const msgError = document.getElementById('login-error');
-        const btnAutenticar = document.querySelector('#pantalla-seguridad button');
+   // =========================================================================
+// 🔐 MOTOR DE AUTENTICACIÓN (SUPABASE AUTH) - MODO CELULAR 100% ADMIN
+// =========================================================================
+window.iniciarSesionAlpha = async function() {
+    const emailInput = document.getElementById('login-email').value.trim();
+    const passwordInput = document.getElementById('login-password').value.trim();
+    const msgError = document.getElementById('login-error');
+    const btnAutenticar = document.querySelector('#pantalla-seguridad button');
 
-        if (!emailInput || !passwordInput) {
-            msgError.innerText = "⚠️ Ingrese su correo y contraseña.";
-            msgError.style.display = "block";
-            return;
-        }
+    if (!emailInput || !passwordInput) {
+        msgError.innerText = "⚠️ Ingrese su correo y contraseña.";
+        msgError.style.display = "block";
+        return;
+    }
 
-        msgError.style.display = "none";
-        const textoOriginal = btnAutenticar.innerText;
-        btnAutenticar.innerText = "⏳ VERIFICANDO...";
-        btnAutenticar.disabled = true;
-        btnAutenticar.style.opacity = "0.7";
+    msgError.style.display = "none";
+    const textoOriginal = btnAutenticar.innerText;
+    btnAutenticar.innerText = "⏳ VERIFICANDO...";
+    btnAutenticar.disabled = true;
+    btnAutenticar.style.opacity = "0.7";
 
-        try {
-            const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-                email: emailInput,
-                password: passwordInput,
-            });
+    try {
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+            email: emailInput,
+            password: passwordInput,
+        });
 
-            if (error) throw error;
+        if (error) throw error;
 
-            document.getElementById('pantalla-seguridad').style.display = 'none';
-            document.body.style.overflow = 'auto'; 
+        document.getElementById('pantalla-seguridad').style.display = 'none';
+        document.body.style.overflow = 'auto'; 
+        
+        const correo = data.user.email;
+
+        if (correo === "patron@alpha.com") {
+            console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
+        } else if (correo === "patron1@alpha.com") {
+            console.log("📱 MODO CELULAR: Navegación por pantallas completas");
             
-            const correo = data.user.email;
-
-            if (correo === "patron@alpha.com") {
-                console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
-            } else if (correo === "patron1@alpha.com") {
-                console.log("📱 MODO CELULAR: Navegación por pantallas completas");
-                
-               // 🔥 LA BOMBA NUCLEAR V2: Incluimos explícitamente a los botones (button) y divs 🔥
-                const estiloInyectado = document.createElement('style');
-                estiloInyectado.innerHTML = `
-                    aside nav, aside ul, aside li, aside a, aside .menu-items, aside button, aside .btn-menu, aside div {
-                        display: block !important;
-                        visibility: visible !important;
-                        opacity: 1 !important;
-                        height: auto !important;
-                        overflow: visible !important;
-                    }
-                    /* 🔥 EL VERDADERO MARTILLO: ORDEN DIRECTA PARA CLIENTES Y CRÉDITOS EN MÓVIL 🔥 */
-                    #mod-clientes .distribucion-clientes,
-                    .credito-fila-doble {
-                        display: flex !important;
-                        flex-direction: column !important;
-                        width: 100% !important;
-                        gap: 20px !important;
-                    }
-                    #mod-clientes .seccion-formulario,
-                    #mod-clientes .seccion-lista,
-                    .credito-columna,
-                    #mod-creditos div[style*="flex: 1"] {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                        min-width: 100% !important;
-                        flex: none !important;
-                        display: block !important;
-                    }
-                `;
-                document.head.appendChild(estiloInyectado);
-
-                const menuLateral = document.querySelector('aside');
-                const panelPrincipal = document.querySelector('main');
-                
-                if (menuLateral) {
-                    if(menuLateral.parentElement) {
-                        menuLateral.parentElement.style.setProperty('display', 'block', 'important');
-                        menuLateral.parentElement.style.setProperty('height', '100vh', 'important');
-                    }
-
-                    menuLateral.style.setProperty('display', 'block', 'important');
-                    menuLateral.style.setProperty('width', '100%', 'important');
-                    menuLateral.style.setProperty('max-width', '450px', 'important');
-                    menuLateral.style.setProperty('margin', '0 auto', 'important');
-                    menuLateral.style.setProperty('height', '100vh', 'important');      
-                    menuLateral.style.setProperty('overflow-y', 'auto', 'important');    
-                    menuLateral.style.setProperty('position', 'static', 'important'); 
-                    menuLateral.style.setProperty('float', 'none', 'important');
+            // 🔥 LA BOMBA NUCLEAR V2: Incluimos explícitamente a los botones (button) y divs 🔥
+            const estiloInyectado = document.createElement('style');
+            estiloInyectado.innerHTML = `
+                aside nav, aside ul, aside li, aside a, aside .menu-items, aside button, aside .btn-menu, aside div {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    height: auto !important;
+                    overflow: visible !important;
                 }
                 
-                if (panelPrincipal) {
-                    panelPrincipal.style.setProperty('display', 'none', 'important'); 
+                /* 🔥 DISEÑO ESPECÍFICO PARA EL MÓDULO DE CLIENTES EN CELULARES 🔥 */
+                #mod-clientes .distribucion-clientes {
+                    display: flex !important;
+                    flex-direction: column !important; /* Fuerza apilamiento vertical */
+                    width: 100% !important;
+                    gap: 20px !important;
+                }
+                
+                #mod-clientes .seccion-formulario,
+                #mod-clientes .seccion-lista {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 100% !important;
+                    flex: none !important;
+                    margin-bottom: 30px !important;
+                    box-sizing: border-box !important;
                 }
 
-                const botonesMenu = document.querySelectorAll('.btn-menu');
-                botonesMenu.forEach(boton => {
-                    boton.addEventListener('click', () => {
-                        window.scrollTo(0, 0); 
-                        if(menuLateral) menuLateral.style.setProperty('display', 'none', 'important');
-                        
-                        if(panelPrincipal) {
-                            panelPrincipal.style.setProperty('display', 'block', 'important');
-                            panelPrincipal.style.width = '100%';
-                            panelPrincipal.style.padding = '10px';
-                            panelPrincipal.style.boxSizing = 'border-box';
-                        }
-                        
-                        if(!document.getElementById('btn-volver-menu')) {
-                            const btnVolver = document.createElement('button');
-                            btnVolver.id = 'btn-volver-menu';
-                            btnVolver.innerHTML = '⬅️ VOLVER AL MENÚ PRINCIPAL';
-                            btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;';
-                            
-                            btnVolver.onclick = () => {
-                                window.scrollTo(0, 0);
-                                if(panelPrincipal) panelPrincipal.style.setProperty('display', 'none', 'important');
-                                if(menuLateral) menuLateral.style.setProperty('display', 'block', 'important');
-                            };
-                            const headerMain = document.querySelector('.header-main') || panelPrincipal;
-                            if (headerMain) headerMain.prepend(btnVolver);
-                        }
-                    });
-                });
+                /* Ajustes para las filas de campos dentro del formulario */
+                #mod-clientes .fila-campos {
+                    display: flex !important;
+                    flex-direction: column !important; /* Apila los campos individualmente */
+                    gap: 15px !important;
+                }
+                
+                #mod-clientes .campo {
+                    width: 100% !important; /* Asegura que cada campo ocupe el 100% */
+                }
+
+                /* 🔥 DISEÑO ESPECÍFICO PARA EL MÓDULO DE CRÉDITOS EN CELULARES 🔥 */
+                #mod-creditos .credito-fila-doble,
+                #mod-creditos > div[style*="display: flex"] { /* Selecciona contenedores flex principales */
+                    display: flex !important;
+                    flex-direction: column !important;
+                    width: 100% !important;
+                    gap: 20px !important;
+                }
+
+                #mod-creditos .credito-columna,
+                #mod-creditos div[style*="flex: 1"] {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 100% !important;
+                    flex: none !important;
+                    margin-bottom: 25px !important;
+                    box-sizing: border-box !important;
+                }
+            `;
+            document.head.appendChild(estiloInyectado);
+
+            const menuLateral = document.querySelector('aside');
+            const panelPrincipal = document.querySelector('main');
+            
+            if (menuLateral) {
+                if(menuLateral.parentElement) {
+                    menuLateral.parentElement.style.setProperty('display', 'block', 'important');
+                    menuLateral.parentElement.style.setProperty('height', '100vh', 'important');
+                }
+
+                menuLateral.style.setProperty('display', 'block', 'important');
+                menuLateral.style.setProperty('width', '100%', 'important');
+                menuLateral.style.setProperty('max-width', '450px', 'important');
+                menuLateral.style.setProperty('margin', '0 auto', 'important');
+                menuLateral.style.setProperty('height', '100vh', 'important');      
+                menuLateral.style.setProperty('overflow-y', 'auto', 'important');    
+                menuLateral.style.setProperty('position', 'static', 'important'); 
+                menuLateral.style.setProperty('float', 'none', 'important');
+            }
+            
+            if (panelPrincipal) {
+                panelPrincipal.style.setProperty('display', 'none', 'important'); 
             }
 
-            if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
-
-        } catch (error) {
-            console.error("Alerta de Seguridad:", error.message);
-            msgError.innerText = "❌ Credenciales incorrectas o error de conexión.";
-            msgError.style.display = "block";
-        } finally {
-            btnAutenticar.innerText = textoOriginal;
-            btnAutenticar.disabled = false;
-            btnAutenticar.style.opacity = "1";
+            const botonesMenu = document.querySelectorAll('.btn-menu');
+            botonesMenu.forEach(boton => {
+                boton.addEventListener('click', () => {
+                    window.scrollTo(0, 0); 
+                    if(menuLateral) menuLateral.style.setProperty('display', 'none', 'important');
+                    
+                    if(panelPrincipal) {
+                        panelPrincipal.style.setProperty('display', 'block', 'important');
+                        panelPrincipal.style.width = '100%';
+                        panelPrincipal.style.padding = '10px';
+                        panelPrincipal.style.boxSizing = 'border-box';
+                    }
+                    
+                    if(!document.getElementById('btn-volver-menu')) {
+                        const btnVolver = document.createElement('button');
+                        btnVolver.id = 'btn-volver-menu';
+                        btnVolver.innerHTML = '⬅️ VOLVER AL MENÚ PRINCIPAL';
+                        btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;';
+                        
+                        btnVolver.onclick = () => {
+                            window.scrollTo(0, 0);
+                            if(panelPrincipal) panelPrincipal.style.setProperty('display', 'none', 'important');
+                            if(menuLateral) menuLateral.style.setProperty('display', 'block', 'important');
+                        };
+                        const headerMain = document.querySelector('.header-main') || panelPrincipal;
+                        if (headerMain) headerMain.prepend(btnVolver);
+                    }
+                });
+            });
         }
-    };
+
+        if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
+
+    } catch (error) {
+        console.error("Alerta de Seguridad:", error.message);
+        msgError.innerText = "❌ Credenciales incorrectas o error de conexión.";
+        msgError.style.display = "block";
+    } finally {
+        btnAutenticar.innerText = textoOriginal;
+        btnAutenticar.disabled = false;
+        btnAutenticar.style.opacity = "1";
+    }
+};
 </script>
 <!-- FIN PUERTA DE SEGURIDAD -->
 
