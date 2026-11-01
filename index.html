@@ -23,7 +23,7 @@
        })();
     </script>
     
-  <link rel="stylesheet" href="styles.css?v=victoria_final_1">
+    <link rel="stylesheet" href="styles.css?v=1000">
     
     <!-- 📱 ANTÍDOTO SUPREMO PARA CELULARES (FUERZA EL APILAMIENTO) -->
     <style>
@@ -91,133 +91,6 @@
     // Bloquear el sistema visualmente al inicio
     document.body.style.overflow = 'hidden';
 
-// =========================================================================
-// 🔐 MOTOR DE AUTENTICACIÓN (SUPABASE AUTH) - MODO CELULAR 100% ADMIN
-// =========================================================================
-function aplicarEstilosMovilAlpha() {
-    if (document.getElementById('estilos-movil-patron1')) return;
-
-    const estiloInyectado = document.createElement('style');
-    estiloInyectado.id = 'estilos-movil-patron1';
-    estiloInyectado.innerHTML = `
-        aside nav, aside ul, aside li, aside a, aside .menu-items, aside button, aside .btn-menu, aside div {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            height: auto !important;
-            overflow: visible !important;
-        }
-
-        /* 📱 RUPTURA TOTAL DE COLUMNAS PARA CLIENTES */
-        #mod-clientes .distribucion-clientes,
-        .distribucion-clientes {
-            display: flex !important;
-            flex-direction: column !important;
-            flex-wrap: wrap !important;
-            width: 100% !important;
-            gap: 20px !important;
-        }
-
-        #mod-clientes .seccion-formulario,
-        #mod-clientes .seccion-lista,
-        .seccion-formulario,
-        .seccion-lista {
-            display: block !important;
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            flex: 0 0 100% !important;
-            margin-bottom: 25px !important;
-            box-sizing: border-box !important;
-        }
-
-        #mod-clientes .fila-campos {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 12px !important;
-            width: 100% !important;
-        }
-
-        #mod-clientes .campo {
-            width: 100% !important;
-            box-sizing: border-box !important;
-        }
-
-        /* 📱 RUPTURA TOTAL DE COLUMNAS PARA CRÉDITOS */
-        #mod-creditos .credito-fila-doble,
-        #mod-creditos > div[style*="display: flex"] {
-            display: flex !important;
-            flex-direction: column !important;
-            flex-wrap: wrap !important;
-            width: 100% !important;
-            gap: 20px !important;
-        }
-
-        #mod-creditos .credito-columna,
-        #mod-creditos div[style*="flex: 1"] {
-            display: block !important;
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            flex: 0 0 100% !important;
-            margin-bottom: 25px !important;
-            box-sizing: border-box !important;
-        }
-    `;
-    document.head.appendChild(estiloInyectado);
-
-    const menuLateral = document.querySelector('aside');
-    const panelPrincipal = document.querySelector('main');
-
-    if (menuLateral) {
-        if (menuLateral.parentElement) {
-            menuLateral.parentElement.style.setProperty('display', 'block', 'important');
-            menuLateral.parentElement.style.setProperty('height', '100vh', 'important');
-        }
-        menuLateral.style.setProperty('display', 'block', 'important');
-        menuLateral.style.setProperty('width', '100%', 'important');
-        menuLateral.style.setProperty('max-width', '450px', 'important');
-        menuLateral.style.setProperty('margin', '0 auto', 'important');
-        menuLateral.style.setProperty('height', '100vh', 'important');
-        menuLateral.style.setProperty('overflow-y', 'auto', 'important');
-        menuLateral.style.setProperty('position', 'static', 'important');
-        menuLateral.style.setProperty('float', 'none', 'important');
-    }
-
-    if (panelPrincipal) {
-        panelPrincipal.style.setProperty('display', 'none', 'important');
-    }
-
-    const botonesMenu = document.querySelectorAll('.btn-menu');
-    botonesMenu.forEach(boton => {
-        boton.addEventListener('click', () => {
-            window.scrollTo(0, 0);
-            if (menuLateral) menuLateral.style.setProperty('display', 'none', 'important');
-
-            if (panelPrincipal) {
-                panelPrincipal.style.setProperty('display', 'block', 'important');
-                panelPrincipal.style.width = '100%';
-                panelPrincipal.style.padding = '10px';
-                panelPrincipal.style.boxSizing = 'border-box';
-            }
-
-            if (!document.getElementById('btn-volver-menu')) {
-                const btnVolver = document.createElement('button');
-                btnVolver.id = 'btn-volver-menu';
-                btnVolver.innerHTML = '⬅️ VOLVER AL MENÚ PRINCIPAL';
-                btnVolver.style = 'background: #dc2626; color: white; padding: 15px; width: 100%; border: none; font-weight: 900; font-size: 14px; margin-bottom: 20px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;';
-
-                btnVolver.onclick = () => {
-                    window.scrollTo(0, 0);
-                    if (panelPrincipal) panelPrincipal.style.setProperty('display', 'none', 'important');
-                    if (menuLateral) menuLateral.style.setProperty('display', 'block', 'important');
-                };
-                const headerMain = document.querySelector('.header-main') || panelPrincipal;
-                if (headerMain) headerMain.prepend(btnVolver);
-            }
-        });
-    });
-}
 
 window.iniciarSesionAlpha = async function() {
     const emailInput = document.getElementById('login-email').value.trim();
@@ -254,7 +127,7 @@ window.iniciarSesionAlpha = async function() {
             console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
         } else if (correo === "patron1@alpha.com") {
             console.log("📱 MODO CELULAR: Navegación por pantallas completas");
-            aplicarEstilosMovilAlpha();
+            /* YA NO LLAMAMOS A LA FUNCIÓN, AHORA EL CSS MANDA */
         }
 
         if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
@@ -269,16 +142,6 @@ window.iniciarSesionAlpha = async function() {
         btnAutenticar.style.opacity = "1";
     }
 };
-
-// 🔄 Verificación persistente si la sesión ya existe al abrir la app en móvil
-document.addEventListener('DOMContentLoaded', async () => {
-    if (window.supabaseClient && window.supabaseClient.auth) {
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
-        if (session && session.user && session.user.email === "patron1@alpha.com") {
-            aplicarEstilosMovilAlpha();
-        }
-    }
-});
 </script>
 <!-- FIN PUERTA DE SEGURIDAD -->
 

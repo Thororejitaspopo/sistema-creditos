@@ -844,15 +844,6 @@ main {
 
     #mod-clientes .seccion-formulario,
     #mod-clientes .seccion-lista {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 100% !important;
-        flex: none !important;
-        margin-bottom: 20px !important;
-    }
-
-    #mod-clientes .seccion-formulario,
-    #mod-clientes .seccion-lista {
         display: block !important;
         width: 100% !important;
         max-width: 100% !important;
@@ -862,6 +853,7 @@ main {
         box-sizing: border-box !important;
     }
 
+    
     /* 7. REPARACIÓN DEL MÓDULO DE CRÉDITOS */
     #mod-creditos > div {
         display: block !important;
