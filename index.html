@@ -25,30 +25,46 @@
     
     <link rel="stylesheet" href="styles.css?v=1000">
     
-    <!-- 📱 ANTÍDOTO SUPREMO PARA CELULARES (FUERZA EL APILAMIENTO) -->
+   <!-- 📱 MISIL DEFINITIVO PARA CELULARES (MÁXIMA JERARQUÍA) -->
     <style>
         @media screen and (max-width: 768px) {
-            #mod-clientes .distribucion-clientes {
+            /* AL USAR EL ID (#mod-clientes) MÁS LAS DOS CLASES JUNTAS, ESTO GANA A CUALQUIER COSA */
+            #mod-clientes .distribucion-clientes.contenedor-sistema-alpha {
                 display: flex !important;
                 flex-direction: column !important;
                 width: 100% !important;
                 gap: 20px !important;
             }
-            #mod-clientes .seccion-formulario,
-            #mod-clientes .seccion-lista {
+            
+            #mod-clientes .seccion-formulario.seccion-registro,
+            #mod-clientes .seccion-lista.seccion-tabla-clientes {
+                display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 min-width: 100% !important;
                 flex: none !important;
-                margin-bottom: 20px !important;
+                margin-bottom: 25px !important;
+                box-sizing: border-box !important;
             }
-            /* Repara también el módulo de créditos */
+            
+            /* REPARACIÓN DEL MÓDULO DE CRÉDITOS */
+            #mod-creditos .credito-fila-doble,
+            #mod-creditos > div[style*="display: flex"] {
+                display: flex !important;
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 20px !important;
+            }
+
+            #mod-creditos .credito-columna,
             #mod-creditos div[style*="flex: 1"] {
+                display: block !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 min-width: 100% !important;
                 flex: none !important;
                 margin-bottom: 20px !important;
+                box-sizing: border-box !important;
             }
         }
     </style>
