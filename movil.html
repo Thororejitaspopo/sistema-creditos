@@ -3,49 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA ALPHA V6 - Menú Móvil</title>
+    <title>SISTEMA ALPHA V6 - Comando Móvil</title>
     
-    <!-- CONEXIÓN A SUPABASE -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        /* FONDO OSCURO Y CENTRADO PARA EL MENÚ MÓVIL */
+        /* 1. MAGIA DE CENTRADO ABSOLUTO */
         body {
             margin: 0;
             padding: 0;
-            background-color: #0b1120; /* Color exacto del fondo oscuro de su sistema */
+            background-color: #0b1120; /* El fondo oscuro elegante */
             font-family: Arial, sans-serif;
             color: white;
+            /* ESTO CENTRA TODO EL BLOQUE EN MEDIO DEL CELULAR */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; 
+            min-height: 100vh;
         }
 
+        /* 2. EL CONTENEDOR LIMITADO (Para que no se estire feo) */
         .contenedor-menu-movil {
-            max-width: 450px; /* Ancho perfecto para celular */
-            margin: 0 auto; /* Centradito en la pantalla */
-            padding: 20px;
+            width: 100%;
+            max-width: 380px; /* Medida perfecta para pantallas de celular */
+            padding: 30px 20px 50px 20px; 
             box-sizing: border-box;
-            min-height: 100vh;
         }
 
         .titulo-sistema {
             text-align: center;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 900;
             letter-spacing: 2px;
-            margin-top: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
             text-transform: uppercase;
+            color: #ffffff;
         }
 
-        /* DISEÑO DE LOS BOTONES DEL MENÚ */
+        /* 3. DISEÑO DE LOS BOTONES (IGUAL A SU IMAGEN) */
         .item-menu {
             display: flex;
             align-items: center;
-            padding: 14px 15px;
-            border-radius: 8px;
-            margin-bottom: 5px;
+            padding: 15px 18px;
+            border-radius: 10px;
+            margin-bottom: 8px;
             cursor: pointer;
             color: #cbd5e1;
-            font-size: 14px;
+            font-size: 15px;
+            background-color: transparent;
             transition: 0.3s;
         }
 
@@ -53,37 +56,43 @@
             background-color: #1e293b;
         }
 
-        /* Botón INICIO (Activo) */
+        /* Botón Activo (Inicio) */
         .item-menu.activo {
             background-color: #1e293b;
             color: #38bdf8;
             border-left: 4px solid #38bdf8;
-            padding-left: 11px; /* Para compensar el borde */
+            padding-left: 14px;
         }
 
-        /* Botón CONSULTAR MATRIZ */
+        /* Botón Consultar Matriz (Centrado por dentro también) */
         .item-menu.btn-matriz {
             border: 1px solid #0284c7;
             color: white;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            justify-content: center; /* Centra el texto y el icono internamente */
+        }
+        .item-menu.btn-matriz .icono {
+            margin-right: 10px;
         }
 
         .icono {
-            margin-right: 12px;
-            font-size: 16px;
+            margin-right: 15px;
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
         }
 
-        /* TÍTULOS DE CATEGORÍAS (OPERACIONES, CAJA, ETC) */
+        /* 4. TÍTULOS DE CATEGORÍAS */
         .titulo-categoria {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
             color: #475569;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-top: 25px;
-            margin-bottom: 10px;
-            padding-left: 5px;
+            margin-top: 30px;
+            margin-bottom: 12px;
+            padding-left: 10px;
         }
     </style>
 </head>
@@ -138,20 +147,19 @@
         <div class="item-menu" onclick="abrirModulo('cobradores')">
             <span class="icono">🏍️</span> Cobradores
         </div>
+        <div class="item-menu" onclick="abrirModulo('reportes')">
+            <span class="icono">📋</span> Reportes Generales
+        </div>
+        <div class="item-menu" onclick="abrirModulo('mora')">
+            <span class="icono">⚖️</span> Gestión y Mora
+        </div>
 
     </div>
 
+    <!-- SCRIPT DE PRUEBA -->
     <script>
-        // Esta función será la que nos permita ir abriendo las siguientes páginas
         function abrirModulo(modulo) {
-            console.log("El gerente seleccionó:", modulo);
-            
-            if(modulo === 'inicio') {
-                // Aquí después enlazaremos a la página de las tarjetas que estábamos haciendo
-                alert("Pronto abriremos el Dashboard de Inicio aquí.");
-            } else {
-                alert("Módulo " + modulo.toUpperCase() + " en construcción para móvil.");
-            }
+            alert("Has tocado el módulo: " + modulo.toUpperCase());
         }
     </script>
 </body>
