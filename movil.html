@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SISTEMA ALPHA V6 - Menú Móvil</title>
+    
+    <!-- CONEXIÓN A SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* FONDO OSCURO Y CENTRADO PARA EL MENÚ MÓVIL */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b1120; /* Color exacto del fondo oscuro de su sistema */
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .contenedor-menu-movil {
+            max-width: 450px; /* Ancho perfecto para celular */
+            margin: 0 auto; /* Centradito en la pantalla */
+            padding: 20px;
+            box-sizing: border-box;
+            min-height: 100vh;
+        }
+
+        .titulo-sistema {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        /* DISEÑO DE LOS BOTONES DEL MENÚ */
+        .item-menu {
+            display: flex;
+            align-items: center;
+            padding: 14px 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            color: #cbd5e1;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .item-menu:active {
+            background-color: #1e293b;
+        }
+
+        /* Botón INICIO (Activo) */
+        .item-menu.activo {
+            background-color: #1e293b;
+            color: #38bdf8;
+            border-left: 4px solid #38bdf8;
+            padding-left: 11px; /* Para compensar el borde */
+        }
+
+        /* Botón CONSULTAR MATRIZ */
+        .item-menu.btn-matriz {
+            border: 1px solid #0284c7;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .icono {
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        /* TÍTULOS DE CATEGORÍAS (OPERACIONES, CAJA, ETC) */
+        .titulo-categoria {
+            font-size: 11px;
+            font-weight: bold;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-menu-movil">
+        
+        <div class="titulo-sistema">SISTEMA ALPHA V6</div>
+
+        <!-- INICIO -->
+        <div class="item-menu activo" onclick="abrirModulo('inicio')">
+            <span class="icono">🏠</span> Inicio
+        </div>
+
+        <!-- CONSULTAR MATRIZ -->
+        <div class="item-menu btn-matriz" onclick="abrirModulo('matriz')">
+            <span class="icono">🔍⚡</span> CONSULTAR MATRIZ
+        </div>
+
+        <!-- OPERACIONES -->
+        <div class="titulo-categoria">📊 OPERACIONES</div>
+        <div class="item-menu" onclick="abrirModulo('clientes')">
+            <span class="icono">👥</span> Registrar Clientes
+        </div>
+        <div class="item-menu" onclick="abrirModulo('credito')">
+            <span class="icono">💳</span> Crear Crédito
+        </div>
+        <div class="item-menu" onclick="abrirModulo('pago')">
+            <span class="icono">📄</span> Registrar Pago
+        </div>
+        <div class="item-menu" onclick="abrirModulo('gastos')">
+            <span class="icono">💸</span> Gastos Varios
+        </div>
+
+        <!-- CAJA Y CONTABILIDAD -->
+        <div class="titulo-categoria">💰 CAJA Y CONTABILIDAD</div>
+        <div class="item-menu" onclick="abrirModulo('capital')">
+            <span class="icono">🏛️</span> Módulo Capital
+        </div>
+        <div class="item-menu" onclick="abrirModulo('interes')">
+            <span class="icono">📈</span> Módulo Interés
+        </div>
+        <div class="item-menu" onclick="abrirModulo('cierre')">
+            <span class="icono">🔒</span> Cierre de Caja
+        </div>
+
+        <!-- PERSONAL Y AUDITORÍA -->
+        <div class="titulo-categoria">👔 PERSONAL Y AUDITORÍA</div>
+        <div class="item-menu" onclick="abrirModulo('supervisores')">
+            <span class="icono">👔</span> Supervisores
+        </div>
+        <div class="item-menu" onclick="abrirModulo('cobradores')">
+            <span class="icono">🏍️</span> Cobradores
+        </div>
+
+    </div>
+
+    <script>
+        // Esta función será la que nos permita ir abriendo las siguientes páginas
+        function abrirModulo(modulo) {
+            console.log("El gerente seleccionó:", modulo);
+            
+            if(modulo === 'inicio') {
+                // Aquí después enlazaremos a la página de las tarjetas que estábamos haciendo
+                alert("Pronto abriremos el Dashboard de Inicio aquí.");
+            } else {
+                alert("Módulo " + modulo.toUpperCase() + " en construcción para móvil.");
+            }
+        }
+    </script>
+</body>
+</html>

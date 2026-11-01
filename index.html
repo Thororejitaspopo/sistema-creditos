@@ -137,13 +137,15 @@ window.iniciarSesionAlpha = async function() {
         document.getElementById('pantalla-seguridad').style.display = 'none';
         document.body.style.overflow = 'auto';
 
+        // 👇 AQUÍ ESTÁ EL CAMBIO EXACTO 👇
         const correo = data.user.email;
 
         if (correo === "patron@alpha.com") {
-            console.log("💻 MODO COMPUTADORA: Diseño dividido normal");
+            console.log("💻 MODO COMPUTADORA: Diseño normal");
+            // Aquí se queda en la misma página (index.html)
         } else if (correo === "patron1@alpha.com") {
-            console.log("📱 MODO CELULAR: Navegación por pantallas completas");
-            /* YA NO LLAMAMOS A LA FUNCIÓN, AHORA EL CSS MANDA */
+            console.log("📱 MODO CELULAR: Redirigiendo al nuevo sistema móvil...");
+            window.location.href = "movil.html"; /* 🔥 EL SALTO A LA NUEVA PÁGINA 🔥 */
         }
 
         if (typeof cargarRutaCobroDia === "function") cargarRutaCobroDia();
