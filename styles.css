@@ -202,12 +202,12 @@ main {
 
 /* 1. MÁSTIL DE DISTRIBUCIÓN: Une horizontalmente el formulario y la lista de clientes */
 .distribucion-clientes.contenedor-sistema-alpha {
-    display: flex !important; /* Mantiene activo el modelo flexbox horizontal */
-    flex-direction: row !important; /* Obliga a los dos bloques a colocarse de lado a lado */
-    gap: 30px !important; /* Separación elegante y aireada estilo panel financiero moderno de 30px */
-    align-items: stretch !important; /* ¡REGLA DE SIMETRÍA! Fuerza a ambas columnas a medir exactamente la misma altura de fondo */
-    width: 100% !important; /* Aprovecha la totalidad del ancho utilizable de la pantalla central */
-    box-sizing: border-box !important; /* Asegura que los márgenes se mantengan por dentro de los límites */
+    display: flex !important;
+    /* BORRAMOS EL flex-direction: row !important DE AQUÍ PARA QUE EL MÓVIL PUEDA CAMBIARLO */
+    gap: 30px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* 2. COLUMNA IZQUIERDA: Formulario de Registro de Clientes */
@@ -837,10 +837,18 @@ main {
         max-width: 380px !important;
         margin: 0 auto !important; 
     }
-    /* 6. DOMINIO ABSOLUTO POR ID (APLASTA CUALQUIER REGLA REBELDE) */
-    #mod-clientes .distribucion-clientes {
-        display: block !important;
+    /* 6. DOMINIO ABSOLUTO (APLASTA LA REGLA DOBLE DE ESCRITORIO) */
+    .distribucion-clientes.contenedor-sistema-alpha {
+        flex-direction: column !important; /* ¡AQUÍ ESTÁ LA MAGIA QUE APILA LAS CAJAS! */
+    }
+
+    #mod-clientes .seccion-formulario,
+    #mod-clientes .seccion-lista {
         width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        flex: none !important;
+        margin-bottom: 20px !important;
     }
 
     #mod-clientes .seccion-formulario,
