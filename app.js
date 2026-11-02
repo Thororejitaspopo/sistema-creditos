@@ -14,15 +14,18 @@ window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // 🔒 FILTRO DE SEGURIDAD OBLIGATORIO (EL GUARDIA)
 // =========================================================================
 async function verificarSeguridad() {
-    // Usamos window.supabaseClient porque así bautizó la conexión arriba
     const { data, error } = await window.supabaseClient.auth.getSession();
     
     if (!data.session) {
-        console.warn("Acceso denegado: Usuario no autenticado.");
-        window.location.replace("index.html"); 
+        // Solo redirigir si NO estamos ya en la página de login (evita el bucle infinito)
+        if (!window.location.href.includes("index.html")) {
+            console.warn("Acceso denegado: Usuario no autenticado.");
+            window.location.replace("index.html"); 
+        }
     }
 }
 verificarSeguridad();
+// =========================================================================
 /* ==========================================================================
    2. VARIABLES DE CONTROL DE ESTADO GLOBAL
    ========================================================================== */
