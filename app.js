@@ -10,7 +10,19 @@ const SUPABASE_ANON_KEY = "sb_publishable_0irYiV3D_rlOKayPYXHeIg_kdn5Kb1t";
 // Une la URL y la llave para activar de forma oficial el motor de conexión en tu sistema
 // Inicialización de la instancia de cliente de Supabase (AHORA GLOBAL)
 window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// =========================================================================
+// 🔒 FILTRO DE SEGURIDAD OBLIGATORIO (EL GUARDIA)
+// =========================================================================
+async function verificarSeguridad() {
+    // Usamos window.supabaseClient porque así bautizó la conexión arriba
+    const { data, error } = await window.supabaseClient.auth.getSession();
+    
+    if (!data.session) {
+        console.warn("Acceso denegado: Usuario no autenticado.");
+        window.location.replace("index.html"); 
+    }
+}
+verificarSeguridad();
 /* ==========================================================================
    2. VARIABLES DE CONTROL DE ESTADO GLOBAL
    ========================================================================== */
