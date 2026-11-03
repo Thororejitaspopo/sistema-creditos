@@ -208,25 +208,36 @@ async function buscarCreditoParaCobro() {
                 const fMesCorto = meses[f.getMonth()].substring(0, 3);
                 const fechaTxtCorta = `${f.getDate()}/${fMesCorto}/${f.getFullYear()}`;
                 
-                // Formateamos el dinero
-                const totalOriginal = parseFloat(c.total_pagar || 0).toFixed(2);
-                const infoDinero = `Total: $${totalOriginal} ➡️ Saldo: $${saldoNeto.toFixed(2)}`;
+               // Formateamos el dinero
+const totalOriginal = parseFloat(c.total_pagar || 0).toFixed(2);
+const infoDinero = `Total: $${totalOriginal} ➡️ Saldo: $${saldoNeto.toFixed(2)}`;
                 
-                // 🔥 VERSIÓN VIP: Sin nombre/cédula repetidos, fecha corta y directo al grano
-                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}] | Emitido: ${fechaTxtCorta} | ${infoDinero}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
-                selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
-            });
+// --- FORMATO GERENCIAL [FRECUENCIA][CUOTA] ---
+let letraF = '-';
+let fP = (c.frecuencia_pago || '').toUpperCase();
+if (fP.includes('DIARIO')) letraF = 'D';
+else if (fP.includes('SEMANAL')) letraF = 'S';
+else if (fP.includes('QUINCENAL')) letraF = 'Q';
+else if (fP.includes('MENSUAL')) letraF = 'M';
 
-            document.getElementById('recaudacion-espera-msg').style.display = 'none';
-            document.getElementById('panel-recaudacion-activo').style.display = 'none';
-            document.getElementById('contenedor-multicredito').style.display = 'block';
-        }
+let valorC = c.valor_cuota ? parseFloat(c.valor_cuota).toFixed(2) : '0.00';
+if (valorC.endsWith('.00')) valorC = parseInt(valorC);
+// ---------------------------------------------
 
-    } catch (err) {
-        alert("Error al buscar créditos: " + err.message);
-    }
+// 🔥 VERSIÓN VIP ACTUALIZADA: Con letra de frecuencia y valor de cuota
+const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | ${infoDinero}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
+selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
+});
+
+document.getElementById('recaudacion-espera-msg').style.display = 'none';
+document.getElementById('panel-recaudacion-activo').style.display = 'none';
+document.getElementById('contenedor-multicredito').style.display = 'block';
 }
 
+} catch (err) {
+    alert("Error al buscar créditos: " + err.message);
+}
+}
 
 // =========================================================================
 // 🎯 CARGADOR DE ESTADO DE CUENTA Y GENERADOR DE HISTORIAL (ALPHA V5 - MULTI MESES)
@@ -398,15 +409,22 @@ async function cargarEstadoCuentaCredito(idCredito) {
     }
     
     const elCuotas = document.getElementById('lbl-recaudacion-num-cuotas');
-    if (elCuotas) {
-        const valorDeCuota = cuotaFinal || 1; 
-        let cuotasPendientes = Math.ceil(saldoRestanteNeto / valorDeCuota);
-        if (cuotasPendientes < 0) cuotasPendientes = 0; 
+if (elCuotas) {
+    const valorDeCuota = cuotaFinal || 1; 
+    let cuotasPendientes = Math.ceil(saldoRestanteNeto / valorDeCuota);
+    if (cuotasPendientes < 0) cuotasPendientes = 0; 
 
-        // Mostramos el total de cuotas original (ej: 11) en lugar de siempre forzar un "1"
-        const textoCuotasTotales = nuevaCuotaAcuerdo !== null ? '<span title="Modificado por convenio">N/A</span>' : numeroCuotasOriginales;
-        elCuotas.innerHTML = `${textoCuotasTotales} &nbsp; <span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes Aprox.)</span>`;
-    }
+    // 🔥 AUDITORÍA: Cálculo exacto de cuotas pagadas
+    let cuotasPagadas = numeroCuotasOriginales - cuotasPendientes;
+    if (cuotasPagadas < 0) cuotasPagadas = 0; // Seguro contra negativos
+    
+    const textoCuotasTotales = nuevaCuotaAcuerdo !== null ? '<span title="Modificado por convenio">N/A</span>' : numeroCuotasOriginales;
+    
+    // 🔥 VERSIÓN VIP: Etiqueta Verde de Pagadas + Etiqueta Roja de Pendientes
+    elCuotas.innerHTML = `${textoCuotasTotales} &nbsp; ` +
+        `<span style="color: #15803d; font-size: 11px; font-weight: bold; background: #dcfce7; padding: 2px 6px; border-radius: 4px; margin-right: 5px;">(✔️ ${cuotasPagadas} Pagadas)</span>` +
+        `<span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes)</span>`;
+}
     
     let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
         <span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
