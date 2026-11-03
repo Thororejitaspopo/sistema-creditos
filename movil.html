@@ -230,6 +230,10 @@
         }
     </style>
 </head>
+
+<!-- CONTENEDOR DE LA VISTA DE INICIO -->
+<div id="vista-inicio">
+
 <body>
 
     <!-- CABECERA PRINCIPAL -->
@@ -336,6 +340,11 @@
     </div>
 </div>
 
+</div> <!-- FIN VISTA INICIO -->
+
+<!-- CONTENEDOR DONDE CARGARÁN LOS MÓDULOS (Oculto por defecto) -->
+<div id="vista-modulos" style="display: none; padding-bottom: 100px;"></div>
+
     <!-- BARRA DE NAVEGACIÓN INFERIOR ESTILO APP -->
     <nav class="bottom-nav">
         <div class="nav-item activo" onclick="abrirModulo('inicio')">
@@ -356,12 +365,42 @@
         </div>
     </nav>
 
-    <!-- SCRIPT DE PRUEBA (MANTENIDO PARA QUE NO FALLE HASTA CONECTAR LOS MÓDULOS) -->
-    <script>
-        function abrirModulo(modulo) {
-            alert("Has tocado el módulo: " + modulo.toUpperCase());
+   <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL -->
+<script>
+    function abrirModulo(modulo) {
+        // 1. Mostrar/Ocultar pantallas
+        if (modulo === 'inicio') {
+            document.getElementById('vista-inicio').style.display = 'block';
+            document.getElementById('vista-modulos').style.display = 'none';
+        } else {
+            document.getElementById('vista-inicio').style.display = 'none';
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            
+            // Pantalla de construcción temporal
+            vistaModulos.innerHTML = 
+                '<div class="seccion-titulo" style="margin-top: 30px;">MÓDULO: ' + modulo.toUpperCase() + '</div>' +
+                '<div class="tarjeta-btn" style="margin: 20px;">' +
+                '  <span class="icono-grande">⚙️</span>' +
+                '  <span class="texto-btn">Conectando base de datos...<br>Pronto verá las funciones aquí.</span>' +
+                '</div>';
         }
-    </script>
+
+        // 2. Iluminar el botón correcto en la barra inferior
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => item.classList.remove('activo'));
+        
+        if (modulo === 'inicio') {
+            navItems[0].classList.add('activo');
+        } else if (modulo === 'pago') {
+            navItems[1].classList.add('activo');
+        } else if (modulo === 'cierre' || modulo === 'capital' || modulo === 'interes') {
+            navItems[2].classList.add('activo');
+        } else if (modulo === 'perfil' || modulo === 'supervisores') {
+            navItems[3].classList.add('activo');
+        }
+    }
+</script>
 
     <!-- 🚀 CONEXIÓN A LA BASE DE DATOS SUPABASE 🚀 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
