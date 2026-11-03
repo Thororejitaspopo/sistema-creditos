@@ -369,6 +369,7 @@
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO CON COBROS VIP) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO CON COBROS VIP Y SINCRONIZACIÓN) -->
     <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP) -->
+<!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 3) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -401,7 +402,6 @@
                 <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default;">
                     <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); margin-bottom: 8px; display: block;">1. Seleccionar Cliente</label>
                     
-                    <!-- 🔥 AHORA LLAMA AL MOTOR MÓVIL INDEPENDIENTE -->
                     <select id="filtro-sector-recaudacion" onchange="cargarListaClientesMovil()" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: #f8fafc; outline: none; font-size: 14px;">
                         <option value="">🌎 TODOS LOS SECTORES</option>
                         <option value="Sector 1">📍 Sector 1 (San Camilo)</option>
@@ -425,7 +425,8 @@
 
                 <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
                     <label style="font-size: 12px; font-weight: bold; color: #b91c1c; display: block; margin-bottom: 8px;">⚠️ Tiene múltiples créditos:</label>
-                    <select id="selector-multicredito" onchange="cargarEstadoCuentaCredito(this.value)" style="width: 100%; padding: 12px; border: 1px solid #f87171; border-radius: 8px; background: white; font-weight: bold; font-size: 13px;"></select>
+                    <!-- ATENCIÓN: Cambiamos a cargarEstadoCuentaCreditoMovil -->
+                    <select id="selector-multicredito" onchange="cargarEstadoCuentaCreditoMovil(this.value)" style="width: 100%; padding: 12px; border: 1px solid #f87171; border-radius: 8px; background: white; font-weight: bold; font-size: 13px;"></select>
                 </div>
 
                 <div id="recaudacion-espera-msg" style="text-align: center; padding: 20px; color: #94a3b8;">
@@ -507,7 +508,6 @@
                 </div>
             `; 
             
-            // 🔥 FORZAMOS LA CARGA SEGURA USANDO NUESTRO PROPIO MOTOR MÓVIL
             requestAnimationFrame(() => {
                 setTimeout(() => cargarListaClientesMovil(), 150); 
             });
@@ -533,7 +533,34 @@
     }
 
     // =========================================================
-    // 🚀 CEREBRO EXCLUSIVO PARA MÓVILES (Anti-Errores)
+    // 🚀 FUNCIONES AUXILIARES MÓVILES INTEGRADAS
+    // =========================================================
+    function cifrarNumeroCreditoMovil(numero) {
+        const num = parseInt(numero);
+        const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        if (num > 0 && num <= 26) return letras.charAt(num - 1);
+        if (num > 26) {
+            const cociente = Math.floor((num - 1) / 26);
+            const residuo = (num - 1) % 26;
+            return letras.charAt(cociente - 1) + letras.charAt(residuo);
+        }
+        return '?';
+    }
+
+    // Conector seguro para cargar el estado de cuenta
+    function cargarEstadoCuentaCreditoMovil(idCredito) {
+        if (typeof cargarEstadoCuentaCredito === 'function') {
+            cargarEstadoCuentaCredito(idCredito);
+        } else if (typeof window.seleccionarCreditoEspecifico === 'function') {
+            window.seleccionarCreditoEspecifico(idCredito);
+        } else {
+            alert("⚠️ Error: No se puede conectar con el generador de estados de cuenta (app.js no cargado completamente).");
+        }
+    }
+
+
+    // =========================================================
+    // 🚀 CEREBRO EXCLUSIVO PARA MÓVILES (Carga de Clientes)
     // =========================================================
     async function cargarListaClientesMovil() {
         const dropdown = document.getElementById('selector-cliente-recaudacion');
@@ -544,7 +571,6 @@
         dropdown.innerHTML = '<option value="">⏳ Conectando con servidor...</option>';
 
         try {
-            // 1. Verificamos que Supabase esté conectado
             const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
             if (!supa) {
                 alert("⚠️ ALERTA: La base de datos no está conectada. Revise su internet o refresque la página.");
@@ -552,7 +578,6 @@
                 return;
             }
 
-            // 2. Extraemos la data (Protegido con Try/Catch)
             const { data: creditos, error } = await supa
                 .from('creditos')
                 .select('clientes(nombres, apellidos, cedula, sector)')
@@ -560,7 +585,6 @@
 
             if (error) throw error;
 
-            // 3. Procesamos los clientes únicos
             let clientesUnicos = new Map();
             creditos.forEach(c => {
                 const cli = c.clientes || {};
@@ -582,12 +606,11 @@
                 return;
             }
 
-            // 4. Llenamos la lista alfabéticamente
             const clientesArray = Array.from(clientesUnicos.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
             clientesArray.forEach(cli => {
                 const option = document.createElement('option');
                 option.value = cli.cedula; 
-                option.text = cli.nombre; // Texto corto especial para el celular
+                option.text = cli.nombre; 
                 dropdown.appendChild(option);
             });
 
@@ -597,8 +620,8 @@
         }
     }
 
-        // =========================================================
-    // 🚀 CEREBRO DE BÚSQUEDA EXCLUSIVO PARA MÓVILES
+    // =========================================================
+    // 🚀 CEREBRO DE BÚSQUEDA EXCLUSIVO PARA MÓVILES (Buscador)
     // =========================================================
     async function buscarCreditoMovil() {
         const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
@@ -631,7 +654,6 @@
                 return;
             }
 
-            // Extraemos historial para calcular saldos y etiquetas VIP
             const idDelCliente = creditosDelCliente[0].cliente_id;
             const { data: todosCreditosCliente } = await supa.from('creditos').select('id').eq('cliente_id', idDelCliente).order('id', { ascending: true });
             
@@ -639,18 +661,13 @@
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total').in('id_credito', idsActivos);
             const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
 
-            // Conectar con la variable global de app.js para que el panel de cobros sí funcione
             window.listaCreditosActivosCliente = creditosDelCliente;
             if (typeof listaCreditosActivosCliente !== 'undefined') {
                 listaCreditosActivosCliente = creditosDelCliente;
             }
 
             if (creditosDelCliente.length === 1) {
-                if (typeof cargarEstadoCuentaCredito === 'function') {
-                    cargarEstadoCuentaCredito(creditosDelCliente[0].id);
-                } else {
-                    alert("⚠️ Error: El sistema no detecta la función de cargar estados de cuenta.");
-                }
+                cargarEstadoCuentaCreditoMovil(creditosDelCliente[0].id);
             } else {
                 const selectMulti = document.getElementById('selector-multicredito');
                 selectMulti.innerHTML = '<option value="">-- Seleccione el crédito --</option>';
@@ -666,7 +683,7 @@
                         const index = todosCreditosCliente.findIndex(tc => tc.id === c.id);
                         if (index !== -1) numeroCredito = index + 1;
                     }
-                    const codigoCifrado = typeof cifrarNumeroCredito === 'function' ? cifrarNumeroCredito(numeroCredito).toUpperCase() : '?';
+                    const codigoCifrado = cifrarNumeroCreditoMovil(numeroCredito);
 
                     const moraCredito = parseFloat(c.monto_mora) || 0;
                     let totalPagadoHastaHoy = 0;
