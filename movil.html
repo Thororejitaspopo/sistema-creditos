@@ -368,200 +368,243 @@
    <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO CON COBROS VIP) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO CON COBROS VIP Y SINCRONIZACIÓN) -->
-    <script>
-        function abrirModulo(modulo) {
-            // 1. Ocultar todas las vistas
-            document.getElementById('vista-inicio').style.display = 'none';
-            document.getElementById('vista-modulos').style.display = 'none';
+    <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP) -->
+<script>
+    function abrirModulo(modulo) {
+        document.getElementById('vista-inicio').style.display = 'none';
+        document.getElementById('vista-modulos').style.display = 'none';
+        
+        if (modulo === 'inicio') {
+            document.getElementById('vista-inicio').style.display = 'block';
+        } 
+        else if (modulo === 'perfil') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            vistaModulos.innerHTML = 
+                '<div class="seccion-titulo" style="margin-top: 30px;">Mi Perfil y Resumen</div>' +
+                '<div class="tarjeta-btn" style="margin: 20px; background: #e0f2fe; border-color: #7dd3fc; cursor: default;">' +
+                '  <span class="icono-grande" style="font-size: 40px;">💼</span>' +
+                '  <h3 style="color: #0369a1; margin: 10px 0;">Dashboard Gerencial</h3>' +
+                '  <span class="texto-btn" style="color: #0c4a6e;">Aquí cargaremos los valores de Caja Matriz y Capital en la Calle.</span>' +
+                '</div>' +
+                '<div style="margin: 30px 20px;">' +
+                '  <button onclick="cerrarSesion()" style="width: 100%; background: #ef4444; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3);">🚪 Cerrar Sesión</button>' +
+                '</div>';
+        }
+        else if (modulo === 'pago') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
             
-            // 2. Mostrar la vista seleccionada
-            if (modulo === 'inicio') {
-                document.getElementById('vista-inicio').style.display = 'block';
-            } 
-            else if (modulo === 'perfil') {
-                const vistaModulos = document.getElementById('vista-modulos');
-                vistaModulos.style.display = 'block';
-                vistaModulos.innerHTML = 
-                    '<div class="seccion-titulo" style="margin-top: 30px;">Mi Perfil y Resumen</div>' +
-                    '<div class="tarjeta-btn" style="margin: 20px; background: #e0f2fe; border-color: #7dd3fc; cursor: default;">' +
-                    '  <span class="icono-grande" style="font-size: 40px;">💼</span>' +
-                    '  <h3 style="color: #0369a1; margin: 10px 0;">Dashboard Gerencial</h3>' +
-                    '  <span class="texto-btn" style="color: #0c4a6e;">Aquí cargaremos los valores de Caja Matriz y Capital en la Calle.</span>' +
-                    '</div>' +
-                    '<div style="margin: 30px 20px;">' +
-                    '  <button onclick="cerrarSesion()" style="width: 100%; background: #ef4444; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3);">🚪 Cerrar Sesión</button>' +
-                    '</div>';
-            }
-            else if (modulo === 'pago') {
-                const vistaModulos = document.getElementById('vista-modulos');
-                vistaModulos.style.display = 'block';
-                
-                // 🔥 INYECCIÓN DEL MÓDULO DE COBROS VERSIÓN MÓVIL (FINTECH)
-                vistaModulos.innerHTML = `
-                    <div class="seccion-titulo" style="margin-top: 25px;">💵 Registrar Cobro</div>
+            vistaModulos.innerHTML = `
+                <div class="seccion-titulo" style="margin-top: 25px;">💵 Registrar Cobro</div>
 
-                    <!-- 1. BUSCADOR -->
+                <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default;">
+                    <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); margin-bottom: 8px; display: block;">1. Seleccionar Cliente</label>
+                    
+                    <!-- 🔥 AHORA LLAMA AL MOTOR MÓVIL INDEPENDIENTE -->
+                    <select id="filtro-sector-recaudacion" onchange="cargarListaClientesMovil()" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: #f8fafc; outline: none; font-size: 14px;">
+                        <option value="">🌎 TODOS LOS SECTORES</option>
+                        <option value="Sector 1">📍 Sector 1 (San Camilo)</option>
+                        <option value="Sector 2">📍 Sector 2 (San Cristóbal)</option>
+                        <option value="Sector 3">📍 Sector 3 (Venus del Río Quevedo)</option>
+                        <option value="Sector 4">📍 Sector 4 (Nicolás Infante Díaz)</option>
+                        <option value="Sector 5">📍 Sector 5 (Guayacán)</option>
+                        <option value="Sector 6">📍 Sector 6 (Siete de Octubre)</option>
+                        <option value="Sector 7">📍 Sector 7 (24 de Mayo)</option>
+                        <option value="Sector 8">📍 Sector 8 (Viva Alfaro)</option>
+                        <option value="Sector 9">📍 Sector 9 (Ruta del Río)</option>
+                        <option value="Sector 10">📍 Sector 10 (Zona Periférica)</option>
+                    </select>
+
+                    <select id="selector-cliente-recaudacion" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: white; outline: none; font-size: 14px; font-weight: bold;">
+                        <option value="">-- Cliente --</option>
+                    </select>
+                    
+                    <button onclick="buscarCreditoParaCobro()" style="width: 100%; padding: 14px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);">🔍 Buscar Cuenta</button>
+                </div>
+
+                <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #b91c1c; display: block; margin-bottom: 8px;">⚠️ Tiene múltiples créditos:</label>
+                    <select id="selector-multicredito" onchange="cargarEstadoCuentaCredito(this.value)" style="width: 100%; padding: 12px; border: 1px solid #f87171; border-radius: 8px; background: white; font-weight: bold; font-size: 13px;"></select>
+                </div>
+
+                <div id="recaudacion-espera-msg" style="text-align: center; padding: 20px; color: #94a3b8;">
+                    <span style="font-size: 40px; display: block; margin-bottom: 10px;">💳</span>
+                    <p style="font-size: 13px; margin:0;">Busque un cliente arriba.</p>
+                </div>
+
+                <div id="panel-recaudacion-activo" style="display: none;">
+                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <span id="lbl-recaudacion-ref" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">REF: ---</span>
+                            <span id="lbl-recaudacion-frecuencia" style="background: #f1f5f9; color: #475569; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">---</span>
+                        </div>
+                        <h3 id="lbl-recaudacion-cliente" style="margin: 0 0 5px 0; font-size: 17px; color: var(--texto-oscuro);">CLIENTE</h3>
+                        <p id="lbl-recaudacion-cedula" style="margin: 0 0 10px 0; font-size: 12px; color: var(--texto-claro);">Cédula: ---</p>
+                        <div id="contenedor-banderas-recaudacion"></div>
+                        
+                        <div style="border-top: 1px dashed #e2e8f0; padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                            <div><span style="color:var(--texto-claro)">Cuota:</span> <strong id="lbl-recaudacion-cuota">$0.00</strong></div>
+                            <div><span style="color:var(--texto-claro)">Total:</span> <strong id="lbl-recaudacion-total">$0.00</strong></div>
+                            <div style="grid-column: span 2;"><span style="color:var(--texto-claro)">Cuotas:</span> <strong id="lbl-recaudacion-num-cuotas">--</strong></div>
+                        </div>
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px; font-weight: bold; color: var(--texto-claro);">Saldo Neto:</span>
+                            <div id="lbl-recaudacion-saldo" style="text-align: right;">$0.00</div>
+                        </div>
+                    </div>
+
                     <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default;">
-                        <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); margin-bottom: 8px; display: block;">1. Seleccionar Cliente</label>
+                        <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); display: block; margin-bottom: 8px;">2. Monto a Cobrar ($)</label>
                         
-                        <select id="filtro-sector-recaudacion" onchange="cargarDropdownClientes()" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: #f8fafc; outline: none; font-size: 14px;">
-                            <option value="">🌎 TODOS LOS SECTORES</option>
-                            <option value="Sector 1">📍 Sector 1 (San Camilo)</option>
-                            <option value="Sector 2">📍 Sector 2 (San Cristóbal)</option>
-                            <option value="Sector 3">📍 Sector 3 (Venus del Río Quevedo)</option>
-                            <option value="Sector 4">📍 Sector 4 (Nicolás Infante Díaz)</option>
-                            <option value="Sector 5">📍 Sector 5 (Guayacán)</option>
-                            <option value="Sector 6">📍 Sector 6 (Siete de Octubre)</option>
-                            <option value="Sector 7">📍 Sector 7 (24 de Mayo)</option>
-                            <option value="Sector 8">📍 Sector 8 (Viva Alfaro)</option>
-                            <option value="Sector 9">📍 Sector 9 (Ruta del Río)</option>
-                            <option value="Sector 10">📍 Sector 10 (Zona Periférica)</option>
-                        </select>
-
-                        <select id="selector-cliente-recaudacion" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: white; outline: none; font-size: 14px; font-weight: bold;">
-                            <option value="">-- Cliente --</option>
-                        </select>
+                        <input type="number" id="monto-cobro-input" step="0.01" oninput="simularEnrutamientoFlujo(this.value)" style="width: 100%; padding: 15px; border: 2px solid var(--primario); border-radius: 8px; font-size: 26px; font-weight: 900; color: var(--texto-oscuro); text-align: center; box-sizing: border-box; margin-bottom: 15px; outline:none; background:#f8fafc;" placeholder="0.00">
                         
-                        <button onclick="buscarCreditoParaCobro()" style="width: 100%; padding: 14px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);">🔍 Buscar Cuenta</button>
-                    </div>
+                        <div style="display: flex; gap: 5px; margin-bottom: 15px; background: #f1f5f9; padding: 4px; border-radius: 8px;">
+                            <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 12px 5px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition:0.3s;">💵 EFECTIVO</button>
+                            <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 12px 5px; background: transparent; color: var(--texto-claro); border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition:0.3s;">🏦 TRANSF.</button>
+                        </div>
 
-                    <!-- MULTICREDITO -->
-                    <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
-                        <label style="font-size: 12px; font-weight: bold; color: #b91c1c; display: block; margin-bottom: 8px;">⚠️ Tiene múltiples créditos:</label>
-                        <select id="selector-multicredito" onchange="cargarEstadoCuentaCredito(this.value)" style="width: 100%; padding: 12px; border: 1px solid #f87171; border-radius: 8px; background: white; font-weight: bold; font-size: 13px;"></select>
-                    </div>
+                        <div id="caja-detalles-transferencia" style="display: none; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 15px;">
+                            <select id="select-banco" onchange="unirDetallesTransferencia()" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; outline: none; background:white;">
+                                <option value="">-- Seleccione Banco --</option>
+                                <option value="Pichincha">Pichincha</option>
+                                <option value="Guayaquil">Guayaquil</option>
+                                <option value="Produbanco">Produbanco</option>
+                                <option value="Pacifico">Pacífico</option>
+                                <option value="Otro">Otro Banco</option>
+                            </select>
+                            <input type="text" id="input-referencia" oninput="unirDetallesTransferencia()" placeholder="Ref: 123456" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; box-sizing: border-box; outline: none;">
+                            <input type="hidden" id="input-detalles-banco" value="">
+                        </div>
+                        <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
 
-                    <!-- ESPERA -->
-                    <div id="recaudacion-espera-msg" style="text-align: center; padding: 20px; color: #94a3b8;">
-                        <span style="font-size: 40px; display: block; margin-bottom: 10px;">💳</span>
-                        <p style="font-size: 13px; margin:0;">Busque un cliente arriba.</p>
-                    </div>
-
-                    <!-- PANEL ACTIVO (SE MUESTRA AL ENCONTRAR CLIENTE) -->
-                    <div id="panel-recaudacion-activo" style="display: none;">
-                        
-                        <!-- RESUMEN CLIENTE -->
-                        <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                                <span id="lbl-recaudacion-ref" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">REF: ---</span>
-                                <span id="lbl-recaudacion-frecuencia" style="background: #f1f5f9; color: #475569; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">---</span>
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <div style="flex: 1; background: #fffdf5; border: 1px solid #fef08a; padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 11px; color: #a16207; font-weight: bold; text-transform: uppercase;">Interés</div>
+                                <div id="sim-boveda-interes" style="font-size: 17px; font-weight: 900; color: #ca8a04; margin-top:2px;">$0.00</div>
                             </div>
-                            <h3 id="lbl-recaudacion-cliente" style="margin: 0 0 5px 0; font-size: 17px; color: var(--texto-oscuro);">CLIENTE</h3>
-                            <p id="lbl-recaudacion-cedula" style="margin: 0 0 10px 0; font-size: 12px; color: var(--texto-claro);">Cédula: ---</p>
-                            <div id="contenedor-banderas-recaudacion"></div>
-                            
-                            <div style="border-top: 1px dashed #e2e8f0; padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                                <div><span style="color:var(--texto-claro)">Cuota:</span> <strong id="lbl-recaudacion-cuota">$0.00</strong></div>
-                                <div><span style="color:var(--texto-claro)">Total:</span> <strong id="lbl-recaudacion-total">$0.00</strong></div>
-                                <div style="grid-column: span 2;"><span style="color:var(--texto-claro)">Cuotas:</span> <strong id="lbl-recaudacion-num-cuotas">--</strong></div>
-                            </div>
-                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 14px; font-weight: bold; color: var(--texto-claro);">Saldo Neto:</span>
-                                <div id="lbl-recaudacion-saldo" style="text-align: right;">$0.00</div>
+                            <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 11px; color: #0369a1; font-weight: bold; text-transform: uppercase;">Capital</div>
+                                <div id="sim-boveda-capital" style="font-size: 17px; font-weight: 900; color: #0284c7; margin-top:2px;">$0.00</div>
                             </div>
                         </div>
 
-                        <!-- INGRESO DE COBRO -->
-                        <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default;">
-                            <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); display: block; margin-bottom: 8px;">2. Monto a Cobrar ($)</label>
-                            
-                            <input type="number" id="monto-cobro-input" step="0.01" oninput="simularEnrutamientoFlujo(this.value)" style="width: 100%; padding: 15px; border: 2px solid var(--primario); border-radius: 8px; font-size: 26px; font-weight: 900; color: var(--texto-oscuro); text-align: center; box-sizing: border-box; margin-bottom: 15px; outline:none; background:#f8fafc;" placeholder="0.00">
-                            
-                            <div style="display: flex; gap: 5px; margin-bottom: 15px; background: #f1f5f9; padding: 4px; border-radius: 8px;">
-                                <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 12px 5px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition:0.3s;">💵 EFECTIVO</button>
-                                <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 12px 5px; background: transparent; color: var(--texto-claro); border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition:0.3s;">🏦 TRANSF.</button>
-                            </div>
+                        <button onclick="procesarCobroOficial()" style="width: 100%; padding: 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 15px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">✅ APLICAR ABONO</button>
+                    </div>
 
-                            <div id="caja-detalles-transferencia" style="display: none; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 15px;">
-                                <select id="select-banco" onchange="unirDetallesTransferencia()" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; outline: none; background:white;">
-                                    <option value="">-- Seleccione Banco --</option>
-                                    <option value="Pichincha">Pichincha</option>
-                                    <option value="Guayaquil">Guayaquil</option>
-                                    <option value="Produbanco">Produbanco</option>
-                                    <option value="Pacifico">Pacífico</option>
-                                    <option value="Otro">Otro Banco</option>
-                                </select>
-                                <input type="text" id="input-referencia" oninput="unirDetallesTransferencia()" placeholder="Ref: 123456" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; box-sizing: border-box; outline: none;">
-                                <input type="hidden" id="input-detalles-banco" value="">
+                    <div class="tarjeta-btn" style="margin: 0 20px 20px 20px; text-align: left; padding: 15px; cursor: default;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                            <h4 style="margin: 0; font-size: 15px; color: var(--texto-oscuro);">Historial</h4>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="generarEstadoCuentaPDF()" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">📄 PDF</button>
+                                <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">📲 SMS</button>
                             </div>
-                            <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
-
-                            <!-- SIMULADOR BÓVEDAS ALPHA -->
-                            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                                <div style="flex: 1; background: #fffdf5; border: 1px solid #fef08a; padding: 10px; border-radius: 8px; text-align: center;">
-                                    <div style="font-size: 11px; color: #a16207; font-weight: bold; text-transform: uppercase;">Interés</div>
-                                    <div id="sim-boveda-interes" style="font-size: 17px; font-weight: 900; color: #ca8a04; margin-top:2px;">$0.00</div>
-                                </div>
-                                <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px; border-radius: 8px; text-align: center;">
-                                    <div style="font-size: 11px; color: #0369a1; font-weight: bold; text-transform: uppercase;">Capital</div>
-                                    <div id="sim-boveda-capital" style="font-size: 17px; font-weight: 900; color: #0284c7; margin-top:2px;">$0.00</div>
-                                </div>
-                            </div>
-
-                            <button onclick="procesarCobroOficial()" style="width: 100%; padding: 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 15px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">✅ APLICAR ABONO</button>
                         </div>
-
-                        <!-- HISTORIAL COMPACTO MÓVIL -->
-                        <div class="tarjeta-btn" style="margin: 0 20px 20px 20px; text-align: left; padding: 15px; cursor: default;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
-                                <h4 style="margin: 0; font-size: 15px; color: var(--texto-oscuro);">Historial</h4>
-                                <div style="display: flex; gap: 5px;">
-                                    <button onclick="generarEstadoCuentaPDF()" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">📄 PDF</button>
-                                    <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">📲 SMS</button>
-                                </div>
-                            </div>
-                            <div id="lista-historial-abonos" style="max-height: 250px; overflow-y: auto; font-size: 12px; padding-right: 5px;">
-                                <div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando pagos...</div>
-                            </div>
+                        <div id="lista-historial-abonos" style="max-height: 250px; overflow-y: auto; font-size: 12px; padding-right: 5px;">
+                            <div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando pagos...</div>
                         </div>
                     </div>
-                `; 
-                /// FIN DE LA INYECCIÓN
-                
-                // 🔥 LA CURA DEFINITIVA: 
-                // 1. Aseguramos que el HTML se dibuje en el DOM (requestAnimationFrame)
-                // 2. Llamamos a la función de carga
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        if (typeof cargarDropdownClientes === 'function') {
-                            cargarDropdownClientes();
-                        }
-                    }, 100); // Una pausa muy breve es suficiente
-                });
-            }
-
-            else {
-                // Para el resto de módulos (Créditos, Clientes, etc.)
-                const vistaModulos = document.getElementById('vista-modulos');
-                vistaModulos.style.display = 'block';
-                vistaModulos.innerHTML = 
-                    '<div class="seccion-titulo" style="margin-top: 30px;">MÓDULO: ' + modulo.toUpperCase() + '</div>' +
-                    '<div class="tarjeta-btn" style="margin: 20px; cursor:default;">' +
-                    '  <span class="icono-grande">⚙️</span>' +
-                    '  <span class="texto-btn">Conectando base de datos...<br>Pronto verá las funciones aquí.</span>' +
-                    '</div>';
-            }
-
-            // 3. Iluminar el botón correcto en la barra inferior
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => item.classList.remove('activo'));
+                </div>
+            `; 
             
-            if (modulo === 'inicio') navItems[0].classList.add('activo');
-            else if (modulo === 'pago') navItems[1].classList.add('activo');
-            else if (modulo === 'cierre' || modulo === 'capital' || modulo === 'interes') navItems[2].classList.add('activo');
-            else if (modulo === 'perfil') navItems[3].classList.add('activo');
+            // 🔥 FORZAMOS LA CARGA SEGURA USANDO NUESTRO PROPIO MOTOR MÓVIL
+            requestAnimationFrame(() => {
+                setTimeout(() => cargarListaClientesMovil(), 150); 
+            });
+        }
+        else {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            vistaModulos.innerHTML = 
+                '<div class="seccion-titulo" style="margin-top: 30px;">MÓDULO: ' + modulo.toUpperCase() + '</div>' +
+                '<div class="tarjeta-btn" style="margin: 20px; cursor:default;">' +
+                '  <span class="icono-grande">⚙️</span>' +
+                '  <span class="texto-btn">Conectando base de datos...<br>Pronto verá las funciones aquí.</span>' +
+                '</div>';
         }
 
-        // Función para cerrar sesión
-        async function cerrarSesion() {
-            if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
-                if(window.supabaseClient) {
-                    await window.supabaseClient.auth.signOut();
-                }
-                window.location.href = 'index.html'; 
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => item.classList.remove('activo'));
+        
+        if (modulo === 'inicio') navItems[0].classList.add('activo');
+        else if (modulo === 'pago') navItems[1].classList.add('activo');
+        else if (modulo === 'cierre' || modulo === 'capital' || modulo === 'interes') navItems[2].classList.add('activo');
+        else if (modulo === 'perfil') navItems[3].classList.add('activo');
+    }
+
+    // =========================================================
+    // 🚀 CEREBRO EXCLUSIVO PARA MÓVILES (Anti-Errores)
+    // =========================================================
+    async function cargarListaClientesMovil() {
+        const dropdown = document.getElementById('selector-cliente-recaudacion');
+        const sectorSeleccionado = document.getElementById('filtro-sector-recaudacion').value;
+        
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '<option value="">⏳ Conectando con servidor...</option>';
+
+        try {
+            // 1. Verificamos que Supabase esté conectado
+            const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+            if (!supa) {
+                alert("⚠️ ALERTA: La base de datos no está conectada. Revise su internet o refresque la página.");
+                dropdown.innerHTML = '<option value="">-- Sin conexión --</option>';
+                return;
             }
+
+            // 2. Extraemos la data (Protegido con Try/Catch)
+            const { data: creditos, error } = await supa
+                .from('creditos')
+                .select('clientes(nombres, apellidos, cedula, sector)')
+                .eq('estado', 'activo');
+
+            if (error) throw error;
+
+            // 3. Procesamos los clientes únicos
+            let clientesUnicos = new Map();
+            creditos.forEach(c => {
+                const cli = c.clientes || {};
+                const sectorCliente = cli.sector || ''; 
+                
+                if (!sectorSeleccionado || sectorCliente.includes(sectorSeleccionado)) {
+                    const nombreCompleto = `${cli.nombres || ''} ${cli.apellidos || ''}`.trim().toUpperCase();
+                    const cedula = cli.cedula || 'S/N';
+                    if (!clientesUnicos.has(cedula)) {
+                        clientesUnicos.set(cedula, { nombre: nombreCompleto, cedula: cedula });
+                    }
+                }
+            });
+
+            dropdown.innerHTML = '<option value="">-- Seleccione Cliente --</option>';
+            
+            if (clientesUnicos.size === 0) {
+                dropdown.innerHTML = '<option value="">🚫 Sin clientes en este sector</option>';
+                return;
+            }
+
+            // 4. Llenamos la lista alfabéticamente
+            const clientesArray = Array.from(clientesUnicos.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+            clientesArray.forEach(cli => {
+                const option = document.createElement('option');
+                option.value = cli.cedula; 
+                option.text = cli.nombre; // Texto corto especial para el celular
+                dropdown.appendChild(option);
+            });
+
+        } catch (err) {
+            alert("❌ Error al traer los clientes: " + err.message);
+            dropdown.innerHTML = '<option value="">⚠️ Error de red</option>';
         }
-    </script>
+    }
+
+    async function cerrarSesion() {
+        if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
+            const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+            if(supa) await supa.auth.signOut();
+            window.location.href = 'index.html'; 
+        }
+    }
+</script>
 
     <!-- 🚀 CONEXIÓN A LA BASE DE DATOS SUPABASE 🚀 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
