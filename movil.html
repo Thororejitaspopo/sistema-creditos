@@ -371,6 +371,7 @@
     <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 3) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 4 - ESTADO DE CUENTA) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN DEFINITIVA Y BLINDADA) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -547,6 +548,16 @@
         return '?';
     }
 
+    // 🔥 EL GUARDIA DE CONEXIÓN (NUEVO) 🔥
+    // Obliga al celular a esperar hasta 3 segundos a que app.js encienda Supabase
+    async function esperarSupabase() {
+        let intentos = 0;
+        while (!window.supabaseClient && intentos < 30) {
+            await new Promise(r => setTimeout(r, 100)); // Espera 100ms
+            intentos++;
+        }
+        return window.supabaseClient;
+    }
 
     // =========================================================
     // 🚀 CEREBRO EXCLUSIVO PARA MÓVILES (Carga de Clientes)
@@ -560,9 +571,10 @@
         dropdown.innerHTML = '<option value="">⏳ Conectando...</option>';
 
         try {
-            const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+            // Usamos al guardia para asegurar la conexión
+            const supa = await esperarSupabase();
             if (!supa) {
-                alert("⚠️ La base de datos no está conectada.");
+                alert("⚠️ La base de datos no está conectada. Verifique su internet e intente de nuevo.");
                 dropdown.innerHTML = '<option value="">-- Sin conexión --</option>';
                 return;
             }
@@ -619,7 +631,7 @@
             return;
         }
 
-        const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+        const supa = await esperarSupabase();
         if (!supa) return;
 
         try {
@@ -646,7 +658,6 @@
             const idsActivos = creditosDelCliente.map(c => c.id);
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total').in('id_credito', idsActivos);
             
-            // 🔥 GLOBALIZAR DATOS PARA QUE app.js LOS RECONOZCA
             window.listaCreditosActivosCliente = creditosDelCliente;
             window.pagosClienteGlobal = pagosCliente || [];
 
@@ -690,7 +701,7 @@
     }
 
     // =========================================================
-    // 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL (Reemplaza a app.js)
+    // 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL INDEPENDIENTE
     // =========================================================
     async function cargarEstadoCuentaCreditoMovil(idCredito) {
         if (!idCredito) return;
@@ -699,10 +710,8 @@
         const encontrado = creditosCliente.find(c => c.id == idCredito);
         if (!encontrado) return;
 
-        // Globalizar para la inserción de pagos
         window.creditoSeleccionadoCobro = encontrado;
 
-        // 1. Calcular Saldo
         let totalPagadoHastaHoy = 0;
         const pagosGenerales = window.pagosClienteGlobal || [];
         pagosGenerales.forEach(p => {
@@ -712,7 +721,6 @@
         const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
         window.creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto > 0 ? saldoRestanteNeto : 0;
 
-        // 2. Llenar los datos visuales en el celular
         const cli = encontrado.clientes || {};
         const iN = (cli.nombres || '').trim().charAt(0);
         const iA = (cli.apellidos || '').trim().charAt(0);
@@ -731,25 +739,22 @@
         document.getElementById('lbl-recaudacion-num-cuotas').innerText = `${encontrado.num_cuotas} (${cuotasPendientes} pte)`;
         document.getElementById('lbl-recaudacion-saldo').innerHTML = `<span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${window.creditoSeleccionadoCobro.saldoNeto.toFixed(2)}</span>`;
 
-        // 3. Sugerir monto en el cajón de cobro
         document.getElementById('monto-cobro-input').value = valorDeCuota.toFixed(2);
         
-        // 4. Mostrar el panel principal
         document.getElementById('recaudacion-espera-msg').style.display = 'none';
         document.getElementById('panel-recaudacion-activo').style.display = 'block';
 
-        // 5. Cargar Historial
         cargarHistorialMovil(idCredito);
     }
 
     // =========================================================
-    // 🚀 CARGADOR DEL HISTORIAL MÓVIL (Últimos 5 pagos)
+    // 🚀 CARGADOR DEL HISTORIAL MÓVIL
     // =========================================================
     async function cargarHistorialMovil(idCredito) {
         const contenedor = document.getElementById('lista-historial-abonos');
         contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando historial...</div>';
 
-        const supa = window.supabaseClient;
+        const supa = await esperarSupabase();
         if (!supa) return;
 
         try {
@@ -792,7 +797,7 @@
 
     async function cerrarSesion() {
         if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
-            const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+            const supa = await esperarSupabase();
             if(supa) await supa.auth.signOut();
             window.location.href = 'index.html'; 
         }
