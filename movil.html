@@ -516,15 +516,20 @@
                         </div>
                     </div>
                 `; 
-                // FIN DE LA INYECCIÓN
+                /// FIN DE LA INYECCIÓN
                 
-                // 🔥 LA CURA: Micro-pausa de 0.5 segundos para que Supabase entregue los datos y el celular dibuje la pantalla
-                setTimeout(() => {
-                    if (typeof cargarDropdownClientes === 'function') {
-                        cargarDropdownClientes();
-                    }
-                }, 500);
+                // 🔥 LA CURA DEFINITIVA: 
+                // 1. Aseguramos que el HTML se dibuje en el DOM (requestAnimationFrame)
+                // 2. Llamamos a la función de carga
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        if (typeof cargarDropdownClientes === 'function') {
+                            cargarDropdownClientes();
+                        }
+                    }, 100); // Una pausa muy breve es suficiente
+                });
             }
+
             else {
                 // Para el resto de módulos (Créditos, Clientes, etc.)
                 const vistaModulos = document.getElementById('vista-modulos');
