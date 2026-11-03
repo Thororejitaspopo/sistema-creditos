@@ -370,6 +370,7 @@
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO CON COBROS VIP Y SINCRONIZACIÓN) -->
     <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 3) -->
+<!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 4 - ESTADO DE CUENTA) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -425,7 +426,6 @@
 
                 <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
                     <label style="font-size: 12px; font-weight: bold; color: #b91c1c; display: block; margin-bottom: 8px;">⚠️ Tiene múltiples créditos:</label>
-                    <!-- ATENCIÓN: Cambiamos a cargarEstadoCuentaCreditoMovil -->
                     <select id="selector-multicredito" onchange="cargarEstadoCuentaCreditoMovil(this.value)" style="width: 100%; padding: 12px; border: 1px solid #f87171; border-radius: 8px; background: white; font-weight: bold; font-size: 13px;"></select>
                 </div>
 
@@ -547,17 +547,6 @@
         return '?';
     }
 
-    // Conector seguro para cargar el estado de cuenta
-    function cargarEstadoCuentaCreditoMovil(idCredito) {
-        if (typeof cargarEstadoCuentaCredito === 'function') {
-            cargarEstadoCuentaCredito(idCredito);
-        } else if (typeof window.seleccionarCreditoEspecifico === 'function') {
-            window.seleccionarCreditoEspecifico(idCredito);
-        } else {
-            alert("⚠️ Error: No se puede conectar con el generador de estados de cuenta (app.js no cargado completamente).");
-        }
-    }
-
 
     // =========================================================
     // 🚀 CEREBRO EXCLUSIVO PARA MÓVILES (Carga de Clientes)
@@ -568,12 +557,12 @@
         
         if (!dropdown) return;
 
-        dropdown.innerHTML = '<option value="">⏳ Conectando con servidor...</option>';
+        dropdown.innerHTML = '<option value="">⏳ Conectando...</option>';
 
         try {
             const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
             if (!supa) {
-                alert("⚠️ ALERTA: La base de datos no está conectada. Revise su internet o refresque la página.");
+                alert("⚠️ La base de datos no está conectada.");
                 dropdown.innerHTML = '<option value="">-- Sin conexión --</option>';
                 return;
             }
@@ -615,7 +604,7 @@
             });
 
         } catch (err) {
-            alert("❌ Error al traer los clientes: " + err.message);
+            alert("❌ Error al traer clientes: " + err.message);
             dropdown.innerHTML = '<option value="">⚠️ Error de red</option>';
         }
     }
@@ -626,15 +615,12 @@
     async function buscarCreditoMovil() {
         const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
         if (!busqueda) {
-            alert("⚠️ Por favor, selecciona un cliente de la lista.");
+            alert("⚠️ Por favor, selecciona un cliente.");
             return;
         }
 
         const supa = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
-        if (!supa) {
-            alert("⚠️ La base de datos no está conectada.");
-            return;
-        }
+        if (!supa) return;
 
         try {
             const { data: creditos, error } = await supa
@@ -650,7 +636,7 @@
             });
 
             if (creditosDelCliente.length === 0) {
-                alert("🔍 No se encontró ningún crédito ACTIVO o CONGELADO para este cliente.");
+                alert("🔍 No hay crédito ACTIVO para este cliente.");
                 return;
             }
 
@@ -659,12 +645,10 @@
             
             const idsActivos = creditosDelCliente.map(c => c.id);
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total').in('id_credito', idsActivos);
-            const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
-
+            
+            // 🔥 GLOBALIZAR DATOS PARA QUE app.js LOS RECONOZCA
             window.listaCreditosActivosCliente = creditosDelCliente;
-            if (typeof listaCreditosActivosCliente !== 'undefined') {
-                listaCreditosActivosCliente = creditosDelCliente;
-            }
+            window.pagosClienteGlobal = pagosCliente || [];
 
             if (creditosDelCliente.length === 1) {
                 cargarEstadoCuentaCreditoMovil(creditosDelCliente[0].id);
@@ -673,57 +657,26 @@
                 selectMulti.innerHTML = '<option value="">-- Seleccione el crédito --</option>';
                 
                 creditosDelCliente.forEach(c => {
-                    const f = new Date(c.fecha_emision);
-                    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-                    const fMesCorto = meses[f.getMonth()];
-                    const fechaTxtCorta = `${f.getDate()}/${fMesCorto}/${f.getFullYear()}`;
-                    
                     let numeroCredito = 1;
                     if (todosCreditosCliente) {
                         const index = todosCreditosCliente.findIndex(tc => tc.id === c.id);
                         if (index !== -1) numeroCredito = index + 1;
                     }
                     const codigoCifrado = cifrarNumeroCreditoMovil(numeroCredito);
-
-                    const moraCredito = parseFloat(c.monto_mora) || 0;
+                    
                     let totalPagadoHastaHoy = 0;
                     if (pagosCliente) {
                         pagosCliente.forEach(p => {
                             if (p.id_credito === c.id) totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
                         });
                     }
-                    
                     let saldoNeto = (parseFloat(c.total_pagar) || 0) - totalPagadoHastaHoy;
                     if (saldoNeto < 0) saldoNeto = 0;
 
-                    const deudaTotalConMora = saldoNeto + moraCredito;
-                    let textoMoraExtra = moraCredito > 0 ? ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalConMora.toFixed(2)}` : '';
-                    
-                    let etiquetaAccion = "";
-                    if (morasCliente) {
-                        const morasEsteCredito = morasCliente.filter(m => m.credito_id === c.id);
-                        if (morasEsteCredito.length > 0) {
-                            const ultimaAccion = morasEsteCredito[morasEsteCredito.length - 1].tipo_accion || '';
-                            if (ultimaAccion.includes('Refinanciamiento') || ultimaAccion.includes('Renovación')) etiquetaAccion = " | 🔄 RENOVADO";
-                            else if (ultimaAccion.includes('Perdón')) etiquetaAccion = " | 🛡️ PERDONADO";
-                        }
-                    }
-                    
-                    const alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
-                    const totalOriginal = parseFloat(c.total_pagar || 0).toFixed(2);
-                    const infoDinero = `Total: $${totalOriginal} ➡️ Saldo: $${saldoNeto.toFixed(2)}`;
-                    
-                    let letraF = '-';
-                    let fP = (c.frecuencia_pago || '').toUpperCase();
-                    if (fP.includes('DIARIO')) letraF = 'D';
-                    else if (fP.includes('SEMANAL')) letraF = 'S';
-                    else if (fP.includes('QUINCENAL')) letraF = 'Q';
-                    else if (fP.includes('MENSUAL')) letraF = 'M';
+                    let letraF = c.frecuencia_pago.toUpperCase().includes('DIARIO') ? 'D' : c.frecuencia_pago.toUpperCase().includes('SEMANAL') ? 'S' : 'M';
+                    let valorC = parseFloat(c.valor_cuota || 0).toFixed(0);
 
-                    let valorC = c.valor_cuota ? parseFloat(c.valor_cuota).toFixed(2) : '0.00';
-                    if (valorC.endsWith('.00')) valorC = parseInt(valorC);
-
-                    const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | ${infoDinero}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
+                    const textoOpcion = `CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Saldo: $${saldoNeto.toFixed(2)}`;
                     selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
                 });
 
@@ -732,7 +685,108 @@
                 document.getElementById('contenedor-multicredito').style.display = 'block';
             }
         } catch (err) {
-            alert("❌ Error interno de búsqueda: " + err.message);
+            alert("❌ Error de búsqueda: " + err.message);
+        }
+    }
+
+    // =========================================================
+    // 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL (Reemplaza a app.js)
+    // =========================================================
+    async function cargarEstadoCuentaCreditoMovil(idCredito) {
+        if (!idCredito) return;
+        
+        const creditosCliente = window.listaCreditosActivosCliente || [];
+        const encontrado = creditosCliente.find(c => c.id == idCredito);
+        if (!encontrado) return;
+
+        // Globalizar para la inserción de pagos
+        window.creditoSeleccionadoCobro = encontrado;
+
+        // 1. Calcular Saldo
+        let totalPagadoHastaHoy = 0;
+        const pagosGenerales = window.pagosClienteGlobal || [];
+        pagosGenerales.forEach(p => {
+            if (p.id_credito == idCredito) totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
+        });
+
+        const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
+        window.creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto > 0 ? saldoRestanteNeto : 0;
+
+        // 2. Llenar los datos visuales en el celular
+        const cli = encontrado.clientes || {};
+        const iN = (cli.nombres || '').trim().charAt(0);
+        const iA = (cli.apellidos || '').trim().charAt(0);
+        const u4 = (cli.cedula || '').trim().slice(-4);
+        const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
+
+        document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRE #${encontrado.id}`;
+        document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+        document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
+        document.getElementById('lbl-recaudacion-cuota').innerText = `$${parseFloat(encontrado.valor_cuota).toFixed(2)}`;
+        document.getElementById('lbl-recaudacion-frecuencia').innerText = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase().replace('COBRO ', '');
+        document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+        
+        const valorDeCuota = parseFloat(encontrado.valor_cuota) || 1;
+        let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / valorDeCuota);
+        document.getElementById('lbl-recaudacion-num-cuotas').innerText = `${encontrado.num_cuotas} (${cuotasPendientes} pte)`;
+        document.getElementById('lbl-recaudacion-saldo').innerHTML = `<span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${window.creditoSeleccionadoCobro.saldoNeto.toFixed(2)}</span>`;
+
+        // 3. Sugerir monto en el cajón de cobro
+        document.getElementById('monto-cobro-input').value = valorDeCuota.toFixed(2);
+        
+        // 4. Mostrar el panel principal
+        document.getElementById('recaudacion-espera-msg').style.display = 'none';
+        document.getElementById('panel-recaudacion-activo').style.display = 'block';
+
+        // 5. Cargar Historial
+        cargarHistorialMovil(idCredito);
+    }
+
+    // =========================================================
+    // 🚀 CARGADOR DEL HISTORIAL MÓVIL (Últimos 5 pagos)
+    // =========================================================
+    async function cargarHistorialMovil(idCredito) {
+        const contenedor = document.getElementById('lista-historial-abonos');
+        contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando historial...</div>';
+
+        const supa = window.supabaseClient;
+        if (!supa) return;
+
+        try {
+            const { data: pagos, error } = await supa
+                .from('historial_pagos')
+                .select('*')
+                .eq('id_credito', idCredito)
+                .order('fecha_pago', { ascending: false })
+                .limit(5);
+
+            if (error) throw error;
+
+            if (!pagos || pagos.length === 0) {
+                contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Sin pagos registrados.</div>';
+                return;
+            }
+
+            let html = '';
+            pagos.forEach(p => {
+                const f = new Date(p.fecha_pago);
+                const fechaTxt = `${f.getDate()}/${f.getMonth()+1}/${f.getFullYear()} ${f.getHours()}:${String(f.getMinutes()).padStart(2,'0')}`;
+                
+                html += `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 8px; display:flex; justify-content: space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:10px; color:#64748b; font-weight:bold;">${fechaTxt}</div>
+                        <div style="font-size:14px; font-weight:900; color:#10b981;">+$${parseFloat(p.abono_total).toFixed(2)}</div>
+                    </div>
+                    <div style="font-size:10px; font-weight:bold; color:#0284c7; background:#e0f2fe; padding:3px 6px; border-radius:4px;">
+                        ${p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO'}
+                    </div>
+                </div>`;
+            });
+            
+            contenedor.innerHTML = html;
+        } catch(e) {
+            contenedor.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Error al cargar historial.</div>';
         }
     }
 
