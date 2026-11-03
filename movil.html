@@ -3,163 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA ALPHA V6 - Comando Móvil</title>
+    <meta name="theme-color" content="#0284c7"> <!-- Color de la barra del celular -->
+    <title>SISTEMA ALPHA V6 - App Móvil</title>
     
     <style>
-        /* 1. MAGIA DE CENTRADO ABSOLUTO */
+        /* 1. RESET Y VARIABLES CORPORATIVAS */
+        :root {
+            --primario: #0284c7; /* Azul Alpha */
+            --secundario: #0f172a;
+            --fondo: #f1f5f9; /* Gris claro tipo app bancaria */
+            --tarjeta: #ffffff;
+            --texto-oscuro: #1e293b;
+            --texto-claro: #64748b;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #0b1120; /* El fondo oscuro elegante */
-            font-family: Arial, sans-serif;
+            background-color: var(--fondo);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--texto-oscuro);
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px; /* Espacio para la barra inferior */
+        }
+
+        /* 2. CABECERA CORPORATIVA (HEADER) */
+        .app-header {
+            background: linear-gradient(135deg, var(--secundario) 0%, var(--primario) 100%);
+            padding: 25px 20px 40px 20px;
             color: white;
-            /* ESTO CENTRA TODO EL BLOQUE EN MEDIO DEL CELULAR */
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .header-top {
             display: flex;
-            justify-content: center;
-            align-items: flex-start; 
-            min-height: 100vh;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
-
-        /* 2. EL CONTENEDOR LIMITADO (Para que no se estire feo) */
-        .contenedor-menu-movil {
-            width: 100%;
-            max-width: 380px; /* Medida perfecta para pantallas de celular */
-            padding: 30px 20px 50px 20px; 
-            box-sizing: border-box;
-        }
-
-        .titulo-sistema {
-            text-align: center;
-            font-size: 20px;
-            font-weight: 900;
+        .brand {
+            font-size: 14px;
+            font-weight: 800;
             letter-spacing: 2px;
-            margin-bottom: 35px;
-            text-transform: uppercase;
-            color: #ffffff;
+            color: #bae6fd;
         }
 
-        /* 3. DISEÑO DE LOS BOTONES (IGUAL A SU IMAGEN) */
-        .item-menu {
+        .user-greeting {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .user-role {
+            font-size: 13px;
+            color: #e0f2fe;
+            margin-top: 2px;
+        }
+
+        /* 3. TARJETA RESUMEN (DASHBOARD) */
+        .dashboard-card {
+            background: var(--tarjeta);
+            margin: -25px 20px 20px 20px;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dash-info h3 {
+            margin: 0;
+            font-size: 13px;
+            color: var(--texto-claro);
+            text-transform: uppercase;
+        }
+
+        .dash-info .monto {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--texto-oscuro);
+            margin: 5px 0;
+        }
+
+        .btn-matriz {
+            background-color: var(--primario);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);
             display: flex;
             align-items: center;
-            padding: 15px 18px;
-            border-radius: 10px;
-            margin-bottom: 8px;
+            gap: 5px;
+        }
+
+        /* 4. CUADRÍCULA DE OPERACIONES (GRID) */
+        .seccion-titulo {
+            padding: 0 25px;
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--texto-oscuro);
+            margin-bottom: 15px;
+        }
+
+        .grid-operaciones {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .tarjeta-btn {
+            background: var(--tarjeta);
+            border-radius: 16px;
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
             cursor: pointer;
-            color: #cbd5e1;
-            font-size: 15px;
-            background-color: transparent;
-            transition: 0.3s;
+            transition: 0.2s;
+            border: 1px solid #e2e8f0;
         }
 
-        .item-menu:active {
-            background-color: #1e293b;
+        .tarjeta-btn:active {
+            transform: scale(0.96);
+            background: #f8fafc;
+            border-color: var(--primario);
         }
 
-        /* Botón Activo (Inicio) */
-        .item-menu.activo {
-            background-color: #1e293b;
-            color: #38bdf8;
-            border-left: 4px solid #38bdf8;
-            padding-left: 14px;
+        .tarjeta-btn .icono-grande {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
         }
 
-        /* Botón Consultar Matriz (Centrado por dentro también) */
-        .item-menu.btn-matriz {
-            border: 1px solid #0284c7;
-            color: white;
-            font-weight: bold;
-            margin-bottom: 25px;
-            justify-content: center; /* Centra el texto y el icono internamente */
-        }
-        .item-menu.btn-matriz .icono {
-            margin-right: 10px;
+        .tarjeta-btn .texto-btn {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--texto-oscuro);
         }
 
-        .icono {
+        /* 5. LISTA ESTILO MENÚ CONFIGURACIÓN */
+        .lista-modulos {
+            background: var(--tarjeta);
+            margin: 0 20px 20px 20px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+
+        .item-lista {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+        }
+
+        .item-lista:last-child {
+            border-bottom: none;
+        }
+
+        .item-lista:active {
+            background-color: #f8fafc;
+        }
+
+        .item-lista .icono {
+            font-size: 20px;
             margin-right: 15px;
-            font-size: 18px;
-            width: 24px;
+            width: 25px;
             text-align: center;
         }
 
-        /* 4. TÍTULOS DE CATEGORÍAS */
-        .titulo-categoria {
-            font-size: 12px;
+        .item-lista .nombre {
+            font-size: 15px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        .item-lista .flecha {
+            color: #cbd5e1;
             font-weight: bold;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 30px;
-            margin-bottom: 12px;
-            padding-left: 10px;
+        }
+
+        /* 6. BARRA DE NAVEGACIÓN INFERIOR (BOTTOM TAB BAR) */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            border-top: 1px solid #f1f5f9;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            text-align: center;
+            color: var(--texto-claro);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 25%;
+        }
+
+        .nav-item.activo {
+            color: var(--primario);
+        }
+
+        .nav-item .icono-nav {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 4px;
         }
     </style>
 </head>
 <body>
 
-    <div class="contenedor-menu-movil">
-        
-        <div class="titulo-sistema">SISTEMA ALPHA V6</div>
+    <!-- CABECERA PRINCIPAL -->
+    <header class="app-header">
+        <div class="header-top">
+            <span class="brand">ALPHA CORP</span>
+            <span style="font-size: 20px;">🔔</span>
+        </div>
+        <h1 class="user-greeting">Hola, Antonio</h1>
+        <div class="user-role">Director de Operaciones</div>
+    </header>
 
-        <!-- INICIO -->
-        <div class="item-menu activo" onclick="abrirModulo('inicio')">
-            <span class="icono">🏠</span> Inicio
+    <!-- TARJETA DASHBOARD SUPERIOR -->
+    <div class="dashboard-card">
+        <div class="dash-info">
+            <h3>Ruta Activa</h3>
+            <div class="monto">Operaciones</div>
         </div>
-
-        <!-- CONSULTAR MATRIZ -->
-        <div class="item-menu btn-matriz" onclick="abrirModulo('matriz')">
-            <span class="icono">🔍⚡</span> CONSULTAR MATRIZ
-        </div>
-
-        <!-- OPERACIONES -->
-        <div class="titulo-categoria">📊 OPERACIONES</div>
-        <div class="item-menu" onclick="abrirModulo('clientes')">
-            <span class="icono">👥</span> Registrar Clientes
-        </div>
-        <div class="item-menu" onclick="abrirModulo('credito')">
-            <span class="icono">💳</span> Crear Crédito
-        </div>
-        <div class="item-menu" onclick="abrirModulo('pago')">
-            <span class="icono">📄</span> Registrar Pago
-        </div>
-        <div class="item-menu" onclick="abrirModulo('gastos')">
-            <span class="icono">💸</span> Gastos Varios
-        </div>
-
-        <!-- CAJA Y CONTABILIDAD -->
-        <div class="titulo-categoria">💰 CAJA Y CONTABILIDAD</div>
-        <div class="item-menu" onclick="abrirModulo('capital')">
-            <span class="icono">🏛️</span> Módulo Capital
-        </div>
-        <div class="item-menu" onclick="abrirModulo('interes')">
-            <span class="icono">📈</span> Módulo Interés
-        </div>
-        <div class="item-menu" onclick="abrirModulo('cierre')">
-            <span class="icono">🔒</span> Cierre de Caja
-        </div>
-
-        <!-- PERSONAL Y AUDITORÍA -->
-        <div class="titulo-categoria">👔 PERSONAL Y AUDITORÍA</div>
-        <div class="item-menu" onclick="abrirModulo('supervisores')">
-            <span class="icono">👔</span> Supervisores
-        </div>
-        <div class="item-menu" onclick="abrirModulo('cobradores')">
-            <span class="icono">🏍️</span> Cobradores
-        </div>
-        <div class="item-menu" onclick="abrirModulo('reportes')">
-            <span class="icono">📋</span> Reportes Generales
-        </div>
-        <div class="item-menu" onclick="abrirModulo('mora')">
-            <span class="icono">⚖️</span> Gestión y Mora
-        </div>
-
+        <button class="btn-matriz" onclick="abrirModulo('matriz')">
+            ⚡ Matriz
+        </button>
     </div>
-<!-- 🚀 CONEXIÓN A LA BASE DE DATOS SUPABASE 🚀 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- 🔒 MOTOR PRINCIPAL Y GUARDIA DE SEGURIDAD -->
-<script src="app.js"></script>
+    <!-- CUADRÍCULA DE ACCIÓN RÁPIDA -->
+    <div class="seccion-titulo">Accesos Rápidos</div>
+    <div class="grid-operaciones">
+        <div class="tarjeta-btn" onclick="abrirModulo('pago')">
+            <span class="icono-grande">📄</span>
+            <span class="texto-btn">Registrar Pago</span>
+        </div>
+        <div class="tarjeta-btn" onclick="abrirModulo('credito')">
+            <span class="icono-grande">💳</span>
+            <span class="texto-btn">Crear Crédito</span>
+        </div>
+        <div class="tarjeta-btn" onclick="abrirModulo('clientes')">
+            <span class="icono-grande">👥</span>
+            <span class="texto-btn">Clientes</span>
+        </div>
+        <div class="tarjeta-btn" onclick="abrirModulo('gastos')">
+            <span class="icono-grande">💸</span>
+            <span class="texto-btn">Gastos</span>
+        </div>
+    </div>
+
+    <!-- LISTA DE CAJA Y AUDITORÍA -->
+    <div class="seccion-titulo">Caja y Contabilidad</div>
+    <div class="lista-modulos">
+        <div class="item-lista" onclick="abrirModulo('capital')">
+            <span class="icono">🏛️</span>
+            <span class="nombre">Módulo Capital</span>
+            <span class="flecha">→</span>
+        </div>
+        <div class="item-lista" onclick="abrirModulo('interes')">
+            <span class="icono">📈</span>
+            <span class="nombre">Módulo Interés</span>
+            <span class="flecha">→</span>
+        </div>
+        <div class="item-lista" onclick="abrirModulo('cierre')">
+            <span class="icono">🔒</span>
+            <span class="nombre">Cierre de Caja</span>
+            <span class="flecha">→</span>
+        </div>
+    </div>
+
+    <div class="seccion-titulo">Personal y Auditoría</div>
+    <div class="lista-modulos" style="margin-bottom: 100px;">
+        <div class="item-lista" onclick="abrirModulo('supervisores')">
+            <span class="icono">👔</span>
+            <span class="nombre">Supervisores</span>
+            <span class="flecha">→</span>
+        </div>
+        <div class="item-lista" onclick="abrirModulo('cobradores')">
+            <span class="icono">🏍️</span>
+            <span class="nombre">Cobradores</span>
+            <span class="flecha">→</span>
+        </div>
+        <div class="item-lista" onclick="abrirModulo('reportes')">
+            <span class="icono">📋</span>
+            <span class="nombre">Reportes</span>
+            <span class="flecha">→</span>
+        </div>
+        <div class="item-lista" onclick="abrirModulo('mora')">
+            <span class="icono">⚖️</span>
+            <span class="nombre">Gestión y Mora</span>
+            <span class="flecha">→</span>
+        </div>
+    </div>
+
+    <!-- BARRA DE NAVEGACIÓN INFERIOR ESTILO APP -->
+    <nav class="bottom-nav">
+        <div class="nav-item activo" onclick="abrirModulo('inicio')">
+            <span class="icono-nav">🏠</span>
+            Inicio
+        </div>
+        <div class="nav-item" onclick="abrirModulo('pago')">
+            <span class="icono-nav">💵</span>
+            Cobros
+        </div>
+        <div class="nav-item" onclick="abrirModulo('cierre')">
+            <span class="icono-nav">📊</span>
+            Caja
+        </div>
+        <div class="nav-item" onclick="abrirModulo('perfil')">
+            <span class="icono-nav">👤</span>
+            Perfil
+        </div>
+    </nav>
+
+    <!-- SCRIPT DE PRUEBA (MANTENIDO PARA QUE NO FALLE HASTA CONECTAR LOS MÓDULOS) -->
+    <script>
+        function abrirModulo(modulo) {
+            alert("Has tocado el módulo: " + modulo.toUpperCase());
+        }
+    </script>
+
+    <!-- 🚀 CONEXIÓN A LA BASE DE DATOS SUPABASE 🚀 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 🔒 MOTOR PRINCIPAL Y GUARDIA DE SEGURIDAD -->
+    <script src="app.js"></script>
 </body>
 </html>
