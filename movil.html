@@ -365,19 +365,36 @@
         </div>
     </nav>
 
-   <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL -->
+   <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (ACTUALIZADO) -->
 <script>
     function abrirModulo(modulo) {
-        // 1. Mostrar/Ocultar pantallas
+        // 1. Ocultar todas las vistas
+        document.getElementById('vista-inicio').style.display = 'none';
+        document.getElementById('vista-modulos').style.display = 'none';
+        
+        // 2. Mostrar la vista seleccionada
         if (modulo === 'inicio') {
             document.getElementById('vista-inicio').style.display = 'block';
-            document.getElementById('vista-modulos').style.display = 'none';
-        } else {
-            document.getElementById('vista-inicio').style.display = 'none';
+        } 
+        else if (modulo === 'perfil') {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
-            
-            // Pantalla de construcción temporal
+            // Aquí armaremos el Dashboard Financiero y el botón de Cerrar Sesión
+            vistaModulos.innerHTML = 
+                '<div class="seccion-titulo" style="margin-top: 30px;">Mi Perfil y Resumen</div>' +
+                '<div class="tarjeta-btn" style="margin: 20px; background: #e0f2fe; border-color: #7dd3fc;">' +
+                '  <span class="icono-grande" style="font-size: 40px;">💼</span>' +
+                '  <h3 style="color: #0369a1; margin: 10px 0;">Dashboard Gerencial</h3>' +
+                '  <span class="texto-btn" style="color: #0c4a6e;">Aquí cargaremos los valores de Caja Matriz y Capital en la Calle.</span>' +
+                '</div>' +
+                '<div style="margin: 30px 20px;">' +
+                '  <button onclick="cerrarSesion()" style="width: 100%; background: #ef4444; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3);">🚪 Cerrar Sesión</button>' +
+                '</div>';
+        }
+        else {
+            // Para el resto de módulos operativos (Pagos, Créditos, etc.)
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
             vistaModulos.innerHTML = 
                 '<div class="seccion-titulo" style="margin-top: 30px;">MÓDULO: ' + modulo.toUpperCase() + '</div>' +
                 '<div class="tarjeta-btn" style="margin: 20px;">' +
@@ -386,18 +403,23 @@
                 '</div>';
         }
 
-        // 2. Iluminar el botón correcto en la barra inferior
+        // 3. Iluminar el botón correcto en la barra inferior
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => item.classList.remove('activo'));
         
-        if (modulo === 'inicio') {
-            navItems[0].classList.add('activo');
-        } else if (modulo === 'pago') {
-            navItems[1].classList.add('activo');
-        } else if (modulo === 'cierre' || modulo === 'capital' || modulo === 'interes') {
-            navItems[2].classList.add('activo');
-        } else if (modulo === 'perfil' || modulo === 'supervisores') {
-            navItems[3].classList.add('activo');
+        if (modulo === 'inicio') navItems[0].classList.add('activo');
+        else if (modulo === 'pago') navItems[1].classList.add('activo');
+        else if (modulo === 'cierre' || modulo === 'capital' || modulo === 'interes') navItems[2].classList.add('activo');
+        else if (modulo === 'perfil') navItems[3].classList.add('activo');
+    }
+
+    // Función para cerrar sesión usando Supabase
+    async function cerrarSesion() {
+        if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
+            if(window.supabaseClient) {
+                await window.supabaseClient.auth.signOut();
+            }
+            window.location.href = 'index.html'; // Lo regresa al login
         }
     }
 </script>
