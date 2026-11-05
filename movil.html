@@ -401,7 +401,7 @@
             vistaModulos.innerHTML = `
                 <div class="seccion-titulo" style="margin-top: 25px;">💵 Registrar Cobro</div>
 
-                <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default;">
+              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                     <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); margin-bottom: 8px; display: block;">1. Seleccionar Cliente</label>
                     
                     <select id="filtro-sector-recaudacion" onchange="cargarListaClientesMovil()" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: #f8fafc; outline: none; font-size: 14px;">
@@ -422,7 +422,7 @@
                         <option value="">-- Cliente --</option>
                     </select>
                     
-                    <button onclick="buscarCreditoMovil()" style="width: 100%; padding: 14px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2);">🔍 Buscar Cuenta</button>
+                    <button onclick="buscarCreditoMovil()" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'" style="width: 100%; padding: 14px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2); transition: transform 0.1s;">🔍 Buscar Cuenta</button>
                 </div>
 
                 <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
