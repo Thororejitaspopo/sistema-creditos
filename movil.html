@@ -373,7 +373,7 @@
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 4 - ESTADO DE CUENTA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN DEFINITIVA Y BLINDADA) -->
 <script>
-    function abrirModulo(modulo) {
+   function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
         document.getElementById('vista-modulos').style.display = 'none';
         
@@ -401,7 +401,7 @@
             vistaModulos.innerHTML = `
                 <div class="seccion-titulo" style="margin-top: 25px;">💵 Registrar Cobro</div>
 
-              <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                     <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); margin-bottom: 8px; display: block;">1. Seleccionar Cliente</label>
                     
                     <select id="filtro-sector-recaudacion" onchange="cargarListaClientesMovil()" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: #f8fafc; outline: none; font-size: 14px;">
@@ -436,7 +436,7 @@
                 </div>
 
                 <div id="panel-recaudacion-activo" style="display: none;">
-                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default;">
+                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default; border: 2px solid #fef08a;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                             <span id="lbl-recaudacion-ref" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">REF: ---</span>
                             <span id="lbl-recaudacion-frecuencia" style="background: #f1f5f9; color: #475569; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">---</span>
@@ -549,11 +549,10 @@
     }
 
     // 🔥 EL GUARDIA DE CONEXIÓN (NUEVO) 🔥
-    // Obliga al celular a esperar hasta 3 segundos a que app.js encienda Supabase
     async function esperarSupabase() {
         let intentos = 0;
         while (!window.supabaseClient && intentos < 30) {
-            await new Promise(r => setTimeout(r, 100)); // Espera 100ms
+            await new Promise(r => setTimeout(r, 100)); 
             intentos++;
         }
         return window.supabaseClient;
@@ -571,7 +570,6 @@
         dropdown.innerHTML = '<option value="">⏳ Conectando...</option>';
 
         try {
-            // Usamos al guardia para asegurar la conexión
             const supa = await esperarSupabase();
             if (!supa) {
                 alert("⚠️ La base de datos no está conectada. Verifique su internet e intente de nuevo.");
@@ -621,7 +619,7 @@
         }
     }
 
-   // =========================================================
+    // =========================================================
     // 🚀 CEREBRO DE BÚSQUEDA EXCLUSIVO PARA MÓVILES (Buscador)
     // =========================================================
     async function buscarCreditoMovil() {
@@ -658,7 +656,7 @@
             const idsActivos = creditosDelCliente.map(c => c.id);
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total').in('id_credito', idsActivos);
             
-            // 🔥 NUEVO: Traemos la memoria de moras para poner las etiquetas VIP 🔥
+            // 🔥 Traemos la memoria de moras para poner las etiquetas VIP
             const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
             
             window.listaCreditosActivosCliente = creditosDelCliente;
@@ -670,7 +668,6 @@
                 const selectMulti = document.getElementById('selector-multicredito');
                 selectMulti.innerHTML = '<option value="">-- Seleccione el crédito --</option>';
                 
-                // 🔥 AQUÍ EMPIEZA LA PIEZA NUEVA QUE DIBUJA LAS OPCIONES VIP 🔥
                 creditosDelCliente.forEach(c => {
                     let numeroCredito = 1;
                     if (todosCreditosCliente) {
@@ -717,7 +714,6 @@
                     const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | Total: $${parseFloat(c.total_pagar).toFixed(2)} ➡️ Saldo: $${saldoNeto.toFixed(2)}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
                     selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
                 });
-                // 🔥 AQUÍ TERMINA LA PIEZA NUEVA 🔥
 
                 document.getElementById('recaudacion-espera-msg').style.display = 'none';
                 document.getElementById('panel-recaudacion-activo').style.display = 'none';
@@ -727,157 +723,102 @@
             alert("❌ Error de búsqueda: " + err.message);
         }
     }
-   // =========================================================
-// 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL INDEPENDIENTE (CON MORA)
-// =========================================================
-async function cargarEstadoCuentaCreditoMovil(idCredito) {
-    if (!idCredito) return;
-    
-    const creditosCliente = window.listaCreditosActivosCliente || [];
-    const encontrado = creditosCliente.find(c => c.id == idCredito);
-    if (!encontrado) return;
-
-    window.creditoSeleccionadoCobro = encontrado;
-
-    let totalPagadoHastaHoy = 0;
-    const pagosGenerales = window.pagosClienteGlobal || [];
-    pagosGenerales.forEach(p => {
-        if (p.id_credito == idCredito) totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
-    });
-
-    const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
-    window.creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto > 0 ? saldoRestanteNeto : 0;
-
-    const cli = encontrado.clientes || {};
-    const iN = (cli.nombres || '').trim().charAt(0);
-    const iA = (cli.apellidos || '').trim().charAt(0);
-    const u4 = (cli.cedula || '').trim().slice(-4);
-    const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
-
-    document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id}`;
-    document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
-    document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
-    
-    // Manejo de cuota, incluyendo acuerdos
-    let cuotaFinal = parseFloat(encontrado.valor_cuota) || 1;
-    let frecuenciaFinal = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase().replace('COBRO ', '');
-    let textoAcuerdo = '';
-
-    if (encontrado.estado === 'congelado' && encontrado.acuerdo_pago) {
-        textoAcuerdo = encontrado.acuerdo_pago;
-        const acuerdoLower = textoAcuerdo.toLowerCase();
-        const matchMonto = textoAcuerdo.match(/\$?\s*(\d+(\.\d{1,2})?)/);
-        if (matchMonto) cuotaFinal = parseFloat(matchMonto[1]);
-        
-        if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) frecuenciaFinal = 'DIARIO';
-        else if (acuerdoLower.includes('semanal') || acuerdoLower.includes('por semana')) frecuenciaFinal = 'SEMANAL';
-        else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) frecuenciaFinal = 'QUINCENAL';
-        else if (acuerdoLower.includes('mensual') || acuerdoLower.includes('al mes')) frecuenciaFinal = 'MENSUAL';
-        
-        document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px;">$${cuotaFinal.toFixed(2)}</span>`;
-        document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal}</span>`;
-    } else {
-        document.getElementById('lbl-recaudacion-cuota').innerText = `$${cuotaFinal.toFixed(2)}`;
-        document.getElementById('lbl-recaudacion-frecuencia').innerText = frecuenciaFinal;
-    }
-
-    document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
-    
-    let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / cuotaFinal);
-    const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
-    let cuotasPagadas = numeroCuotasOriginales - cuotasPendientes;
-    if (cuotasPagadas < 0) cuotasPagadas = 0;
-
-    const textoCuotasTotales = textoAcuerdo !== '' ? '<span title="Modificado por convenio">N/A</span>' : numeroCuotasOriginales;
-    
-    document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span>`;
-    
-    // Manejo de la mora y saldo final
-    const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
-    const saldoFinalMora = window.creditoSeleccionadoCobro.saldoNeto + moraGuardada;
-
-    let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
-        <span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
-    
-    if (moraGuardada > 0) {
-        htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #64748b;">(Incluye $${moraGuardada.toFixed(2)} de mora)</span>`;
-    }
-    htmlSaldoNeto += `</div>`;
-
-    document.getElementById('lbl-recaudacion-saldo').innerHTML = htmlSaldoNeto;
-
-    // Banderas (Congelado/Acuerdo)
-    const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
-    if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
-        cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 14px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 11px; text-transform: uppercase;">Acuerdo Activo</span></div><div style="color: #422006; font-size: 12px; font-weight: bold; padding-left: 22px;">"${textoAcuerdo}"</div></div>`;
-    } else if (encontrado.estado === 'congelado' && textoAcuerdo.trim() === '') {
-         cajaBanderas.innerHTML = `<div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px;">🧊</span><span style="color: #0369a1; font-weight: 800; font-size: 11px;">Cuenta Protegida</span></div></div>`;
-    } else {
-        cajaBanderas.innerHTML = ''; 
-    }
-
-    document.getElementById('monto-cobro-input').value = cuotaFinal.toFixed(2);
-    
-    document.getElementById('recaudacion-espera-msg').style.display = 'none';
-    document.getElementById('panel-recaudacion-activo').style.display = 'block';
-
-    cargarHistorialMovil(idCredito);
-}
 
     // =========================================================
-    // 🚀 CARGADOR DEL HISTORIAL MÓVIL
+    // 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL INDEPENDIENTE (CON MORA)
     // =========================================================
-    async function cargarHistorialMovil(idCredito) {
-        const contenedor = document.getElementById('lista-historial-abonos');
-        contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando historial...</div>';
+    async function cargarEstadoCuentaCreditoMovil(idCredito) {
+        if (!idCredito) return;
+        
+        const creditosCliente = window.listaCreditosActivosCliente || [];
+        const encontrado = creditosCliente.find(c => c.id == idCredito);
+        if (!encontrado) return;
 
-        const supa = await esperarSupabase();
-        if (!supa) return;
+        window.creditoSeleccionadoCobro = encontrado;
 
-        try {
-            const { data: pagos, error } = await supa
-                .from('historial_pagos')
-                .select('*')
-                .eq('id_credito', idCredito)
-                .order('fecha_pago', { ascending: false })
-                .limit(5);
+        let totalPagadoHastaHoy = 0;
+        const pagosGenerales = window.pagosClienteGlobal || [];
+        pagosGenerales.forEach(p => {
+            if (p.id_credito == idCredito) totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
+        });
 
-            if (error) throw error;
+        const saldoRestanteNeto = parseFloat(encontrado.total_pagar) - totalPagadoHastaHoy;
+        window.creditoSeleccionadoCobro.saldoNeto = saldoRestanteNeto > 0 ? saldoRestanteNeto : 0;
 
-            if (!pagos || pagos.length === 0) {
-                contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Sin pagos registrados.</div>';
-                return;
-            }
+        const cli = encontrado.clientes || {};
+        const iN = (cli.nombres || '').trim().charAt(0);
+        const iA = (cli.apellidos || '').trim().charAt(0);
+        const u4 = (cli.cedula || '').trim().slice(-4);
+        const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
 
-            let html = '';
-            pagos.forEach(p => {
-                const f = new Date(p.fecha_pago);
-                const fechaTxt = `${f.getDate()}/${f.getMonth()+1}/${f.getFullYear()} ${f.getHours()}:${String(f.getMinutes()).padStart(2,'0')}`;
-                
-                html += `
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 8px; display:flex; justify-content: space-between; align-items:center;">
-                    <div>
-                        <div style="font-size:10px; color:#64748b; font-weight:bold;">${fechaTxt}</div>
-                        <div style="font-size:14px; font-weight:900; color:#10b981;">+$${parseFloat(p.abono_total).toFixed(2)}</div>
-                    </div>
-                    <div style="font-size:10px; font-weight:bold; color:#0284c7; background:#e0f2fe; padding:3px 6px; border-radius:4px;">
-                        ${p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO'}
-                    </div>
-                </div>`;
-            });
+        document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id}`;
+        document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+        document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
+        
+        // Manejo de cuota, incluyendo acuerdos
+        let cuotaFinal = parseFloat(encontrado.valor_cuota) || 1;
+        let frecuenciaFinal = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase().replace('COBRO ', '');
+        let textoAcuerdo = '';
+
+        if (encontrado.estado === 'congelado' && encontrado.acuerdo_pago) {
+            textoAcuerdo = encontrado.acuerdo_pago;
+            const acuerdoLower = textoAcuerdo.toLowerCase();
+            const matchMonto = textoAcuerdo.match(/\$?\s*(\d+(\.\d{1,2})?)/);
+            if (matchMonto) cuotaFinal = parseFloat(matchMonto[1]);
             
-            contenedor.innerHTML = html;
-        } catch(e) {
-            contenedor.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Error al cargar historial.</div>';
+            if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) frecuenciaFinal = 'DIARIO';
+            else if (acuerdoLower.includes('semanal') || acuerdoLower.includes('por semana')) frecuenciaFinal = 'SEMANAL';
+            else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) frecuenciaFinal = 'QUINCENAL';
+            else if (acuerdoLower.includes('mensual') || acuerdoLower.includes('al mes')) frecuenciaFinal = 'MENSUAL';
+            
+            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px;">$${cuotaFinal.toFixed(2)}</span>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal}</span>`;
+        } else {
+            document.getElementById('lbl-recaudacion-cuota').innerText = `$${cuotaFinal.toFixed(2)}`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerText = frecuenciaFinal;
         }
-    }
 
-    async function cerrarSesion() {
-        if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
-            const supa = await esperarSupabase();
-            if(supa) await supa.auth.signOut();
-            window.location.href = 'index.html'; 
+        document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+        
+        let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / cuotaFinal);
+        const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
+        let cuotasPagadas = numeroCuotasOriginales - cuotasPendientes;
+        if (cuotasPagadas < 0) cuotasPagadas = 0;
+
+        const textoCuotasTotales = textoAcuerdo !== '' ? '<span title="Modificado por convenio">N/A</span>' : numeroCuotasOriginales;
+        
+        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span>`;
+        
+        // Manejo de la mora y saldo final
+        const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
+        const saldoFinalMora = window.creditoSeleccionadoCobro.saldoNeto + moraGuardada;
+
+        let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
+            <span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
+        
+        if (moraGuardada > 0) {
+            htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #64748b;">(Incluye $${moraGuardada.toFixed(2)} de mora)</span>`;
         }
+        htmlSaldoNeto += `</div>`;
+
+        document.getElementById('lbl-recaudacion-saldo').innerHTML = htmlSaldoNeto;
+
+        // Banderas (Congelado/Acuerdo)
+        const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
+        if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
+            cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 14px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 11px; text-transform: uppercase;">Acuerdo Activo</span></div><div style="color: #422006; font-size: 12px; font-weight: bold; padding-left: 22px;">"${textoAcuerdo}"</div></div>`;
+        } else if (encontrado.estado === 'congelado' && textoAcuerdo.trim() === '') {
+             cajaBanderas.innerHTML = `<div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px;">🧊</span><span style="color: #0369a1; font-weight: 800; font-size: 11px;">Cuenta Protegida</span></div></div>`;
+        } else {
+            cajaBanderas.innerHTML = ''; 
+        }
+
+        document.getElementById('monto-cobro-input').value = cuotaFinal.toFixed(2);
+        
+        document.getElementById('recaudacion-espera-msg').style.display = 'none';
+        document.getElementById('panel-recaudacion-activo').style.display = 'block';
+
+        cargarHistorialMovil(idCredito);
     }
 </script>
 
