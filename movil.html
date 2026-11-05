@@ -372,8 +372,9 @@
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 3) -->
 <!-- 🧠 MOTOR DE NAVEGACIÓN MÓVIL (BLINDADO VIP - VERSIÓN 4 - ESTADO DE CUENTA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN DEFINITIVA Y BLINDADA) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA) -->
 <script>
-   function abrirModulo(modulo) {
+    function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
         document.getElementById('vista-modulos').style.display = 'none';
         
@@ -435,23 +436,40 @@
                     <p style="font-size: 13px; margin:0;">Busque un cliente arriba.</p>
                 </div>
 
+                <!-- 🔥 AQUI ESTA LA NUEVA TARJETA VIP (ESTILO COMPUTADORA) 🔥 -->
                 <div id="panel-recaudacion-activo" style="display: none;">
                     <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default; border: 2px solid #fef08a;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                            <span id="lbl-recaudacion-ref" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">REF: ---</span>
-                            <span id="lbl-recaudacion-frecuencia" style="background: #f1f5f9; color: #475569; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">---</span>
+                        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 8px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px;">
+                            <span id="lbl-recaudacion-ref" style="background: #e0f2fe; color: #0369a1; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">REF: --- | CRÉDITO #---</span>
+                            <span id="lbl-recaudacion-fecha-emision" style="font-size: 10px; color: #64748b; font-weight: bold;">📅 ---</span>
                         </div>
-                        <h3 id="lbl-recaudacion-cliente" style="margin: 0 0 5px 0; font-size: 17px; color: var(--texto-oscuro);">CLIENTE</h3>
-                        <p id="lbl-recaudacion-cedula" style="margin: 0 0 10px 0; font-size: 12px; color: var(--texto-claro);">Cédula: ---</p>
+                        
+                        <h3 id="lbl-recaudacion-cliente" style="margin: 0 0 5px 0; font-size: 18px; color: var(--texto-oscuro);">CLIENTE</h3>
+                        <p id="lbl-recaudacion-cedula" style="margin: 0 0 15px 0; font-size: 12px; color: var(--texto-claro);">Cédula: ---</p>
+                        
                         <div id="contenedor-banderas-recaudacion"></div>
                         
-                        <div style="border-top: 1px dashed #e2e8f0; padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                            <div><span style="color:var(--texto-claro)">Cuota:</span> <strong id="lbl-recaudacion-cuota">$0.00</strong></div>
-                            <div><span style="color:var(--texto-claro)">Total:</span> <strong id="lbl-recaudacion-total">$0.00</strong></div>
-                            <div style="grid-column: span 2;"><span style="color:var(--texto-claro)">Cuotas:</span> <strong id="lbl-recaudacion-num-cuotas">--</strong></div>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color:var(--texto-claro)">💵 Cuota Base:</span> 
+                                <strong id="lbl-recaudacion-cuota" style="font-size: 14px;">$0.00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color:var(--texto-claro)">🔄 Modalidad de Pago:</span> 
+                                <span id="lbl-recaudacion-frecuencia" style="background: #f1f5f9; color: #475569; font-size: 10px; padding: 4px 8px; border-radius: 4px; font-weight: bold;">---</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color:var(--texto-claro)">💰 Total del Crédito original:</span> 
+                                <strong id="lbl-recaudacion-total" style="font-size: 14px;">$0.00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color:var(--texto-claro)">🔢 N° de Cuotas:</span> 
+                                <div id="lbl-recaudacion-num-cuotas">--</div>
+                            </div>
                         </div>
-                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px; font-weight: bold; color: var(--texto-claro);">Saldo Neto:</span>
+                        
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start;">
+                            <span style="font-size: 14px; font-weight: bold; color: var(--texto-claro);">📉 Saldo Neto Pendiente:</span>
                             <div id="lbl-recaudacion-saldo" style="text-align: right;">$0.00</div>
                         </div>
                     </div>
@@ -548,7 +566,7 @@
         return '?';
     }
 
-    // 🔥 EL GUARDIA DE CONEXIÓN (NUEVO) 🔥
+    // 🔥 EL GUARDIA DE CONEXIÓN 🔥
     async function esperarSupabase() {
         let intentos = 0;
         while (!window.supabaseClient && intentos < 30) {
@@ -620,7 +638,7 @@
     }
 
     // =========================================================
-    // 🚀 CEREBRO DE BÚSQUEDA EXCLUSIVO PARA MÓVILES (Buscador)
+    // 🚀 CEREBRO DE BÚSQUEDA EXCLUSIVO PARA MÓVILES (Buscador VIP)
     // =========================================================
     async function buscarCreditoMovil() {
         const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
@@ -656,7 +674,6 @@
             const idsActivos = creditosDelCliente.map(c => c.id);
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total').in('id_credito', idsActivos);
             
-            // 🔥 Traemos la memoria de moras para poner las etiquetas VIP
             const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
             
             window.listaCreditosActivosCliente = creditosDelCliente;
@@ -685,12 +702,10 @@
                     let saldoNeto = (parseFloat(c.total_pagar) || 0) - totalPagadoHastaHoy;
                     if (saldoNeto < 0) saldoNeto = 0;
 
-                    // Cálculo de Mora
                     const moraCredito = parseFloat(c.monto_mora) || 0;
                     const deudaTotalConMora = saldoNeto + moraCredito;
                     let textoMoraExtra = moraCredito > 0 ? ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalConMora.toFixed(2)}` : '';
                     
-                    // Verificación de Acuerdos Previos
                     let etiquetaAccion = "";
                     if (morasCliente) {
                         const morasEsteCredito = morasCliente.filter(m => m.credito_id === c.id);
@@ -703,7 +718,6 @@
 
                     let alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
 
-                    // Formato de Fecha de emisión
                     const f = new Date(c.fecha_emision);
                     const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
                     const fechaTxtCorta = `${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()}`;
@@ -725,7 +739,7 @@
     }
 
     // =========================================================
-    // 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL INDEPENDIENTE (CON MORA)
+    // 🚀 CARGADOR DEL ESTADO DE CUENTA MÓVIL (DISEÑO VIP COMPUTADORA)
     // =========================================================
     async function cargarEstadoCuentaCreditoMovil(idCredito) {
         if (!idCredito) return;
@@ -751,7 +765,29 @@
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
 
-        document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id}`;
+        let numeroCredito = 1;
+        if (window.listaCreditosActivosCliente && window.listaCreditosActivosCliente.length > 0) {
+           numeroCredito = window.listaCreditosActivosCliente.findIndex(c => c.id == idCredito) + 1;
+        }
+        const creCifrado = cifrarNumeroCreditoMovil(numeroCredito);
+
+        document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | CRE #${numeroCredito} [${creCifrado}]`;
+        
+        let fechaTxtLarga = '---';
+        if (encontrado.fecha_emision) {
+            const f = new Date(encontrado.fecha_emision);
+            const diasArr = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+            const mesesArr = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            let horas = f.getHours();
+            let ampm = horas >= 12 ? 'P. M.' : 'A. M.';
+            horas = horas % 12; horas = horas ? horas : 12;
+            let mins = String(f.getMinutes()).padStart(2, '0');
+            let secs = String(f.getSeconds()).padStart(2, '0');
+            
+            fechaTxtLarga = `📅 ${diasArr[f.getDay()]}, ${f.getDate()}/${mesesArr[f.getMonth()]}/${f.getFullYear()} | ${String(horas).padStart(2, '0')}:${mins}:${secs} ${ampm}`;
+        }
+        document.getElementById('lbl-recaudacion-fecha-emision').innerText = fechaTxtLarga;
+
         document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
         
@@ -771,33 +807,33 @@
             else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) frecuenciaFinal = 'QUINCENAL';
             else if (acuerdoLower.includes('mensual') || acuerdoLower.includes('al mes')) frecuenciaFinal = 'MENSUAL';
             
-            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px;">$${cuotaFinal.toFixed(2)}</span>`;
-            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal}</span>`;
+            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px; font-weight: bold;">$${cuotaFinal.toFixed(2)}</span>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `🗓️ ${frecuenciaFinal} (CONGELADO)`;
         } else {
-            document.getElementById('lbl-recaudacion-cuota').innerText = `$${cuotaFinal.toFixed(2)}`;
-            document.getElementById('lbl-recaudacion-frecuencia').innerText = frecuenciaFinal;
+            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<strong>$${cuotaFinal.toFixed(2)}</strong>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `🗓️ ${frecuenciaFinal} (LUN A SÁB)`;
         }
 
-        document.getElementById('lbl-recaudacion-total').innerText = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+        document.getElementById('lbl-recaudacion-total').innerHTML = `<strong>$${parseFloat(encontrado.total_pagar).toFixed(2)}</strong>`;
         
         let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / cuotaFinal);
         const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
         let cuotasPagadas = numeroCuotasOriginales - cuotasPendientes;
         if (cuotasPagadas < 0) cuotasPagadas = 0;
 
-        const textoCuotasTotales = textoAcuerdo !== '' ? '<span title="Modificado por convenio">N/A</span>' : numeroCuotasOriginales;
+        const textoCuotasTotales = textoAcuerdo !== '' ? '<span title="Modificado por convenio">N/A</span>' : `<strong>${numeroCuotasOriginales}</strong>`;
         
-        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span>`;
+        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <span style="color: #15803d; font-size: 11px; font-weight: bold; background: #dcfce7; padding: 2px 6px; border-radius: 4px; margin: 0 4px;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 11px; font-weight: bold; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">(${cuotasPendientes} Pendientes)</span>`;
         
         // Manejo de la mora y saldo final
         const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
         const saldoFinalMora = window.creditoSeleccionadoCobro.saldoNeto + moraGuardada;
 
         let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
-            <span style="font-size: 18px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
+            <span style="font-size: 22px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
         
         if (moraGuardada > 0) {
-            htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #64748b;">(Incluye $${moraGuardada.toFixed(2)} de mora)</span>`;
+            htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #64748b; margin-top: 4px;">(Incluye $${moraGuardada.toFixed(2)} de mora)</span>`;
         }
         htmlSaldoNeto += `</div>`;
 
@@ -806,9 +842,9 @@
         // Banderas (Congelado/Acuerdo)
         const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
         if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
-            cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 14px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 11px; text-transform: uppercase;">Acuerdo Activo</span></div><div style="color: #422006; font-size: 12px; font-weight: bold; padding-left: 22px;">"${textoAcuerdo}"</div></div>`;
+            cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 14px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 11px; text-transform: uppercase;">Acuerdo Activo</span></div><div style="color: #422006; font-size: 12px; font-weight: bold; padding-left: 22px;">"${textoAcuerdo}"</div></div>`;
         } else if (encontrado.estado === 'congelado' && textoAcuerdo.trim() === '') {
-             cajaBanderas.innerHTML = `<div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 10px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px;">🧊</span><span style="color: #0369a1; font-weight: 800; font-size: 11px;">Cuenta Protegida</span></div></div>`;
+             cajaBanderas.innerHTML = `<div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px;">🧊</span><span style="color: #0369a1; font-weight: 800; font-size: 11px;">Cuenta Protegida</span></div></div>`;
         } else {
             cajaBanderas.innerHTML = ''; 
         }
@@ -819,6 +855,62 @@
         document.getElementById('panel-recaudacion-activo').style.display = 'block';
 
         cargarHistorialMovil(idCredito);
+    }
+
+    // =========================================================
+    // 🚀 CARGADOR DEL HISTORIAL MÓVIL
+    // =========================================================
+    async function cargarHistorialMovil(idCredito) {
+        const contenedor = document.getElementById('lista-historial-abonos');
+        contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando historial...</div>';
+
+        const supa = await esperarSupabase();
+        if (!supa) return;
+
+        try {
+            const { data: pagos, error } = await supa
+                .from('historial_pagos')
+                .select('*')
+                .eq('id_credito', idCredito)
+                .order('fecha_pago', { ascending: false })
+                .limit(5);
+
+            if (error) throw error;
+
+            if (!pagos || pagos.length === 0) {
+                contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Sin pagos registrados.</div>';
+                return;
+            }
+
+            let html = '';
+            pagos.forEach(p => {
+                const f = new Date(p.fecha_pago);
+                const fechaTxt = `${f.getDate()}/${f.getMonth()+1}/${f.getFullYear()} ${f.getHours()}:${String(f.getMinutes()).padStart(2,'0')}`;
+                
+                html += `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 8px; display:flex; justify-content: space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:10px; color:#64748b; font-weight:bold;">${fechaTxt}</div>
+                        <div style="font-size:14px; font-weight:900; color:#10b981;">+$${parseFloat(p.abono_total).toFixed(2)}</div>
+                    </div>
+                    <div style="font-size:10px; font-weight:bold; color:#0284c7; background:#e0f2fe; padding:3px 6px; border-radius:4px;">
+                        ${p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO'}
+                    </div>
+                </div>`;
+            });
+            
+            contenedor.innerHTML = html;
+        } catch(e) {
+            contenedor.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Error al cargar historial.</div>';
+        }
+    }
+
+    async function cerrarSesion() {
+        if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
+            const supa = await esperarSupabase();
+            if(supa) await supa.auth.signOut();
+            window.location.href = 'index.html'; 
+        }
     }
 </script>
 
