@@ -375,6 +375,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DISEÑO LIMPIO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - TEXTOS ALINEADOS) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - COBROS COMPLETOS) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -438,7 +439,6 @@
                     <p style="font-size: 13px; margin:0;">Busque un cliente arriba.</p>
                 </div>
 
-                <!-- 🔥 TARJETA VIP (DISEÑO PERFECTAMENTE ALINEADO SIN SALTOS DE LÍNEA) 🔥 -->
                 <div id="panel-recaudacion-activo" style="display: none;">
                     <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px;">
@@ -482,42 +482,72 @@
                         </div>
                     </div>
 
-                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default;">
-                        <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); display: block; margin-bottom: 8px;">2. Monto a Cobrar ($)</label>
+                    <!-- 🔥 NUEVO DISEÑO VIP DEL MÓDULO DE COBROS 🔥 -->
+                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default; border: 2px solid #fef08a;">
+                        <h4 style="margin: 0 0 15px 0; font-size: 15px; color: var(--texto-oscuro); border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📥</span> Registro de Cobro Efectivo
+                        </h4>
+
+                        <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); display: block; margin-bottom: 8px;">Monto Recaudado Hoy ($):</label>
+                        <div style="position: relative; margin-bottom: 15px;">
+                            <input type="number" id="monto-cobro-input" step="0.01" oninput="simularEnrutamientoFlujo(this.value)" style="width: 100%; padding: 15px 40px 15px 15px; border: 2px solid var(--primario); border-radius: 8px; font-size: 24px; font-weight: 900; color: var(--texto-oscuro); text-align: left; box-sizing: border-box; outline:none; background:#f8fafc;" placeholder="0.00">
+                            <div style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 2px;">
+                                <span style="font-size: 12px; color: #94a3b8; cursor: pointer;">▲</span>
+                                <span style="font-size: 12px; color: #94a3b8; cursor: pointer;">▼</span>
+                            </div>
+                        </div>
                         
-                        <input type="number" id="monto-cobro-input" step="0.01" oninput="simularEnrutamientoFlujo(this.value)" style="width: 100%; padding: 15px; border: 2px solid var(--primario); border-radius: 8px; font-size: 26px; font-weight: 900; color: var(--texto-oscuro); text-align: center; box-sizing: border-box; margin-bottom: 15px; outline:none; background:#f8fafc;" placeholder="0.00">
-                        
-                        <div style="display: flex; gap: 5px; margin-bottom: 15px; background: #f1f5f9; padding: 4px; border-radius: 8px;">
-                            <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 12px 5px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition:0.3s;">💵 EFECTIVO</button>
-                            <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 12px 5px; background: transparent; color: var(--texto-claro); border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition:0.3s;">🏦 TRANSF.</button>
+                        <label style="font-size: 10px; font-weight: bold; color: var(--texto-claro); display: block; margin-bottom: 8px; text-transform: uppercase;">Forma de Pago:</label>
+                        <div style="display: flex; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; background: #f8fafc;">
+                            <button id="btn-metodo-efectivo" onclick="cambiarMetodoPago('efectivo')" style="flex: 1; padding: 12px 5px; background: #4f46e5; color: white; border: none; font-weight: bold; font-size: 12px; transition:0.3s; display: flex; justify-content: center; align-items: center; gap: 6px;">
+                                <span>💵</span> EFECTIVO
+                            </button>
+                            <button id="btn-metodo-transf" onclick="cambiarMetodoPago('transferencia')" style="flex: 1; padding: 12px 5px; background: transparent; color: var(--texto-claro); border: none; font-weight: bold; font-size: 12px; transition:0.3s; display: flex; justify-content: center; align-items: center; gap: 6px;">
+                                <span>🏦</span> DEPÓSITO / TRANSF.
+                            </button>
                         </div>
 
-                        <div id="caja-detalles-transferencia" style="display: none; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 15px;">
+                        <div id="caja-detalles-transferencia" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 20px;">
+                            <label style="font-size: 10px; font-weight: bold; color: #0284c7; display: block; margin-bottom: 8px;">DETALLES DE LA TRANSFERENCIA:</label>
                             <select id="select-banco" onchange="unirDetallesTransferencia()" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; outline: none; background:white;">
                                 <option value="">-- Seleccione Banco --</option>
-                                <option value="Pichincha">Pichincha</option>
-                                <option value="Guayaquil">Guayaquil</option>
+                                <option value="Pichincha">Banco Pichincha</option>
+                                <option value="Guayaquil">Banco Guayaquil</option>
                                 <option value="Produbanco">Produbanco</option>
-                                <option value="Pacifico">Pacífico</option>
+                                <option value="Pacifico">Banco del Pacífico</option>
                                 <option value="Otro">Otro Banco</option>
                             </select>
-                            <input type="text" id="input-referencia" oninput="unirDetallesTransferencia()" placeholder="Ref: 123456" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; box-sizing: border-box; outline: none;">
+                            <input type="text" id="input-referencia" oninput="unirDetallesTransferencia()" placeholder="Ej: Ref: 123456" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #0284c7; font-size: 13px; box-sizing: border-box; outline: none;">
                             <input type="hidden" id="input-detalles-banco" value="">
                         </div>
                         <input type="hidden" id="metodo-pago-seleccionado" value="efectivo">
 
-                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                            <div style="flex: 1; background: #fffdf5; border: 1px solid #fef08a; padding: 10px; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 11px; color: #a16207; font-weight: bold; text-transform: uppercase;">Interés</div>
-                                <div id="sim-boveda-interes" style="font-size: 17px; font-weight: 900; color: #ca8a04; margin-top:2px;">$0.00</div>
+                        <div style="margin-bottom: 20px; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; background: white;">
+                            <label style="font-size: 10px; font-weight: bold; color: #d97706; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; text-transform: uppercase;">
+                                <span>⚡</span> DESTINO DE LOS FONDOS (REGLA DE ORO ALPHA):
+                            </label>
+                            <div style="display: flex; gap: 10px;">
+                                <div style="flex: 1; background: #fffdf5; border: 2px solid #fef08a; padding: 10px; border-radius: 8px; text-align: center;">
+                                    <div style="font-size: 11px; color: #92400e; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: center; align-items: center; gap: 4px;">
+                                        <span>💼</span> Bóveda Interés
+                                    </div>
+                                    <div id="sim-boveda-interes" style="font-size: 18px; font-weight: 900; color: #d97706;">$0.00</div>
+                                </div>
+                                <div style="flex: 1; background: #f0f9ff; border: 2px solid #bae6fd; padding: 10px; border-radius: 8px; text-align: center;">
+                                    <div style="font-size: 11px; color: #075985; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: center; align-items: center; gap: 4px;">
+                                        <span>🏦</span> Bóveda Capital
+                                    </div>
+                                    <div id="sim-boveda-capital" style="font-size: 18px; font-weight: 900; color: #0284c7;">$0.00</div>
+                                </div>
                             </div>
-                            <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 11px; color: #0369a1; font-weight: bold; text-transform: uppercase;">Capital</div>
-                                <div id="sim-boveda-capital" style="font-size: 17px; font-weight: 900; color: #0284c7; margin-top:2px;">$0.00</div>
+                            <div id="alerta-frontera" style="display: none; margin-top: 10px; background: #fef9c3; color: #a16207; font-size: 11px; font-weight: bold; text-align: center; padding: 6px; border-radius: 4px; border: 1px solid #fde047;">
+                                🚀 FRONTERA CRUZADA! Excedente repone Capital.
                             </div>
                         </div>
 
-                        <button onclick="procesarCobroOficial()" style="width: 100%; padding: 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 15px; box-shadow: 0 4px 6px rgba(16,185,129,0.3);">✅ APLICAR ABONO</button>
+                        <button onclick="procesarCobroOficial()" style="width: 100%; padding: 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); display: flex; justify-content: center; align-items: center; gap: 8px;">
+                            <span>✅</span> Confirmar e Inyectar Abono
+                        </button>
                     </div>
 
                     <div class="tarjeta-btn" style="margin: 0 20px 20px 20px; text-align: left; padding: 15px; cursor: default;">
@@ -836,7 +866,7 @@
 
         const textoCuotasTotales = textoAcuerdo !== '' ? 'N/A' : `<strong>${numeroCuotasOriginales}</strong>`;
         
-        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <span style="color: #15803d; font-size: 11px; font-weight: bold; margin-left:4px;">(✔️ ${cuotasPagadas})</span> <span style="color: #ef4444; font-size: 11px; font-weight: bold;">(${cuotasPendientes} Pend.)</span>`;
+        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <div style="display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end;"><span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span></div>`;
         
         // Manejo de la mora y saldo final
         const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
@@ -867,7 +897,76 @@
         document.getElementById('recaudacion-espera-msg').style.display = 'none';
         document.getElementById('panel-recaudacion-activo').style.display = 'block';
 
+        // Disparar la simulación inicial al cargar la cuota por defecto
+        if (typeof simularEnrutamientoFlujo === 'function') {
+            simularEnrutamientoFlujo(cuotaFinal);
+        }
+
         cargarHistorialMovil(idCredito);
+    }
+
+    // =========================================================
+    // 🚀 SIMULADOR DE BÓVEDAS (REGLA DE ORO ALPHA) - AÑADIDO PARA MÓVIL
+    // =========================================================
+    function simularEnrutamientoFlujo(montoIngresado) {
+        let monto = parseFloat(montoIngresado) || 0;
+        
+        let simInteres = document.getElementById('sim-boveda-interes');
+        let simCapital = document.getElementById('sim-boveda-capital');
+        let alertaFrontera = document.getElementById('alerta-frontera');
+        
+        if (!simInteres || !simCapital) return;
+
+        if (monto <= 0 || !window.creditoSeleccionadoCobro) {
+            simInteres.innerText = "$0.00";
+            simCapital.innerText = "$0.00";
+            if(alertaFrontera) alertaFrontera.style.display = 'none';
+            return;
+        }
+
+        // Lógica de cálculo (Regla de Oro Alpha)
+        const capitalOriginal = parseFloat(window.creditoSeleccionadoCobro.monto_capital) || 0;
+        const totalOriginal = parseFloat(window.creditoSeleccionadoCobro.total_pagar) || 0;
+        const gananciaTotalEsperada = totalOriginal - capitalOriginal;
+        
+        let totalPagadoHistorico = 0;
+        if (window.pagosClienteGlobal) {
+            window.pagosClienteGlobal.forEach(p => {
+                if (p.id_credito === window.creditoSeleccionadoCobro.id) {
+                    totalPagadoHistorico += parseFloat(p.abono_total || 0);
+                }
+            });
+        }
+        
+        let saldoInteresPendiente = gananciaTotalEsperada - totalPagadoHistorico;
+        
+        let abonoAInteres = 0;
+        let abonoACapital = 0;
+
+        if (saldoInteresPendiente > 0) {
+            if (monto <= saldoInteresPendiente) {
+                abonoAInteres = monto;
+                abonoACapital = 0;
+                if(alertaFrontera) alertaFrontera.style.display = 'none';
+            } else {
+                abonoAInteres = saldoInteresPendiente;
+                abonoACapital = monto - saldoInteresPendiente;
+                if(alertaFrontera) {
+                    alertaFrontera.style.display = 'block';
+                    alertaFrontera.innerHTML = `🚀 FRONTERA CRUZADA! Excedente ($${abonoACapital.toFixed(2)}) repone Capital.`;
+                }
+            }
+        } else {
+            abonoAInteres = 0;
+            abonoACapital = monto;
+            if(alertaFrontera) {
+                alertaFrontera.style.display = 'block';
+                alertaFrontera.innerHTML = `🛡️ FASE DE CAPITAL! Interés cubierto. Abono completo ($${abonoACapital.toFixed(2)}) a Capital.`;
+            }
+        }
+
+        simInteres.innerText = `$${abonoAInteres.toFixed(2)}`;
+        simCapital.innerText = `$${abonoACapital.toFixed(2)}`;
     }
 
     // =========================================================
