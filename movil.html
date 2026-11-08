@@ -378,6 +378,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - COBROS COMPLETOS) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - BOTÓN CON VIDA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - BOTÓN CON VIDA Y LÓGICA DE COBRO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DESPLEGABLE COMPLETO Y BOTÓN ACTIVO) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -691,6 +692,7 @@
         }
     }
 
+    // 🔥 AQUI RESTAURAMOS LA LISTA DESPLEGABLE COMPLETA VIP 🔥
     async function buscarCreditoMovil() {
         const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
         if (!busqueda) { alert("⚠️ Selecciona un cliente."); return; }
@@ -710,8 +712,10 @@
 
             const idDelCliente = creditosDelCliente[0].cliente_id;
             const { data: todosCreditosCliente } = await supa.from('creditos').select('id').eq('cliente_id', idDelCliente).order('id', { ascending: true });
+            
             const idsActivos = creditosDelCliente.map(c => c.id);
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes').in('id_credito', idsActivos);
+            const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
             
             window.listaCreditosActivosCliente = creditosDelCliente;
             windowPagosGlobal = pagosCliente || [];
@@ -721,14 +725,43 @@
             } else {
                 const selectMulti = document.getElementById('selector-multicredito');
                 selectMulti.innerHTML = '<option value="">-- Seleccione el crédito --</option>';
+                
                 creditosDelCliente.forEach(c => {
                     let numeroCredito = todosCreditosCliente ? (todosCreditosCliente.findIndex(tc => tc.id === c.id) + 1) : 1;
                     const codigoCifrado = cifrarNumeroCreditoMovil(numeroCredito);
+                    
                     let totalPagadoHastaHoy = windowPagosGlobal.filter(p => p.id_credito === c.id).reduce((sum, p) => sum + parseFloat(p.abono_total||0), 0);
                     let saldoNeto = (parseFloat(c.total_pagar) || 0) - totalPagadoHastaHoy;
-                    const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}] | Saldo: $${Math.max(0, saldoNeto).toFixed(2)}`;
+                    if (saldoNeto < 0) saldoNeto = 0;
+
+                    const moraCredito = parseFloat(c.monto_mora) || 0;
+                    const deudaTotalConMora = saldoNeto + moraCredito;
+                    let textoMoraExtra = moraCredito > 0 ? ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalConMora.toFixed(2)}` : '';
+                    
+                    let etiquetaAccion = "";
+                    if (morasCliente) {
+                        const morasEsteCredito = morasCliente.filter(m => m.credito_id === c.id);
+                        if (morasEsteCredito.length > 0) {
+                            const ultimaAccion = morasEsteCredito[morasEsteCredito.length - 1].tipo_accion || '';
+                            if (ultimaAccion.includes('Refinanciamiento') || ultimaAccion.includes('Renovación')) etiquetaAccion = " | 🔄 RENOVADO";
+                            else if (ultimaAccion.includes('Perdón')) etiquetaAccion = " | 🛡️ PERDONADO";
+                        }
+                    }
+
+                    let alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
+
+                    const f = new Date(c.fecha_emision);
+                    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                    const fechaTxtCorta = `${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()}`;
+
+                    let letraF = c.frecuencia_pago.toUpperCase().includes('DIARIO') ? 'D' : c.frecuencia_pago.toUpperCase().includes('SEMANAL') ? 'S' : 'M';
+                    let valorC = parseFloat(c.valor_cuota || 0).toFixed(0);
+
+                    const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | Total: $${parseFloat(c.total_pagar).toFixed(2)} ➡️ Saldo: $${saldoNeto.toFixed(2)}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
+                    
                     selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
                 });
+                
                 document.getElementById('recaudacion-espera-msg').style.display = 'none';
                 document.getElementById('panel-recaudacion-activo').style.display = 'none';
                 document.getElementById('contenedor-multicredito').style.display = 'block';
