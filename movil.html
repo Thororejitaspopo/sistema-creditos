@@ -374,6 +374,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN DEFINITIVA Y BLINDADA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DISEÑO LIMPIO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - TEXTOS ALINEADOS) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -437,7 +438,7 @@
                     <p style="font-size: 13px; margin:0;">Busque un cliente arriba.</p>
                 </div>
 
-                <!-- 🔥 TARJETA VIP (DISEÑO LIMPIO Y ALINEADO) 🔥 -->
+                <!-- 🔥 TARJETA VIP (DISEÑO PERFECTAMENTE ALINEADO SIN SALTOS DE LÍNEA) 🔥 -->
                 <div id="panel-recaudacion-activo" style="display: none;">
                     <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px;">
@@ -453,22 +454,30 @@
                         
                         <div id="contenedor-banderas-recaudacion"></div>
                         
-                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 13px; line-height: 1.4;">
-                            <div style="color: var(--texto-oscuro); display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">💵</span> Cuota Base:</div>
-                            <div id="lbl-recaudacion-cuota" style="text-align: right; font-weight: 600; color: var(--texto-oscuro);">$0.00</div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.4;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="color: var(--texto-oscuro); white-space: nowrap; display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">💵</span> Cuota:</div>
+                                <div id="lbl-recaudacion-cuota" style="text-align: right; font-weight: 600; color: var(--texto-oscuro); white-space: nowrap;">$0.00</div>
+                            </div>
                             
-                            <div style="color: var(--texto-oscuro); display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">🔄</span> Modalidad de Pago:</div>
-                            <div id="lbl-recaudacion-frecuencia" style="text-align: right; font-weight: 600; color: var(--texto-oscuro);">---</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="color: var(--texto-oscuro); white-space: nowrap; display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">🔄</span> Pago:</div>
+                                <div id="lbl-recaudacion-frecuencia" style="text-align: right; font-weight: 600; color: var(--texto-oscuro); white-space: nowrap;">---</div>
+                            </div>
                             
-                            <div style="color: var(--texto-oscuro); display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">📊</span> Total del Crédito original:</div>
-                            <div id="lbl-recaudacion-total" style="text-align: right; font-weight: 600; color: #0284c7;">$0.00</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="color: var(--texto-oscuro); white-space: nowrap; display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">📊</span> Total:</div>
+                                <div id="lbl-recaudacion-total" style="text-align: right; font-weight: 600; color: #0284c7; white-space: nowrap;">$0.00</div>
+                            </div>
                             
-                            <div style="color: var(--texto-oscuro); display: flex; align-items: flex-start; gap: 6px;"><span style="font-size: 14px;">🔢</span> N° de Cuotas:</div>
-                            <div id="lbl-recaudacion-num-cuotas" style="text-align: right;">--</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="color: var(--texto-oscuro); white-space: nowrap; display: flex; align-items: center; gap: 6px;"><span style="font-size: 14px;">🔢</span> Cuotas:</div>
+                                <div id="lbl-recaudacion-num-cuotas" style="text-align: right; white-space: nowrap;">--</div>
+                            </div>
                         </div>
                         
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e2e8f0; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: flex-end;">
-                            <div style="color: var(--texto-oscuro); display: flex; align-items: center; gap: 6px;"><span style="font-size: 16px;">📉</span> <span style="font-size: 14px; font-weight: bold;">Saldo Neto Pendiente:</span></div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div style="color: var(--texto-oscuro); display: flex; align-items: center; gap: 6px; white-space: nowrap;"><span style="font-size: 16px;">📉</span> <span style="font-size: 14px; font-weight: bold;">Saldo Neto:</span></div>
                             <div id="lbl-recaudacion-saldo" style="text-align: right;">$0.00</div>
                         </div>
                     </div>
@@ -565,7 +574,6 @@
         return '?';
     }
 
-    // 🔥 EL GUARDIA DE CONEXIÓN 🔥
     async function esperarSupabase() {
         let intentos = 0;
         while (!window.supabaseClient && intentos < 30) {
@@ -788,9 +796,17 @@
         document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
         
-        // Manejo de cuota, incluyendo acuerdos
+        // Manejo de cuota y acuerdos (limpiando textos repetidos)
         let cuotaFinal = parseFloat(encontrado.valor_cuota) || 1;
-        let frecuenciaFinal = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase().replace('COBRO ', '');
+        let frecuenciaDB = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase();
+        let frecuenciaFinal = '';
+        
+        if (frecuenciaDB.includes('DIARIO')) frecuenciaFinal = 'LUN A SÁB';
+        else if (frecuenciaDB.includes('SEMANAL')) frecuenciaFinal = 'SEMANAL';
+        else if (frecuenciaDB.includes('QUINCENAL')) frecuenciaFinal = 'QUINCENAL';
+        else if (frecuenciaDB.includes('MENSUAL')) frecuenciaFinal = 'MENSUAL';
+        else frecuenciaFinal = frecuenciaDB;
+
         let textoAcuerdo = '';
 
         if (encontrado.estado === 'congelado' && encontrado.acuerdo_pago) {
@@ -799,19 +815,19 @@
             const matchMonto = textoAcuerdo.match(/\$?\s*(\d+(\.\d{1,2})?)/);
             if (matchMonto) cuotaFinal = parseFloat(matchMonto[1]);
             
-            if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) frecuenciaFinal = 'DIARIO';
+            if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) frecuenciaFinal = 'LUN A SÁB';
             else if (acuerdoLower.includes('semanal') || acuerdoLower.includes('por semana')) frecuenciaFinal = 'SEMANAL';
             else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) frecuenciaFinal = 'QUINCENAL';
             else if (acuerdoLower.includes('mensual') || acuerdoLower.includes('al mes')) frecuenciaFinal = 'MENSUAL';
             
             document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px; font-weight: bold;">$${cuotaFinal.toFixed(2)}</span>`;
-            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">🗓️ ${frecuenciaFinal} (CONGELADO)</span>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal} (CONG.)</span>`;
         } else {
-            document.getElementById('lbl-recaudacion-cuota').innerHTML = `$${cuotaFinal.toFixed(2)}`;
-            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `🗓️ ${frecuenciaFinal} (LUN A SÁB)`;
+            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<strong>$${cuotaFinal.toFixed(2)}</strong>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = frecuenciaFinal;
         }
 
-        document.getElementById('lbl-recaudacion-total').innerHTML = `$${parseFloat(encontrado.total_pagar).toFixed(2)}`;
+        document.getElementById('lbl-recaudacion-total').innerHTML = `<strong>$${parseFloat(encontrado.total_pagar).toFixed(2)}</strong>`;
         
         let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / cuotaFinal);
         const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
@@ -820,17 +836,17 @@
 
         const textoCuotasTotales = textoAcuerdo !== '' ? 'N/A' : `<strong>${numeroCuotasOriginales}</strong>`;
         
-        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <div style="display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end;"><span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span></div>`;
+        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <span style="color: #15803d; font-size: 11px; font-weight: bold; margin-left:4px;">(✔️ ${cuotasPagadas})</span> <span style="color: #ef4444; font-size: 11px; font-weight: bold;">(${cuotasPendientes} Pend.)</span>`;
         
         // Manejo de la mora y saldo final
         const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
         const saldoFinalMora = window.creditoSeleccionadoCobro.saldoNeto + moraGuardada;
 
         let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
-            <span style="font-size: 24px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span>`;
+            <span style="font-size: 24px; font-weight: 900; color: #dc2626; white-space: nowrap;">$${saldoFinalMora.toFixed(2)}</span>`;
         
         if (moraGuardada > 0) {
-            htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #475569; margin-top: 4px;">(Incluye $${moraGuardada.toFixed(2)} de mora)</span>`;
+            htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #475569; margin-top: 4px; white-space: nowrap;">(Incl. $${moraGuardada.toFixed(2)} mora)</span>`;
         }
         htmlSaldoNeto += `</div>`;
 
