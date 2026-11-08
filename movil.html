@@ -386,6 +386,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - RESTAURACIÓN TOTAL) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - RESTAURACIÓN TOTAL) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN MAESTRA ABSOLUTA - SALDOS EXACTOS Y SMS CONECTADO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN MAESTRA INFALIBLE - SALDOS EXACTOS Y SMS DIRECTO) -->
 <script>
     // =========================================================
     // 🚀 VARIABLES GLOBALES BLINDADAS
@@ -608,8 +609,6 @@
             navItems.forEach(item => item.classList.remove('activo'));
             if (modulo === 'inicio' && navItems.length > 0) navItems[0].classList.add('activo');
             else if (modulo === 'pago' && navItems.length > 1) navItems[1].classList.add('activo');
-            else if ((modulo === 'cierre' || modulo === 'capital' || modulo === 'interes') && navItems.length > 2) navItems[2].classList.add('activo');
-            else if (modulo === 'perfil' && navItems.length > 3) navItems[3].classList.add('activo');
         }
     }
 
@@ -663,26 +662,30 @@
     }
 
     // =========================================================
-    // 🚀 PUENTE DE COMUNICACIÓN CON LA VENTANA PADRE (PARA SMS)
+    // 🚀 LA ANTENA DIRECTA A MACRODROID (INDEPENDIENTE DE APP.JS)
     // =========================================================
-    async function invocarSMSDesdeMovil(numero, mensaje) {
+    async function enviarSMSIndependiente(numero, mensaje) {
         try {
-            // Intentamos llamar a la función en la ventana padre (donde vive app.js)
-            if (window.parent && typeof window.parent.enviarSMSAutomatico === 'function') {
-                await window.parent.enviarSMSAutomatico(numero, mensaje);
-                return true;
-            } 
-            // Si por alguna razón estamos en la misma ventana, intentamos localmente
-            else if (typeof window.enviarSMSAutomatico === 'function') {
+            // Intentamos la vía normal si existe
+            if (typeof window.enviarSMSAutomatico === 'function') {
                 await window.enviarSMSAutomatico(numero, mensaje);
                 return true;
             } 
+            // Intentamos buscar al padre por si acaso
+            else if (window.parent && typeof window.parent.enviarSMSAutomatico === 'function') {
+                await window.parent.enviarSMSAutomatico(numero, mensaje);
+                return true;
+            } 
+            // 🔥 SI TODO FALLA, DISPARAMOS DIRECTO AL WEBHOOK DE MACRODROID (EL PLAN MAESTRO) 🔥
             else {
-                console.error("No se encontró la función enviarSMSAutomatico ni en parent ni en window.");
-                return false;
+                console.log("Usando antena SMS independiente del móvil...");
+                const urlMacroDroid = `https://trigger.macrodroid.com/554f217c-000a-4581-896c-551d96459fb2/sms_credito?numero=${encodeURIComponent(numero)}&mensaje=${encodeURIComponent(mensaje)}`;
+                // Disparamos en modo 'no-cors' para que el navegador no lo bloquee por seguridad
+                await fetch(urlMacroDroid, { mode: 'no-cors' });
+                return true;
             }
         } catch (error) {
-            console.error("Error al invocar SMS:", error);
+            console.error("Fallo SMS Independiente:", error);
             return false;
         }
     }
@@ -755,7 +758,6 @@
             const { data: todosCreditosCliente } = await supa.from('creditos').select('id').eq('cliente_id', idDelCliente).order('id', { ascending: true });
             
             const idsActivos = creditosDelCliente.map(c => c.id);
-            // 🔥 SOLUCIÓN AL SALDO INICIAL: Traer TODOS los pagos del cliente de una vez 🔥
             const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').in('id_credito', idsActivos);
             const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
             
@@ -815,19 +817,22 @@
         } catch (err) { alert("❌ Error: " + err.message); }
     }
 
-    async function cargarEstadoCuentaCreditoMovil(idCredito) {
-        if (!idCredito) return;
+    async function cargarEstadoCuentaCreditoMovil(idCreditoInput) {
+        if (!idCreditoInput) return;
         
-        // 🔥 RE-CONSULTA A LA BD PARA TRAER LOS PAGOS MÁS RECIENTES ANTES DE DIBUJAR 🔥
+        // 🔥 CORRECCIÓN DEL SALDO 0.00: Convertir el ID a número estricto para evitar duplicados 🔥
+        const idCredito = parseInt(idCreditoInput, 10);
+        
         const supa = await esperarSupabase();
         try {
             const { data: pagosFrescos } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').eq('id_credito', idCredito);
             if(pagosFrescos) {
+                 // Aquí usamos idNum para asegurarnos que filtre y reemplace correctamente
                  windowPagosGlobal = windowPagosGlobal.filter(p => p.id_credito !== idCredito).concat(pagosFrescos);
             }
         } catch(e) { console.error("Error refrescando pagos:", e); }
 
-        const encontrado = (window.listaCreditosActivosCliente || []).find(c => c.id == idCredito);
+        const encontrado = (window.listaCreditosActivosCliente || []).find(c => c.id === idCredito);
         if (!encontrado) return;
         window.creditoSeleccionadoCobro = encontrado;
 
@@ -835,7 +840,7 @@
         windowInteresYaPagado = 0;
         
         windowPagosGlobal.forEach(p => {
-            if (p.id_credito == idCredito) {
+            if (p.id_credito === idCredito) {
                 totalPagadoHastaHoy += parseFloat(p.abono_total || 0);
                 windowInteresYaPagado += parseFloat(p.monto_interes || 0);
             }
@@ -854,12 +859,11 @@
         let numeroCredito = 1;
         if(window.listaCreditosActivosCliente) {
              const todosDelCliente = window.listaCreditosActivosCliente.sort((a,b) => a.id - b.id);
-             numeroCredito = todosDelCliente.findIndex(c => c.id == idCredito) + 1;
+             numeroCredito = todosDelCliente.findIndex(c => c.id === idCredito) + 1;
         }
         const creCifrado = cifrarNumeroCreditoMovil(numeroCredito);
         const refTextoCompleto = `CRE #${numeroCredito} [${creCifrado}]`;
 
-        // 🔥 RESTAURANDO EL FORMATO VIP DE FECHA DE EMISIÓN 🔥
         let fechaEmisionStr = 'N/A';
         if(encontrado.fecha_emision) {
             let fEmi = new Date(encontrado.fecha_emision);
@@ -880,7 +884,6 @@
         document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
         
-        // 🔥 RESTAURANDO LA LÓGICA DE FRECUENCIA Y ACUERDOS 🔥
         let cuotaFinal = parseFloat(encontrado.valor_cuota) || 1;
         let frecuenciaDB = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase();
         let frecuenciaFinal = '';
@@ -913,7 +916,6 @@
 
         document.getElementById('lbl-recaudacion-total').innerHTML = `<strong>$${parseFloat(encontrado.total_pagar).toFixed(2)}</strong>`;
         
-        // 🔥 RESTAURANDO EL CÁLCULO DE CUOTAS 🔥
         let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / cuotaFinal);
         const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
         let cuotasPagadas = numeroCuotasOriginales - cuotasPendientes;
@@ -951,7 +953,6 @@
 
         simularEnrutamientoFlujo(cuotaFinal);
         
-        // Paginación y dibujado de historial en vivo
         paginaActualAbonos = 1;
         cargarHistorialMovil(idCredito);
     }
@@ -1011,7 +1012,6 @@
 
         if (!confirm(`¿Estás seguro de registrar un cobro de $${montoInput.toFixed(2)} en ${metodoPago.toUpperCase()}?`)) return;
 
-        // 🔥 MENSAJE VIP PARA EL CLIENTE (COMO EN ESCRITORIO)
         const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de este abono por SMS al cliente?");
 
         const supa = await esperarSupabase();
@@ -1065,7 +1065,7 @@
             alert("✅ ¡Pago registrado correctamente!");
             
             // =================================================================
-            // 🚀 ENVÍO DE SMS VIP (LLAMANDO AL PUENTE SEGURO)
+            // 🚀 ENVÍO DE SMS VIP (USANDO LA ANTENA INDEPENDIENTE MACRODROID)
             // =================================================================
             if (enviarSMS) {
                 const cli = window.creditoSeleccionadoCobro.clientes || {};
@@ -1133,22 +1133,20 @@
                             msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                         }
                         
-                        // 🔥 LLAMAMOS A NUESTRA FUNCIÓN PUENTE (Para que no falle si window.parent está bloqueado) 🔥
-                        const exitoCliente = await invocarSMSDesdeMovil(numeroCliente.toString(), msjSalida);
+                        // 🔥 LLAMAMOS A LA ANTENA DIRECTA MACRODROID 🔥
+                        const exitoCliente = await enviarSMSIndependiente(numeroCliente.toString(), msjSalida);
                         
                         if (exitoCliente) {
-                            // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso de red
                             await new Promise(resolve => setTimeout(resolve, 2000));
 
-                            // 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
                             const numeroGerente = "0939836191";
                             if (numeroCliente.toString().trim() !== numeroGerente) {
                                 const etiquetaAuditoria = esCancelacionTotal ? "[COPIA LIQUIDACIÓN]" : "[COPIA NUEVO ABONO]";
-                                await invocarSMSDesdeMovil(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
+                                await enviarSMSIndependiente(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
                             }
                             alert("📲 SMS enviado a MacroDroid para el cliente y copia al gerente.");
                         } else {
-                            alert("⚠️ No se pudo ejecutar el puente SMS. Verifique consola.");
+                            alert("⚠️ El pago se guardó, pero hubo un error de red al contactar con MacroDroid.");
                         }
 
                     } catch (errorSMS) {
@@ -1157,7 +1155,6 @@
                 }
             }
 
-            // 🔥 MAGIA DE SINCRONIZACIÓN: RECARGAMOS LA INTERFAZ COMPLETA AL INSTANTE 🔥
             document.getElementById('monto-cobro-input').value = "";
             await cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
 
@@ -1184,7 +1181,6 @@
 
         const inicio = (paginaActualAbonos - 1) * ABONOS_POR_PAGINA;
         const fin = inicio + ABONOS_POR_PAGINA;
-        // Ordenamos los abonos del más nuevo al más viejo
         const abonosOrdenados = abonosClienteActual.sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago));
         const abonosPagina = abonosOrdenados.slice(inicio, fin);
         const totalPaginas = Math.ceil(abonosOrdenados.length / ABONOS_POR_PAGINA);
@@ -1195,7 +1191,6 @@
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
         
-        // 🔥 RESCATE DE LA REFERENCIA CRE PARA EL HISTORIAL 🔥
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
@@ -1329,7 +1324,6 @@
             const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             const fechaHoraSMS = `${dias[fPago.getDay()]} ${String(fPago.getDate()).padStart(2, '0')}/${meses[fPago.getMonth()]}/${fPago.getFullYear()} | ${String(fPago.getHours()%12||12).padStart(2,'0')}:${String(fPago.getMinutes()).padStart(2,'0')} ${fPago.getHours()>=12?'p.m.':'a.m.'}`;
 
-            // Calculo de saldo retroactivo
             const pagosHastaAqui = abonosClienteActual.filter(a => new Date(a.fecha_pago) <= fPago);
             const totalPagadoHastaAqui = pagosHastaAqui.reduce((sum, a) => sum + parseFloat(a.abono_total || 0), 0);
             const saldoEnEseMomento = parseFloat(window.creditoSeleccionadoCobro.total_pagar) - totalPagadoHastaAqui;
@@ -1339,13 +1333,14 @@
 
             const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO'}\n\nConserva este msj. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
             
-            const exitoCliente = await invocarSMSDesdeMovil(numeroCliente.toString(), msjAbono);
+            // 🔥 REENVÍO CON ANTENA INDEPENDIENTE 🔥
+            const exitoCliente = await enviarSMSIndependiente(numeroCliente.toString(), msjAbono);
             
             if (exitoCliente) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 const numGerente = "0939836191";
                 if (numeroCliente.toString().trim() !== numGerente) {
-                    await invocarSMSDesdeMovil(numGerente, `[AVISO REENVÍO - ${cobrarCosto ? 'COBRADO' : 'GRATIS'}]\n\n${msjAbono}`);
+                    await enviarSMSIndependiente(numGerente, `[AVISO REENVÍO - ${cobrarCosto ? 'COBRADO' : 'GRATIS'}]\n\n${msjAbono}`);
                 }
                 alert(`✅ Recibo enviado exitosamente.`);
             } else {
