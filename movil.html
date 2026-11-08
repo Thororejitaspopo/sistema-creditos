@@ -381,6 +381,8 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DESPLEGABLE COMPLETO Y BOTÓN ACTIVO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - HISTORIAL PREMIUM) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - ACTUALIZACIÓN EN VIVO Y REF EXACTA) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - SMS INTEGRADO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - SMS INTEGRADO) -->
 <script>
     // =========================================================
     // 🚀 VARIABLES GLOBALES PARA LA INYECCIÓN Y PAGINACIÓN
@@ -603,6 +605,13 @@
     }
 
     // =========================================================
+    // 🚀 VARIABLES GLOBALES PARA LA INYECCIÓN
+    // =========================================================
+    let windowPagosGlobal = [];
+    let windowInteresTotalPactado = 0;
+    let windowInteresYaPagado = 0;
+
+    // =========================================================
     // 🚀 FUNCIONES AUXILIARES MÓVILES
     // =========================================================
     function cifrarNumeroCreditoMovil(numero) {
@@ -782,11 +791,9 @@
         try {
             const { data: pagosFrescos } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').eq('id_credito', idCredito);
             if(pagosFrescos) {
-                 // Actualizar el array global de este cliente específico
                  windowPagosGlobal = windowPagosGlobal.filter(p => p.id_credito !== idCredito).concat(pagosFrescos);
             }
         } catch(e) { console.error("Error refrescando pagos:", e); }
-
 
         const encontrado = (window.listaCreditosActivosCliente || []).find(c => c.id == idCredito);
         if (!encontrado) return;
@@ -812,7 +819,6 @@
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
         
-        // 🔥 RESCATE DE LA REFERENCIA CRE (EL SABUESO) 🔥
         let numeroCredito = 1;
         if(window.listaCreditosActivosCliente) {
              const todosDelCliente = window.listaCreditosActivosCliente.sort((a,b) => a.id - b.id);
@@ -869,7 +875,7 @@
     }
 
     // =========================================================
-    // 🔥 EL MOTOR PRINCIPAL: PROCESAR COBRO EN EL MÓVIL 🔥
+    // 🔥 EL MOTOR PRINCIPAL: PROCESAR COBRO EN EL MÓVIL (AHORA SÍ CON SMS VIP) 🔥
     // =========================================================
     async function procesarCobroOficial() {
         const montoInput = parseFloat(document.getElementById('monto-cobro-input').value);
@@ -896,6 +902,9 @@
 
         if (!confirm(`¿Estás seguro de registrar un cobro de $${montoInput.toFixed(2)} en ${metodoPago.toUpperCase()}?`)) return;
 
+        // 🔥 AQUÍ ESTÁ EL PREGUNTADOR DEL SMS VIP QUE FALTABA 🔥
+        const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de este abono por SMS al cliente?");
+
         const supa = await esperarSupabase();
         
         try {
@@ -913,7 +922,6 @@
                 finalCapital = montoInput;
             }
 
-            // 1. Guardar en historial (Añadimos número de pago para que la lista no se confunda)
             const { data: pagosExistentes } = await supa.from('historial_pagos').select('id').eq('id_credito', window.creditoSeleccionadoCobro.id);
             const numeroNuevoPago = (pagosExistentes ? pagosExistentes.length : 0) + 1;
 
@@ -930,7 +938,6 @@
             
             if (errHistorial) throw errHistorial;
 
-            // 2. Ajustar saldo de caja
             if (finalCapital > 0) {
                 const tipoCaja = metodoPago === 'transferencia' ? 'banco' : 'efectivo';
                 const { data: cajasTarget } = await supa.from('cajas_capital').select('id, saldo_actual').eq('tipo', tipoCaja).limit(1);
@@ -941,7 +948,6 @@
                 }
             }
 
-            // 3. Liquidar crédito si llega a 0
             const nuevoSaldo = parseFloat((saldoRealTotal - montoInput).toFixed(2));
             if (nuevoSaldo <= 0) {
                 await supa.from('creditos').update({ estado: 'finalizado', acuerdo_pago: '' }).eq('id', window.creditoSeleccionadoCobro.id);
@@ -949,15 +955,99 @@
 
             alert("✅ ¡Pago registrado correctamente!");
             
-            // 4. Intentar mandar el SMS
-            const cli = window.creditoSeleccionadoCobro.clientes || {};
-            let numeroCli = cli.whatsapp;
-            if(numeroCli && typeof window.enviarSMSAutomatico === 'function') {
-                const msj = `SISTEMA ALPHA\nHola ${cli.nombres}, recibimos tu pago de $${montoInput.toFixed(2)}.\nSaldo restante: $${nuevoSaldo.toFixed(2)}\n¡Gracias!`;
-                await window.enviarSMSAutomatico(numeroCli, msj);
+            // =================================================================
+            // 🚀 LÓGICA INTELIGENTE DE ENVÍO DE SMS VIP PARA EL MÓVIL
+            // =================================================================
+            if (enviarSMS) {
+                const cli = window.creditoSeleccionadoCobro.clientes || {};
+                let numeroCliente = cli.whatsapp; 
+
+                if (!numeroCliente) {
+                    const { data: infoDB } = await supa.from('clientes').select('whatsapp').eq('id', window.creditoSeleccionadoCobro.cliente_id).single();
+                    if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
+                }
+
+                if (!numeroCliente) {
+                    alert("⚠️ El SMS NO se envió: Este cliente no tiene número en la BD.");
+                } else if (typeof window.enviarSMSAutomatico !== 'function') {
+                    alert("⚠️ El SMS NO se envió: Función 'enviarSMSAutomatico' no detectada en la versión móvil. (Revisa tu app.js)");
+                } else {
+                    try {
+                        const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+                        const iN = (cli.nombres || '').trim().charAt(0);
+                        const iA = (cli.apellidos || '').trim().charAt(0);
+                        const u4 = (cli.cedula || '').trim().slice(-4);
+                        const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
+                        
+                        let creText = "CRE # ?";
+                        const lblRef = document.getElementById('lbl-recaudacion-ref');
+                        if (lblRef && lblRef.innerText) {
+                            const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+                            if (match) {
+                                const textoCrudo = match[0].trim();
+                                const matchLetra = textoCrudo.match(/\[.*?\]/);
+                                creText = matchLetra ? `CRE #${matchLetra[0]}` : textoCrudo;
+                            }
+                        }
+
+                        // 🔥 FÓRMULA ALPHA SMS COMPACTA (Mes en letras)
+                        const ahora = new Date();
+                        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+                        const diaSemana = dias[ahora.getDay()];
+                        const numDia = String(ahora.getDate()).padStart(2, '0');
+                        const mesNombre = meses[ahora.getMonth()];
+                        const anioCorto = String(ahora.getFullYear()).slice(-2);
+
+                        let horas = ahora.getHours();
+                        let minutos = String(ahora.getMinutes()).padStart(2, '0');
+                        const ampm = horas >= 12 ? 'p.m.' : 'a.m.';
+                        horas = horas % 12; horas = horas ? horas : 12;
+                        horas = String(horas).padStart(2, '0');
+
+                        const fechaHoraSMS = `${diaSemana} ${numDia}/${mesNombre}/${anioCorto} | ${horas}:${minutos} ${ampm}`;
+                        
+                        let infoMetodo = `💳 Método: ${metodoPago.toUpperCase()}`;
+                        if (metodoPago === 'transferencia' && detallesBanco !== "") {
+                            infoMetodo += `\n🏦 Banco: ${detallesBanco}`;
+                        }
+
+                        let msjSalida = "";
+                        const esCancelacionTotal = nuevoSaldo <= 0;
+
+                        if (esCancelacionTotal) {
+                            msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\n🎉 ¡CONTRATO CANCELADO AL 100%! 🎉\n\nTe notificamos de manera oficial que tu crédito ha sido liquidado exitosamente en nuestra base de datos.\n\n✅ Pago de Cierre: #${numeroNuevoPago}\n💰 Monto Recibido: $${montoInput.toFixed(2)}\n📉 Saldo Pendiente: $0.00\n${infoMetodo}\n📊 Récord Crediticio: EXCELENTE / IMPECABLE\n\nQueremos agradecer enormemente tu compromiso y puntualidad. ¡Tienes las puertas totalmente abiertas para tu siguiente solicitud cuando la requieras! 🚀\n\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                        } else {
+                            const cuotasTotales = parseInt(window.creditoSeleccionadoCobro.num_cuotas) || 1;
+                            const valorDeCuota = parseFloat(window.creditoSeleccionadoCobro.valor_cuota) || 1;
+                            let cuotasPendientes = Math.ceil(nuevoSaldo / valorDeCuota);
+                            if (cuotasPendientes < 0) cuotasPendientes = 0;
+
+                            msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+                        }
+                        
+                        // 1. Envía el recibo original al cliente
+                        await window.enviarSMSAutomatico(numeroCliente.toString(), msjSalida);
+
+                        // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso de red
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+
+                        // 2. 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
+                        const numeroGerente = "0939836191";
+                        if (numeroCliente.toString().trim() !== numeroGerente) {
+                            const etiquetaAuditoria = esCancelacionTotal ? "[COPIA LIQUIDACIÓN]" : "[COPIA NUEVO ABONO]";
+                            await window.enviarSMSAutomatico(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
+                        }
+                        console.log("✅ SMS enviado al cliente y copia al gerente.");
+                        alert("📲 SMS enviado a MacroDroid para despacho.");
+
+                    } catch (errorSMS) {
+                        alert(`❌ Falló el envío del SMS: ${errorSMS.message}`);
+                    }
+                }
             }
 
-            // 🔥 MAGIA DE SINCRONIZACIÓN: RECARGAMOS LA INTERFAZ COMPLETA AL INSTANTE 🔥
             document.getElementById('monto-cobro-input').value = "";
             await cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
 
@@ -966,9 +1056,6 @@
         }
     }
 
-    // =========================================================
-    // 🎨 RENDERIZADOR DE HISTORIAL PREMIUM (PAGINADO Y DETALLADO)
-    // =========================================================
     function renderizarAbonosPaginadosMovil() {
         const contenedor = document.getElementById('lista-historial-abonos');
         if (!contenedor) return;
@@ -994,11 +1081,10 @@
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
         
-        // 🔥 RESCATE DE LA REFERENCIA CRE PARA EL HISTORIAL 🔥
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
-            const match = lblRef.innerText.match(/CRE\s*#[^|]+/); // Busca desde CRE # hasta antes del pipe
+            const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
             if (match) {
                  creText = match[0].trim();
             }
@@ -1008,7 +1094,6 @@
 
         abonosPagina.forEach((p, index) => {
             const indiceGlobal = inicio + index;
-            // Usamos el número de pago de la BD si existe, si no lo calculamos a la antigua
             const numeroPago = p.numero_pago || (totalAbonos - indiceGlobal);
             const fPago = new Date(p.fecha_pago);
             const ahora = new Date().getTime();
