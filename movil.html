@@ -379,7 +379,18 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - BOTÓN CON VIDA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - BOTÓN CON VIDA Y LÓGICA DE COBRO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DESPLEGABLE COMPLETO Y BOTÓN ACTIVO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - HISTORIAL PREMIUM) -->
 <script>
+    // =========================================================
+    // 🚀 VARIABLES GLOBALES PARA LA INYECCIÓN Y PAGINACIÓN
+    // =========================================================
+    let windowPagosGlobal = [];
+    let windowInteresTotalPactado = 0;
+    let windowInteresYaPagado = 0;
+    let abonosClienteActual = []; // Memoria temporal para los abonos del cliente
+    let paginaActualAbonos = 1;
+    const ABONOS_POR_PAGINA = 4;  // Límite exacto de abonos por página
+
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
         document.getElementById('vista-modulos').style.display = 'none';
@@ -556,11 +567,12 @@
                         </button>
                     </div>
 
+                    <!-- PANEL ESTÁTICO DE HISTORIAL PREMIUM -->
                     <div style="background: white; margin: 0 20px 20px 20px; text-align: left; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
                             <h4 style="margin: 0; font-size: 15px; color: var(--texto-oscuro);">Historial</h4>
                         </div>
-                        <div id="lista-historial-abonos" style="max-height: 250px; overflow-y: auto; font-size: 12px; padding-right: 5px;">
+                        <div id="lista-historial-abonos" style="max-height: 500px; overflow-y: auto; font-size: 12px; padding-right: 5px;">
                             <div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando pagos...</div>
                         </div>
                     </div>
@@ -588,13 +600,6 @@
         if (modulo === 'inicio') navItems[0].classList.add('activo');
         else if (modulo === 'pago') navItems[1].classList.add('activo');
     }
-
-    // =========================================================
-    // 🚀 VARIABLES GLOBALES PARA LA INYECCIÓN
-    // =========================================================
-    let windowPagosGlobal = [];
-    let windowInteresTotalPactado = 0;
-    let windowInteresYaPagado = 0;
 
     // =========================================================
     // 🚀 FUNCIONES AUXILIARES MÓVILES
@@ -692,7 +697,7 @@
         }
     }
 
-    // 🔥 AQUI RESTAURAMOS LA LISTA DESPLEGABLE COMPLETA VIP 🔥
+    // 🔥 RESTAURAMOS LA LISTA DESPLEGABLE COMPLETA VIP 🔥
     async function buscarCreditoMovil() {
         const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
         if (!busqueda) { alert("⚠️ Selecciona un cliente."); return; }
@@ -937,6 +942,123 @@
         }
     }
 
+    // =========================================================
+    // 🎨 RENDERIZADOR DE HISTORIAL PREMIUM (PAGINADO Y DETALLADO)
+    // =========================================================
+    function renderizarAbonosPaginadosMovil() {
+        const contenedor = document.getElementById('lista-historial-abonos');
+        if (!contenedor) return;
+
+        if (abonosClienteActual.length === 0) {
+            contenedor.innerHTML = `
+                <div style="text-align: center; color: #94a3b8; padding: 30px 10px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                    <span style="font-size: 30px; display: block; margin-bottom: 10px;">📉</span>
+                    <p style="margin: 0; font-size: 13px;">No hay abonos registrados en este crédito aún.</p>
+                </div>`;
+            return;
+        }
+
+        const inicio = (paginaActualAbonos - 1) * ABONOS_POR_PAGINA;
+        const fin = inicio + ABONOS_POR_PAGINA;
+        const abonosPagina = abonosClienteActual.slice(inicio, fin);
+        const totalPaginas = Math.ceil(abonosClienteActual.length / ABONOS_POR_PAGINA);
+        const totalAbonos = abonosClienteActual.length;
+
+        const cli = window.creditoSeleccionadoCobro.clientes || {};
+        const iN = (cli.nombres || '').trim().charAt(0);
+        const iA = (cli.apellidos || '').trim().charAt(0);
+        const u4 = (cli.cedula || '').trim().slice(-4);
+        const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
+        
+        let creText = "CRE # ?";
+        const lblRef = document.getElementById('lbl-recaudacion-ref');
+        if (lblRef && lblRef.innerText) {
+            const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+            if (match) creText = match[0].trim();
+        }
+
+        let htmlHistorial = '';
+
+        abonosPagina.forEach((p, index) => {
+            const indiceGlobal = inicio + index;
+            const numeroPago = totalAbonos - indiceGlobal;
+            const fPago = new Date(p.fecha_pago);
+            const ahora = new Date().getTime();
+            const esEditable = (ahora - fPago.getTime()) < 86400000;
+
+            const diasAbono = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const mesesAbono = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const diaSemana = diasAbono[fPago.getDay()];
+            const dia = String(fPago.getDate()).padStart(2, '0');
+            const mes = mesesAbono[fPago.getMonth()];
+            const anio = fPago.getFullYear();
+            
+            let horas = fPago.getHours();
+            let minutos = String(fPago.getMinutes()).padStart(2, '0');
+            let segundos = String(fPago.getSeconds()).padStart(2, '0');
+            const ampm = horas >= 12 ? 'p. m.' : 'a. m.';
+            horas = horas % 12; horas = horas ? horas : 12;
+            horas = String(horas).padStart(2, '0');
+            
+            const metodoTxt = p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO';
+            
+            htmlHistorial += `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px;">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11px; font-weight: bold; color: #475569;">
+                            <span style="font-size: 12px; font-weight: 900; color: #1e293b; background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">Pago #${p.numero_pago || numeroPago}</span>
+                            <span style="color: #0284c7;">REF: ${refFinal}</span>
+                            <span style="color: #cbd5e1;">|</span>
+                            <span style="color: #65a30d;">${creText}</span>
+                            <span style="color: #cbd5e1;">|</span>
+                            <span style="text-transform: lowercase;">📅 ${diaSemana}, ${dia}/${mes}/${anio} | ${horas}:${minutos}:${segundos} ${ampm}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px; margin-left: 10px;">
+                            <span style="font-size: 10px; font-weight: 800; background: #e0f2fe; color: #0284c7; padding: 3px 6px; border-radius: 4px;">${metodoTxt}</span>
+                            ${p.detalles_banco ? `<span style="font-size: 11px; font-weight: 800; color: #64748b;">${p.detalles_banco}</span>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 20px; font-weight: 900; color: #10b981;">+$${parseFloat(p.abono_total).toFixed(2)}</div>
+                            <div style="display: flex; gap: 15px; font-size: 12px; font-weight: 600;">
+                                <span style="color: #ca8a04;">Int: $${parseFloat(p.monto_interes || 0).toFixed(2)}</span>
+                                <span style="color: #0369a1;">Cap: $${parseFloat(p.monto_capital || 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; border-left: 1px dashed #cbd5e1; padding-left: 10px;">
+                            <button onclick="reenviarReciboAbono(${p.id})" title="Reenviar" style="background:none; border:none; font-size:16px; cursor:pointer;">📩</button>
+                            ${esEditable ? `
+                                <button onclick="editarAbono(${p.id})" title="Editar" style="background:none; border:none; font-size:16px; cursor:pointer;">✏️</button>
+                                <button onclick="eliminarAbono(${p.id})" title="Eliminar" style="background:none; border:none; font-size:16px; cursor:pointer;">🚫</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (totalPaginas > 1) {
+            htmlHistorial += `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 2px dashed #e2e8f0;">
+                    <button onclick="cambiarPaginaAbonos(${paginaActualAbonos - 1})" ${paginaActualAbonos === 1 ? 'disabled' : ''} style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: #ffffff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; cursor: pointer;">◀ Anterior</button>
+                    <span style="font-size: 11px; font-weight: 900; color: #334155; background: #e2e8f0; padding: 4px 12px; border-radius: 20px;">PÁG ${paginaActualAbonos} DE ${totalPaginas}</span>
+                    <button onclick="cambiarPaginaAbonos(${paginaActualAbonos + 1})" ${paginaActualAbonos >= totalPaginas ? 'disabled' : ''} style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: #ffffff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; cursor: pointer;">Siguiente ▶</button>
+                </div>
+            `;
+        }
+
+        contenedor.innerHTML = htmlHistorial;
+    }
+
+    function cambiarPaginaAbonos(nuevaPagina) {
+        const totalPaginas = Math.ceil(abonosClienteActual.length / ABONOS_POR_PAGINA);
+        if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
+            paginaActualAbonos = nuevaPagina;
+            renderizarAbonosPaginadosMovil();
+        }
+    }
+
     async function cargarHistorialMovil(idCredito) {
         const contenedor = document.getElementById('lista-historial-abonos');
         contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando historial...</div>';
@@ -944,25 +1066,16 @@
         if (!supa) return;
 
         try {
-            const { data: pagos, error } = await supa.from('historial_pagos').select('*').eq('id_credito', idCredito).order('fecha_pago', { ascending: false }).limit(5);
+            const { data: pagos, error } = await supa.from('historial_pagos').select('*').eq('id_credito', idCredito).order('fecha_pago', { ascending: false });
             if (error) throw error;
-            if (!pagos || pagos.length === 0) {
-                contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Sin pagos registrados.</div>';
-                return;
-            }
-
-            let html = '';
-            pagos.forEach(p => {
-                const f = new Date(p.fecha_pago);
-                const fechaTxt = `${f.getDate()}/${f.getMonth()+1}/${f.getFullYear()}`;
-                html += `
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 8px; display:flex; justify-content: space-between; align-items:center;">
-                    <div><div style="font-size:10px; color:#64748b; font-weight:bold;">${fechaTxt}</div><div style="font-size:14px; font-weight:900; color:#10b981;">+$${parseFloat(p.abono_total).toFixed(2)}</div></div>
-                    <div style="font-size:10px; font-weight:bold; color:#0284c7; background:#e0f2fe; padding:3px 6px; border-radius:4px;">${p.forma_pago ? p.forma_pago.toUpperCase() : 'EFECTIVO'}</div>
-                </div>`;
-            });
-            contenedor.innerHTML = html;
-        } catch(e) {}
+            
+            abonosClienteActual = pagos || [];
+            paginaActualAbonos = 1;
+            renderizarAbonosPaginadosMovil();
+            
+        } catch(e) {
+             contenedor.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Error al cargar historial.</div>';
+        }
     }
 
     async function cerrarSesion() {
