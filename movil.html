@@ -380,6 +380,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - BOTÓN CON VIDA Y LÓGICA DE COBRO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DESPLEGABLE COMPLETO Y BOTÓN ACTIVO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - HISTORIAL PREMIUM) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - ACTUALIZACIÓN EN VIVO Y REF EXACTA) -->
 <script>
     // =========================================================
     // 🚀 VARIABLES GLOBALES PARA LA INYECCIÓN Y PAGINACIÓN
@@ -387,9 +388,9 @@
     let windowPagosGlobal = [];
     let windowInteresTotalPactado = 0;
     let windowInteresYaPagado = 0;
-    let abonosClienteActual = []; // Memoria temporal para los abonos del cliente
+    let abonosClienteActual = []; 
     let paginaActualAbonos = 1;
-    const ABONOS_POR_PAGINA = 4;  // Límite exacto de abonos por página
+    const ABONOS_POR_PAGINA = 4;  
 
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -697,7 +698,6 @@
         }
     }
 
-    // 🔥 RESTAURAMOS LA LISTA DESPLEGABLE COMPLETA VIP 🔥
     async function buscarCreditoMovil() {
         const busqueda = document.getElementById('selector-cliente-recaudacion').value.trim();
         if (!busqueda) { alert("⚠️ Selecciona un cliente."); return; }
@@ -719,7 +719,7 @@
             const { data: todosCreditosCliente } = await supa.from('creditos').select('id').eq('cliente_id', idDelCliente).order('id', { ascending: true });
             
             const idsActivos = creditosDelCliente.map(c => c.id);
-            const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes').in('id_credito', idsActivos);
+            const { data: pagosCliente } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').in('id_credito', idsActivos);
             const { data: morasCliente } = await supa.from('historial_moras').select('credito_id, tipo_accion').in('credito_id', idsActivos).order('id', { ascending: true });
             
             window.listaCreditosActivosCliente = creditosDelCliente;
@@ -776,6 +776,18 @@
 
     async function cargarEstadoCuentaCreditoMovil(idCredito) {
         if (!idCredito) return;
+        
+        // 🔄 RE-CONSULTA A LA BD PARA TRAER LOS PAGOS MÁS RECIENTES ANTES DE DIBUJAR 🔄
+        const supa = await esperarSupabase();
+        try {
+            const { data: pagosFrescos } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').eq('id_credito', idCredito);
+            if(pagosFrescos) {
+                 // Actualizar el array global de este cliente específico
+                 windowPagosGlobal = windowPagosGlobal.filter(p => p.id_credito !== idCredito).concat(pagosFrescos);
+            }
+        } catch(e) { console.error("Error refrescando pagos:", e); }
+
+
         const encontrado = (window.listaCreditosActivosCliente || []).find(c => c.id == idCredito);
         if (!encontrado) return;
         window.creditoSeleccionadoCobro = encontrado;
@@ -799,8 +811,17 @@
         const iA = (cli.apellidos || '').trim().charAt(0);
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
+        
+        // 🔥 RESCATE DE LA REFERENCIA CRE (EL SABUESO) 🔥
+        let numeroCredito = 1;
+        if(window.listaCreditosActivosCliente) {
+             const todosDelCliente = window.listaCreditosActivosCliente.sort((a,b) => a.id - b.id);
+             numeroCredito = todosDelCliente.findIndex(c => c.id == idCredito) + 1;
+        }
+        const creCifrado = cifrarNumeroCreditoMovil(numeroCredito);
+        const refTextoCompleto = `CRE #${numeroCredito} [${creCifrado}]`;
 
-        document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id}`;
+        document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | ${refTextoCompleto}`;
         document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
         
@@ -892,7 +913,10 @@
                 finalCapital = montoInput;
             }
 
-            // 1. Guardar en historial
+            // 1. Guardar en historial (Añadimos número de pago para que la lista no se confunda)
+            const { data: pagosExistentes } = await supa.from('historial_pagos').select('id').eq('id_credito', window.creditoSeleccionadoCobro.id);
+            const numeroNuevoPago = (pagosExistentes ? pagosExistentes.length : 0) + 1;
+
             const { error: errHistorial } = await supa.from('historial_pagos').insert([{
                 id_credito: window.creditoSeleccionadoCobro.id,
                 abono_total: montoInput,
@@ -900,7 +924,8 @@
                 monto_capital: finalCapital,
                 forma_pago: metodoPago,
                 detalles_banco: detallesBanco,
-                fecha_pago: new Date().toISOString()
+                fecha_pago: new Date().toISOString(),
+                numero_pago: numeroNuevoPago
             }]);
             
             if (errHistorial) throw errHistorial;
@@ -922,20 +947,19 @@
                 await supa.from('creditos').update({ estado: 'finalizado', acuerdo_pago: '' }).eq('id', window.creditoSeleccionadoCobro.id);
             }
 
-            alert("✅ ¡Pago registrado correctamente en la base de datos!");
+            alert("✅ ¡Pago registrado correctamente!");
             
-            // 4. Intentar mandar el SMS si la función de escritorio está disponible
+            // 4. Intentar mandar el SMS
             const cli = window.creditoSeleccionadoCobro.clientes || {};
             let numeroCli = cli.whatsapp;
             if(numeroCli && typeof window.enviarSMSAutomatico === 'function') {
                 const msj = `SISTEMA ALPHA\nHola ${cli.nombres}, recibimos tu pago de $${montoInput.toFixed(2)}.\nSaldo restante: $${nuevoSaldo.toFixed(2)}\n¡Gracias!`;
                 await window.enviarSMSAutomatico(numeroCli, msj);
-                alert("📲 SMS enviado a MacroDroid para despacho.");
             }
 
-            // Refrescar el cliente visualmente
+            // 🔥 MAGIA DE SINCRONIZACIÓN: RECARGAMOS LA INTERFAZ COMPLETA AL INSTANTE 🔥
             document.getElementById('monto-cobro-input').value = "";
-            cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
+            await cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
 
         } catch (err) {
             alert("❌ Error crítico al registrar abono: " + err.message);
@@ -970,18 +994,22 @@
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
         
+        // 🔥 RESCATE DE LA REFERENCIA CRE PARA EL HISTORIAL 🔥
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
-            const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
-            if (match) creText = match[0].trim();
+            const match = lblRef.innerText.match(/CRE\s*#[^|]+/); // Busca desde CRE # hasta antes del pipe
+            if (match) {
+                 creText = match[0].trim();
+            }
         }
 
         let htmlHistorial = '';
 
         abonosPagina.forEach((p, index) => {
             const indiceGlobal = inicio + index;
-            const numeroPago = totalAbonos - indiceGlobal;
+            // Usamos el número de pago de la BD si existe, si no lo calculamos a la antigua
+            const numeroPago = p.numero_pago || (totalAbonos - indiceGlobal);
             const fPago = new Date(p.fecha_pago);
             const ahora = new Date().getTime();
             const esEditable = (ahora - fPago.getTime()) < 86400000;
@@ -1006,7 +1034,7 @@
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px;">
                         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11px; font-weight: bold; color: #475569;">
-                            <span style="font-size: 12px; font-weight: 900; color: #1e293b; background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">Pago #${p.numero_pago || numeroPago}</span>
+                            <span style="font-size: 12px; font-weight: 900; color: #1e293b; background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">Pago #${numeroPago}</span>
                             <span style="color: #0284c7;">REF: ${refFinal}</span>
                             <span style="color: #cbd5e1;">|</span>
                             <span style="color: #65a30d;">${creText}</span>
