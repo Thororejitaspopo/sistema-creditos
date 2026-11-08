@@ -376,6 +376,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - DISEÑO LIMPIO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - TEXTOS ALINEADOS) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - COBROS COMPLETOS) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - BOTÓN CON VIDA) -->
 <script>
     function abrirModulo(modulo) {
         document.getElementById('vista-inicio').style.display = 'none';
@@ -389,10 +390,10 @@
             vistaModulos.style.display = 'block';
             vistaModulos.innerHTML = 
                 '<div class="seccion-titulo" style="margin-top: 30px;">Mi Perfil y Resumen</div>' +
-                '<div class="tarjeta-btn" style="margin: 20px; background: #e0f2fe; border-color: #7dd3fc; cursor: default;">' +
+                '<div style="margin: 20px; background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 16px; padding: 15px; text-align: center;">' +
                 '  <span class="icono-grande" style="font-size: 40px;">💼</span>' +
                 '  <h3 style="color: #0369a1; margin: 10px 0;">Dashboard Gerencial</h3>' +
-                '  <span class="texto-btn" style="color: #0c4a6e;">Aquí cargaremos los valores de Caja Matriz y Capital en la Calle.</span>' +
+                '  <span class="texto-btn" style="color: #0c4a6e; font-size: 13px;">Aquí cargaremos los valores de Caja Matriz y Capital en la Calle.</span>' +
                 '</div>' +
                 '<div style="margin: 30px 20px;">' +
                 '  <button onclick="cerrarSesion()" style="width: 100%; background: #ef4444; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(239,68,68,0.3);">🚪 Cerrar Sesión</button>' +
@@ -405,7 +406,7 @@
             vistaModulos.innerHTML = `
                 <div class="seccion-titulo" style="margin-top: 25px;">💵 Registrar Cobro</div>
 
-                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; margin: 0 20px 15px 20px; text-align: left; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                     <label style="font-size: 12px; font-weight: bold; color: var(--texto-claro); margin-bottom: 8px; display: block;">1. Seleccionar Cliente</label>
                     
                     <select id="filtro-sector-recaudacion" onchange="cargarListaClientesMovil()" style="width: 100%; padding: 14px 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px; background: #f8fafc; outline: none; font-size: 14px;">
@@ -426,10 +427,10 @@
                         <option value="">-- Cliente --</option>
                     </select>
                     
-                    <button onclick="buscarCreditoMovil()" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'" style="width: 100%; padding: 14px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.2); transition: transform 0.1s;">🔍 Buscar Cuenta</button>
+                    <button onclick="buscarCreditoMovil()" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'" style="width: 100%; padding: 14px; background: var(--primario); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 6px rgba(2, 132, 199, 0.3); transition: transform 0.1s;">🔍 Buscar Cuenta</button>
                 </div>
 
-                <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
+                <div id="contenedor-multicredito" style="display: none; margin: 0 20px 15px 20px; padding: 15px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 16px;">
                     <label style="font-size: 12px; font-weight: bold; color: #b91c1c; display: block; margin-bottom: 8px;">⚠️ Tiene múltiples créditos:</label>
                     <select id="selector-multicredito" onchange="cargarEstadoCuentaCreditoMovil(this.value)" style="width: 100%; padding: 12px; border: 1px solid #f87171; border-radius: 8px; background: white; font-weight: bold; font-size: 13px;"></select>
                 </div>
@@ -440,7 +441,9 @@
                 </div>
 
                 <div id="panel-recaudacion-activo" style="display: none;">
-                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; background: white; cursor: default; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    
+                    <!-- PANEL ESTÁTICO DE CLIENTE (Sin efecto botón) -->
+                    <div style="background: white; margin: 0 20px 15px 20px; text-align: left; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px;">
                             <span id="lbl-recaudacion-ref" style="color: #0284c7; font-size: 11px; font-weight: bold;">REF: --- | CRÉDITO #---</span>
                             <div style="display: flex; align-items: center; gap: 6px;">
@@ -482,8 +485,8 @@
                         </div>
                     </div>
 
-                    <!-- 🔥 NUEVO DISEÑO VIP DEL MÓDULO DE COBROS 🔥 -->
-                    <div class="tarjeta-btn" style="margin: 0 20px 15px 20px; text-align: left; padding: 15px; cursor: default; border: 2px solid #fef08a;">
+                    <!-- PANEL ESTÁTICO DE COBRO (Sin efecto botón) -->
+                    <div style="background: white; margin: 0 20px 15px 20px; text-align: left; padding: 15px; border-radius: 16px; border: 2px solid #fef08a; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                         <h4 style="margin: 0 0 15px 0; font-size: 15px; color: var(--texto-oscuro); border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
                             <span>📥</span> Registro de Cobro Efectivo
                         </h4>
@@ -492,8 +495,8 @@
                         <div style="position: relative; margin-bottom: 15px;">
                             <input type="number" id="monto-cobro-input" step="0.01" oninput="simularEnrutamientoFlujo(this.value)" style="width: 100%; padding: 15px 40px 15px 15px; border: 2px solid var(--primario); border-radius: 8px; font-size: 24px; font-weight: 900; color: var(--texto-oscuro); text-align: left; box-sizing: border-box; outline:none; background:#f8fafc;" placeholder="0.00">
                             <div style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 2px;">
-                                <span style="font-size: 12px; color: #94a3b8; cursor: pointer;">▲</span>
-                                <span style="font-size: 12px; color: #94a3b8; cursor: pointer;">▼</span>
+                                <span style="font-size: 12px; color: #94a3b8;">▲</span>
+                                <span style="font-size: 12px; color: #94a3b8;">▼</span>
                             </div>
                         </div>
                         
@@ -545,17 +548,25 @@
                             </div>
                         </div>
 
-                        <button onclick="procesarCobroOficial()" style="width: 100%; padding: 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); display: flex; justify-content: center; align-items: center; gap: 8px;">
-                            <span>✅</span> Confirmar e Inyectar Abono
+                        <!-- 🔥 EL VERDADERO BOTÓN DE CONFIRMAR 🔥 -->
+                        <button onclick="procesarCobroOficial()" 
+                                onmousedown="this.style.transform='scale(0.96)'; this.style.boxShadow='0 2px 4px rgba(16,185,129,0.5)';" 
+                                onmouseup="this.style.transform='scale(1)'; this.style.boxShadow='0 8px 16px rgba(16,185,129,0.4)';" 
+                                onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 8px 16px rgba(16,185,129,0.4)';" 
+                                ontouchstart="this.style.transform='scale(0.96)'; this.style.boxShadow='0 2px 4px rgba(16,185,129,0.5)';" 
+                                ontouchend="this.style.transform='scale(1)'; this.style.boxShadow='0 8px 16px rgba(16,185,129,0.4)';" 
+                                style="width: 100%; padding: 18px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 16px; text-transform: uppercase; box-shadow: 0 8px 16px rgba(16,185,129,0.4); display: flex; justify-content: center; align-items: center; gap: 8px; transition: transform 0.1s ease, box-shadow 0.1s ease;">
+                            <span style="font-size: 20px;">✅</span> Confirmar e Inyectar Abono
                         </button>
                     </div>
 
-                    <div class="tarjeta-btn" style="margin: 0 20px 20px 20px; text-align: left; padding: 15px; cursor: default;">
+                    <!-- PANEL ESTÁTICO DE HISTORIAL (Sin efecto botón) -->
+                    <div style="background: white; margin: 0 20px 20px 20px; text-align: left; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
                             <h4 style="margin: 0; font-size: 15px; color: var(--texto-oscuro);">Historial</h4>
                             <div style="display: flex; gap: 5px;">
-                                <button onclick="generarEstadoCuentaPDF()" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">📄 PDF</button>
-                                <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold;">📲 SMS</button>
+                                <button onclick="generarEstadoCuentaPDF()" style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(239,68,68,0.3);">📄 PDF</button>
+                                <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(14,165,233,0.3);">📲 SMS</button>
                             </div>
                         </div>
                         <div id="lista-historial-abonos" style="max-height: 250px; overflow-y: auto; font-size: 12px; padding-right: 5px;">
@@ -574,7 +585,7 @@
             vistaModulos.style.display = 'block';
             vistaModulos.innerHTML = 
                 '<div class="seccion-titulo" style="margin-top: 30px;">MÓDULO: ' + modulo.toUpperCase() + '</div>' +
-                '<div class="tarjeta-btn" style="margin: 20px; cursor:default;">' +
+                '<div style="margin: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 15px; text-align: center;">' +
                 '  <span class="icono-grande">⚙️</span>' +
                 '  <span class="texto-btn">Conectando base de datos...<br>Pronto verá las funciones aquí.</span>' +
                 '</div>';
@@ -826,7 +837,6 @@
         document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
         
-        // Manejo de cuota y acuerdos (limpiando textos repetidos)
         let cuotaFinal = parseFloat(encontrado.valor_cuota) || 1;
         let frecuenciaDB = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase();
         let frecuenciaFinal = '';
@@ -868,7 +878,6 @@
         
         document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <div style="display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end;"><span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span></div>`;
         
-        // Manejo de la mora y saldo final
         const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
         const saldoFinalMora = window.creditoSeleccionadoCobro.saldoNeto + moraGuardada;
 
@@ -882,7 +891,6 @@
 
         document.getElementById('lbl-recaudacion-saldo').innerHTML = htmlSaldoNeto;
 
-        // Banderas (Congelado/Acuerdo)
         const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
         if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
             cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 14px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 11px; text-transform: uppercase;">Acuerdo Activo</span></div><div style="color: #422006; font-size: 12px; font-weight: bold; padding-left: 22px;">"${textoAcuerdo}"</div></div>`;
@@ -897,7 +905,6 @@
         document.getElementById('recaudacion-espera-msg').style.display = 'none';
         document.getElementById('panel-recaudacion-activo').style.display = 'block';
 
-        // Disparar la simulación inicial al cargar la cuota por defecto
         if (typeof simularEnrutamientoFlujo === 'function') {
             simularEnrutamientoFlujo(cuotaFinal);
         }
@@ -924,7 +931,6 @@
             return;
         }
 
-        // Lógica de cálculo (Regla de Oro Alpha)
         const capitalOriginal = parseFloat(window.creditoSeleccionadoCobro.monto_capital) || 0;
         const totalOriginal = parseFloat(window.creditoSeleccionadoCobro.total_pagar) || 0;
         const gananciaTotalEsperada = totalOriginal - capitalOriginal;
