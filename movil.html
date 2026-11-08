@@ -383,9 +383,10 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - ACTUALIZACIÓN EN VIVO Y REF EXACTA) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - SMS INTEGRADO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN MAESTRA - 100% PARIDAD CON ESCRITORIO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - RESTAURACIÓN TOTAL) -->
 <script>
     // =========================================================
-    // 🚀 VARIABLES GLOBALES BLINDADAS (Usamos var para evitar choques de memoria)
+    // 🚀 VARIABLES GLOBALES BLINDADAS
     // =========================================================
     var windowPagosGlobal = [];
     var windowInteresTotalPactado = 0;
@@ -504,7 +505,7 @@
                         </div>
                     </div>
 
-                    <!-- PANEL ESTÁTICO DE COBRO CON BOTÓN VERDE ACTIVO -->
+                    <!-- PANEL ESTÁTICO DE COBRO -->
                     <div style="background: white; margin: 0 20px 15px 20px; text-align: left; padding: 15px; border-radius: 16px; border: 2px solid #fef08a; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                         <h4 style="margin: 0 0 15px 0; font-size: 15px; color: var(--texto-oscuro); border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
                             <span>📥</span> Registro de Cobro Efectivo
@@ -600,7 +601,6 @@
                 '</div>';
         }
 
-        // 🔥 BLINDAJE DE NAVEGACIÓN PARA QUE NUNCA SE CONGELE 🔥
         const navItems = document.querySelectorAll('.nav-item');
         if (navItems && navItems.length > 0) {
             navItems.forEach(item => item.classList.remove('activo'));
@@ -750,8 +750,12 @@
 
                     const moraCredito = parseFloat(c.monto_mora) || 0;
                     const deudaTotalConMora = saldoNeto + moraCredito;
-                    let textoMoraExtra = moraCredito > 0 ? ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalConMora.toFixed(2)}` : '';
                     
+                    let textoMoraExtra = "";
+                    if (moraCredito > 0) {
+                        textoMoraExtra = ` | 🚨 Mora $${moraCredito.toFixed(0)} | 👉 Deuda Total: $${deudaTotalConMora.toFixed(2)}`;
+                    }
+
                     let etiquetaAccion = "";
                     if (morasCliente) {
                         const morasEsteCredito = morasCliente.filter(m => m.credito_id === c.id);
@@ -771,6 +775,7 @@
                     let letraF = c.frecuencia_pago.toUpperCase().includes('DIARIO') ? 'D' : c.frecuencia_pago.toUpperCase().includes('SEMANAL') ? 'S' : 'M';
                     let valorC = parseFloat(c.valor_cuota || 0).toFixed(0);
 
+                    // 🔥 EL FORMATO EXACTO QUE PIDIÓ EN LA IMAGEN 2 🔥
                     const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | Total: $${parseFloat(c.total_pagar).toFixed(2)} ➡️ Saldo: $${saldoNeto.toFixed(2)}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
                     
                     selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
@@ -788,10 +793,9 @@
         
         const supa = await esperarSupabase();
         try {
-            const { data: pagosFrescos } = await supa.from('historial_pagos').select('id, id_credito, abono_total, monto_interes, monto_capital, forma_pago, detalles_banco, fecha_pago, numero_pago').eq('id_credito', idCredito);
+            const { data: pagosFrescos } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').eq('id_credito', idCredito);
             if(pagosFrescos) {
                  windowPagosGlobal = windowPagosGlobal.filter(p => p.id_credito !== idCredito).concat(pagosFrescos);
-                 abonosClienteActual = pagosFrescos;
             }
         } catch(e) { console.error("Error refrescando pagos:", e); }
 
@@ -827,27 +831,98 @@
         const creCifrado = cifrarNumeroCreditoMovil(numeroCredito);
         const refTextoCompleto = `CRE #${numeroCredito} [${creCifrado}]`;
 
+        // 🔥 RESTAURANDO EL FORMATO VIP DE FECHA DE EMISIÓN 🔥
+        let fechaEmisionStr = 'N/A';
+        if(encontrado.fecha_emision) {
+            let fEmi = new Date(encontrado.fecha_emision);
+            if (!isNaN(fEmi.getTime())) {
+                const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                let horasEmi = fEmi.getHours();
+                let minutosEmi = String(fEmi.getMinutes()).padStart(2, '0');
+                const ampmEmi = horasEmi >= 12 ? 'P. M.' : 'A. M.';
+                horasEmi = horasEmi % 12; horasEmi = horasEmi ? horasEmi : 12;
+                horasEmi = String(horasEmi).padStart(2, '0');
+                fechaEmisionStr = `${dias[fEmi.getDay()]}, ${fEmi.getDate()}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()} | ${horasEmi}:${minutosEmi} ${ampmEmi}`.toUpperCase();
+            }
+        }
+
         document.getElementById('lbl-recaudacion-ref').innerHTML = `REF: ${refFinal} | CRÉDITO #${encontrado.id} | ${refTextoCompleto}`;
+        document.getElementById('lbl-recaudacion-fecha-emision').innerText = fechaEmisionStr;
         document.getElementById('lbl-recaudacion-cliente').innerText = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
         document.getElementById('lbl-recaudacion-cedula').innerText = `Cédula: ${cli.cedula || 'N/A'}`;
         
+        // 🔥 RESTAURANDO LA LÓGICA DE FRECUENCIA Y ACUERDOS 🔥
         let cuotaFinal = parseFloat(encontrado.valor_cuota) || 1;
-        document.getElementById('lbl-recaudacion-cuota').innerHTML = `<strong>$${cuotaFinal.toFixed(2)}</strong>`;
+        let frecuenciaDB = (encontrado.frecuencia_pago || 'DIARIO').toUpperCase();
+        let frecuenciaFinal = '';
+        
+        if (frecuenciaDB.includes('DIARIO')) frecuenciaFinal = 'LUN A SÁB';
+        else if (frecuenciaDB.includes('SEMANAL')) frecuenciaFinal = 'SEMANAL';
+        else if (frecuenciaDB.includes('QUINCENAL')) frecuenciaFinal = 'QUINCENAL';
+        else if (frecuenciaDB.includes('MENSUAL')) frecuenciaFinal = 'MENSUAL';
+        else frecuenciaFinal = frecuenciaDB;
+
+        let textoAcuerdo = '';
+
+        if (encontrado.estado === 'congelado' && encontrado.acuerdo_pago) {
+            textoAcuerdo = encontrado.acuerdo_pago;
+            const acuerdoLower = textoAcuerdo.toLowerCase();
+            const matchMonto = textoAcuerdo.match(/\$?\s*(\d+(\.\d{1,2})?)/);
+            if (matchMonto) cuotaFinal = parseFloat(matchMonto[1]);
+            
+            if (acuerdoLower.includes('diario') || acuerdoLower.includes('al dia')) frecuenciaFinal = 'LUN A SÁB';
+            else if (acuerdoLower.includes('semanal') || acuerdoLower.includes('por semana')) frecuenciaFinal = 'SEMANAL';
+            else if (acuerdoLower.includes('quincenal') || acuerdoLower.includes('cada 15')) frecuenciaFinal = 'QUINCENAL';
+            else if (acuerdoLower.includes('mensual') || acuerdoLower.includes('al mes')) frecuenciaFinal = 'MENSUAL';
+            
+            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<span style="color: #ca8a04; background: #fef08a; padding: 2px 5px; border-radius: 4px; font-weight: bold;">$${cuotaFinal.toFixed(2)}</span>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = `<span style="color: #ca8a04;">${frecuenciaFinal} (CONG.)</span>`;
+        } else {
+            document.getElementById('lbl-recaudacion-cuota').innerHTML = `<strong>$${cuotaFinal.toFixed(2)}</strong>`;
+            document.getElementById('lbl-recaudacion-frecuencia').innerHTML = frecuenciaFinal;
+        }
+
         document.getElementById('lbl-recaudacion-total').innerHTML = `<strong>$${parseFloat(encontrado.total_pagar).toFixed(2)}</strong>`;
         
+        // 🔥 RESTAURANDO EL CÁLCULO DE CUOTAS 🔥
+        let cuotasPendientes = Math.ceil(window.creditoSeleccionadoCobro.saldoNeto / cuotaFinal);
+        const numeroCuotasOriginales = parseInt(encontrado.num_cuotas) || 1;
+        let cuotasPagadas = numeroCuotasOriginales - cuotasPendientes;
+        if (cuotasPagadas < 0) cuotasPagadas = 0;
+
+        const textoCuotasTotales = textoAcuerdo !== '' ? 'N/A' : `<strong>${numeroCuotasOriginales}</strong>`;
+        
+        document.getElementById('lbl-recaudacion-num-cuotas').innerHTML = `${textoCuotasTotales} <div style="display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end;"><span style="color: #15803d; font-size: 10px; font-weight: bold;">(✔️ ${cuotasPagadas} Pagadas)</span> <span style="color: #ef4444; font-size: 10px; font-weight: bold;">(${cuotasPendientes} Pendientes)</span></div>`;
+
         const moraGuardada = parseFloat(encontrado.monto_mora) || 0;
         const saldoFinalMora = window.creditoSeleccionadoCobro.saldoNeto + moraGuardada;
-        document.getElementById('lbl-recaudacion-saldo').innerHTML = `<div style="display: flex; flex-direction: column; align-items: flex-end;"><span style="font-size: 24px; font-weight: 900; color: #dc2626;">$${saldoFinalMora.toFixed(2)}</span></div>`;
+        
+        let htmlSaldoNeto = `<div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2;">
+            <span style="font-size: 24px; font-weight: 900; color: #dc2626; white-space: nowrap;">$${saldoFinalMora.toFixed(2)}</span>`;
+        
+        if (moraGuardada > 0) {
+            htmlSaldoNeto += `<span style="font-size: 11px; font-weight: normal; color: #475569; margin-top: 4px; white-space: nowrap;">(Incl. $${moraGuardada.toFixed(2)} mora)</span>`;
+        }
+        htmlSaldoNeto += `</div>`;
+
+        document.getElementById('lbl-recaudacion-saldo').innerHTML = htmlSaldoNeto;
+
+        const cajaBanderas = document.getElementById('contenedor-banderas-recaudacion');
+        if (encontrado.estado === 'congelado' && textoAcuerdo.trim() !== '') {
+            cajaBanderas.innerHTML = `<div style="background: linear-gradient(135deg, #fef08a 0%, #fde047 100%); border: 1px solid #eab308; border-left: 6px solid #ca8a04; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;"><span style="font-size: 14px;">🤝</span><span style="color: #854d0e; font-weight: 900; font-size: 11px; text-transform: uppercase;">Acuerdo Activo</span></div><div style="color: #422006; font-size: 12px; font-weight: bold; padding-left: 22px;">"${textoAcuerdo}"</div></div>`;
+        } else if (encontrado.estado === 'congelado' && textoAcuerdo.trim() === '') {
+             cajaBanderas.innerHTML = `<div style="background: #e0f2fe; border: 1px solid #bae6fd; border-left: 6px solid #0284c7; border-radius: 8px; padding: 10px; margin-top: 10px; margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 14px;">🧊</span><span style="color: #0369a1; font-weight: 800; font-size: 11px;">Cuenta Protegida</span></div></div>`;
+        } else {
+            cajaBanderas.innerHTML = ''; 
+        }
 
         document.getElementById('monto-cobro-input').value = cuotaFinal.toFixed(2);
         document.getElementById('recaudacion-espera-msg').style.display = 'none';
         document.getElementById('panel-recaudacion-activo').style.display = 'block';
 
         simularEnrutamientoFlujo(cuotaFinal);
-        
-        // Paginación y dibujado de historial en vivo
-        paginaActualAbonos = 1;
-        renderizarAbonosPaginadosMovil();
+        cargarHistorialMovil(idCredito);
     }
 
     function simularEnrutamientoFlujo(montoIngresado) {
@@ -905,7 +980,6 @@
 
         if (!confirm(`¿Estás seguro de registrar un cobro de $${montoInput.toFixed(2)} en ${metodoPago.toUpperCase()}?`)) return;
 
-        // 🔥 MENSAJE VIP PARA EL CLIENTE (COMO EN ESCRITORIO)
         const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de este abono por SMS al cliente?");
 
         const supa = await esperarSupabase();
@@ -959,7 +1033,7 @@
             alert("✅ ¡Pago registrado correctamente!");
             
             // =================================================================
-            // 🚀 ENVÍO DE SMS VIP PARA EL MÓVIL
+            // 🚀 ENVÍO DE SMS VIP (LLAMANDO AL PADRE)
             // =================================================================
             if (enviarSMS) {
                 const cli = window.creditoSeleccionadoCobro.clientes || {};
@@ -972,8 +1046,9 @@
 
                 if (!numeroCliente) {
                     alert("⚠️ El SMS NO se envió: Este cliente no tiene número registrado.");
-                } else if (typeof window.enviarSMSAutomatico !== 'function') {
-                    alert("⚠️ El SMS NO se envió: Función 'enviarSMSAutomatico' no detectada en su base.");
+                } else if (typeof window.parent.enviarSMSAutomatico !== 'function') {
+                    // 🔥 AQUÍ ESTÁ LA SOLUCIÓN: Buscamos la función en el "padre" (app.js)
+                    alert("⚠️ El SMS NO se envió: Función 'enviarSMSAutomatico' no detectada. Verifique que app.js esté cargado en index.html.");
                 } else {
                     try {
                         const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
@@ -1029,17 +1104,17 @@
                             msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                         }
                         
-                        // 1. Envía el recibo original al cliente
-                        await window.enviarSMSAutomatico(numeroCliente.toString(), msjSalida);
+                        // 🔥 LLAMAMOS AL PADRE (window.parent) PARA ENVIAR EL SMS 🔥
+                        await window.parent.enviarSMSAutomatico(numeroCliente.toString(), msjSalida);
 
                         // 🕒 PAUSA DE 2 SEGUNDOS: Evitamos colapso de red
                         await new Promise(resolve => setTimeout(resolve, 2000));
 
-                        // 2. 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
+                        // 🔥 COPIA DE AUDITORÍA PARA EL GERENTE
                         const numeroGerente = "0939836191";
                         if (numeroCliente.toString().trim() !== numeroGerente) {
                             const etiquetaAuditoria = esCancelacionTotal ? "[COPIA LIQUIDACIÓN]" : "[COPIA NUEVO ABONO]";
-                            await window.enviarSMSAutomatico(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
+                            await window.parent.enviarSMSAutomatico(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
                         }
                         alert("📲 SMS enviado a MacroDroid para el cliente y copia al gerente.");
 
@@ -1076,7 +1151,6 @@
 
         const inicio = (paginaActualAbonos - 1) * ABONOS_POR_PAGINA;
         const fin = inicio + ABONOS_POR_PAGINA;
-        // Ordenamos los abonos del más nuevo al más viejo
         const abonosOrdenados = abonosClienteActual.sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago));
         const abonosPagina = abonosOrdenados.slice(inicio, fin);
         const totalPaginas = Math.ceil(abonosOrdenados.length / ABONOS_POR_PAGINA);
@@ -1087,7 +1161,6 @@
         const u4 = (cli.cedula || '').trim().slice(-4);
         const refFinal = `${iN}${iA}-${u4}`.toUpperCase();
         
-        // 🔥 RESCATE DE LA REFERENCIA CRE PARA EL HISTORIAL 🔥
         let creText = "CRE # ?";
         const lblRef = document.getElementById('lbl-recaudacion-ref');
         if (lblRef && lblRef.innerText) {
@@ -1176,112 +1249,23 @@
         }
     }
 
-    // =========================================================
-    // ⚔️ FUNCIONES DE AUDITORÍA: REENVIAR, EDITAR Y ELIMINAR
-    // =========================================================
-    async function reenviarReciboAbono(idAbono) {
-        const abono = abonosClienteActual.find(a => a.id == idAbono);
-        if (!abono) return;
-        const numPago = abono.numero_pago || '?';
-        const cobrarCosto = confirm(`¿Deseas incluir el recargo por reenvío del Pago #${numPago}?\n\n• [ACEPTAR] = Cobrar 0.50 ctv.\n• [CANCELAR] = Gratis (Ayuda Social).`);
-        const encabezadoSMS = cobrarCosto ? `=== SISTEMA ALPHA (Copia)(VAL 0.50 ctv) ===` : `=== SISTEMA ALPHA (Copia) ===`;
-        
+    async function cargarHistorialMovil(idCredito) {
+        const contenedor = document.getElementById('lista-historial-abonos');
+        contenedor.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando historial...</div>';
+        const supa = await esperarSupabase();
+        if (!supa) return;
+
         try {
-            const cli = window.creditoSeleccionadoCobro.clientes || {};
-            let numeroCliente = cli.whatsapp;
-            const supa = await esperarSupabase();
+            const { data: pagos, error } = await supa.from('historial_pagos').select('*').eq('id_credito', idCredito).order('fecha_pago', { ascending: false });
+            if (error) throw error;
             
-            if (!numeroCliente) {
-                const { data: infoDB } = await supa.from('clientes').select('whatsapp').eq('id', window.creditoSeleccionadoCobro.cliente_id).single();
-                if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
-            }
-
-            if (!numeroCliente) { alert("⚠️ El cliente no tiene un número registrado."); return; }
-            if (typeof window.enviarSMSAutomatico !== 'function') { alert("⚠️ Función 'enviarSMSAutomatico' no detectada."); return; }
-
-            if (cobrarCosto) {
-                const { data: cajaData } = await supa.from('cajas_capital').select('id, saldo_actual').eq('tipo', 'efectivo').limit(1);
-                if(cajaData && cajaData.length > 0) {
-                    await supa.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData[0].saldo_actual) + 0.50 }).eq('id', cajaData[0].id);
-                }
-            }
-
-            const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
-            let creText = "CRE # ?";
-            const lblRef = document.getElementById('lbl-recaudacion-ref');
-            if (lblRef && lblRef.innerText) {
-                const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
-                if (match) {
-                    const matchLetra = match[0].match(/\[.*?\]/);
-                    creText = matchLetra ? `CRE #${matchLetra[0]}` : match[0].trim();
-                }
-            }
-
-            const fPago = new Date(abono.fecha_pago);
-            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-            const fechaHoraSMS = `${dias[fPago.getDay()]} ${String(fPago.getDate()).padStart(2, '0')}/${meses[fPago.getMonth()]}/${fPago.getFullYear()} | ${String(fPago.getHours()%12||12).padStart(2,'0')}:${String(fPago.getMinutes()).padStart(2,'0')} ${fPago.getHours()>=12?'p.m.':'a.m.'}`;
-
-            // Calculo de saldo retroactivo
-            const pagosHastaAqui = abonosClienteActual.filter(a => new Date(a.fecha_pago) <= fPago);
-            const totalPagadoHastaAqui = pagosHastaAqui.reduce((sum, a) => sum + parseFloat(a.abono_total || 0), 0);
-            const saldoEnEseMomento = parseFloat(window.creditoSeleccionadoCobro.total_pagar) - totalPagadoHastaAqui;
+            abonosClienteActual = pagos || [];
+            paginaActualAbonos = 1;
+            renderizarAbonosPaginadosMovil();
             
-            const cuotasTotales = parseInt(window.creditoSeleccionadoCobro.num_cuotas) || 1;
-            const cuotasPendientes = Math.max(0, Math.ceil(saldoEnEseMomento / (parseFloat(window.creditoSeleccionadoCobro.valor_cuota) || 1)));
-
-            const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO'}\n\nConserva este msj. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
-            
-            await window.enviarSMSAutomatico(numeroCliente.toString(), msjAbono);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const numGerente = "0939836191";
-            if (numeroCliente.toString().trim() !== numGerente) {
-                await window.enviarSMSAutomatico(numGerente, `[AVISO REENVÍO - ${cobrarCosto ? 'COBRADO' : 'GRATIS'}]\n\n${msjAbono}`);
-            }
-            alert(`✅ Recibo enviado exitosamente.`);
-        } catch(e) { alert("Error: " + e.message); }
-    }
-
-    async function editarAbono(idAbono) {
-        alert("⚠️ Por seguridad administrativa, la EDICIÓN de montos debe realizarse desde la Computadora Matriz.");
-    }
-
-    async function eliminarAbono(idAbono) {
-        const idNum = parseInt(idAbono);
-        const abono = abonosClienteActual.find(a => a.id == idNum);
-        if(!abono) return;
-        
-        const fPago = new Date(abono.fecha_pago).getTime();
-        if ((new Date().getTime() - fPago) >= 86400000) { 
-            alert("🔒 REGLA DE ORO ALPHA:\nHan pasado más de 24 horas. Este abono está sellado y NO puede ser eliminado por seguridad.");
-            return; 
+        } catch(e) {
+             contenedor.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Error al cargar historial.</div>';
         }
-
-        if (!confirm("⚠️ ¿Estás absolutamente seguro de ELIMINAR este abono?\nEl saldo de la deuda del cliente volverá a subir y las cajas se ajustarán.")) return;
-
-        try {
-            const supa = await esperarSupabase();
-            const { error: errBorrado } = await supa.from('historial_pagos').delete().eq('id', idNum);
-            if (errBorrado) throw errBorrado;
-
-            // Reverso de caja
-            const cap = parseFloat(abono.monto_capital || 0);
-            if (cap > 0) {
-                const tipoCaja = (abono.forma_pago || '').toLowerCase() === 'transferencia' ? 'banco' : 'efectivo';
-                const { data: cajas } = await supa.from('cajas_capital').select('id, saldo_actual').eq('tipo', tipoCaja).limit(1);
-                if (cajas && cajas.length > 0) {
-                    await supa.from('cajas_capital').update({ saldo_actual: parseFloat(cajas[0].saldo_actual) - cap }).eq('id', cajas[0].id);
-                }
-            }
-            
-            if (window.creditoSeleccionadoCobro.estado === 'finalizado') {
-                 await supa.from('creditos').update({ estado: 'activo' }).eq('id', window.creditoSeleccionadoCobro.id);
-            }
-
-            alert("✅ Abono eliminado correctamente.");
-            await cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
-
-        } catch (e) { alert("Error al eliminar: " + e.message); }
     }
 
     async function cerrarSesion() {
