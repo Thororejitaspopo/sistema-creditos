@@ -578,10 +578,22 @@
                         </button>
                     </div>
 
-                    <!-- PANEL ESTÁTICO DE HISTORIAL PREMIUM -->
+                   <!-- 🔥 PANEL ESTÁTICO DE HISTORIAL PREMIUM (CON BOTONES VIP) 🔥 -->
                     <div style="background: white; margin: 0 20px 20px 20px; text-align: left; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
-                            <h4 style="margin: 0; font-size: 15px; color: var(--texto-oscuro);">Historial</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                            <h4 style="margin: 0; font-size: 15px; color: var(--texto-oscuro); display: flex; align-items: center; gap: 5px;">
+                                <span>🧾</span> Abonos Registrados
+                            </h4>
+                            <div style="display: flex; gap: 5px;">
+                                <!-- Botón PDF (Opcional en móvil, pero mantenemos la estructura) -->
+                                <button style="background: #dc2626; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(220,38,38,0.2); cursor: pointer;" onclick="alert('La generación de PDFs detallados está optimizada para la versión de Escritorio.')">
+                                    📄 PDF Historial
+                                </button>
+                                <!-- Botón SMS Activo -->
+                                <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(14,165,233,0.2); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <span>📲</span> Enviar Resumen SMS
+                                </button>
+                            </div>
                         </div>
                         <div id="lista-historial-abonos" style="max-height: 500px; overflow-y: auto; font-size: 12px; padding-right: 5px;">
                             <div style="text-align: center; color: #94a3b8; padding: 10px;">Cargando pagos...</div>
