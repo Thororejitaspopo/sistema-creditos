@@ -586,8 +586,8 @@
                             </h4>
                             <div style="display: flex; gap: 5px;">
                                 <!-- Botón PDF (Opcional en móvil, pero mantenemos la estructura) -->
-                                <button style="background: #dc2626; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(220,38,38,0.2); cursor: pointer;" onclick="alert('La generación de PDFs detallados está optimizada para la versión de Escritorio.')">
-                                    📄 PDF Historial
+                                <button onclick="generarEstadoCuentaPDF()" style="background: #dc2626; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(220,38,38,0.2); cursor: pointer;">
+                                  📄 PDF Historial
                                 </button>
                                 <!-- Botón SMS Activo -->
                                 <button onclick="enviarResumenSMS()" style="background: #0ea5e9; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(14,165,233,0.2); cursor: pointer; display: flex; align-items: center; gap: 4px;">
@@ -1838,7 +1838,175 @@ async function reenviarReciboAbono(idAbono) {
         }
     }
 
+// =========================================================================
+    // 📄 GENERADOR DE ESTADO DE CUENTA CORPORATIVO PARA MÓVIL (PDF)
+    // =========================================================================
+    async function generarEstadoCuentaPDF() {
+        if (!window.creditoSeleccionadoCobro || !abonosClienteActual) {
+            alert("⚠️ Por favor, selecciona un cliente primero.");
+            return;
+        }
 
+        // 🔥 Blindaje: Si el celular no tiene cargadas las librerías PDF, las inyecta en vivo
+        if (!window.jspdf) {
+            alert("⏳ Preparando motor PDF... Haga clic en Aceptar, espere 3 segundos y vuelva a presionar el botón rojo.");
+            const script1 = document.createElement('script');
+            script1.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+            document.head.appendChild(script1);
+            
+            const script2 = document.createElement('script');
+            script2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js";
+            document.head.appendChild(script2);
+            return;
+        }
+
+        try {
+            const cli = window.creditoSeleccionadoCobro.clientes || {};
+            const nombreCompleto = `${cli.nombres || ''} ${cli.apellidos || ''}`.toUpperCase();
+            
+            let creText = "CRE # ?";
+            const lblRef = document.getElementById('lbl-recaudacion-ref');
+            if (lblRef && lblRef.innerText) {
+                const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+                if (match) {
+                    const matchLetra = match[0].trim().match(/\[.*?\]/);
+                    creText = matchLetra ? `CRE #${matchLetra[0]}` : match[0].trim();
+                }
+            }
+
+            let fechaEmisionCredito = "Fecha no disponible";
+            if (window.creditoSeleccionadoCobro.fecha_emision) {
+                const fObj = new Date(window.creditoSeleccionadoCobro.fecha_emision);
+                const mesesArr = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fObj.getDay()];
+                fechaEmisionCredito = `${diaSemana} ${String(fObj.getDate()).padStart(2, '0')}/${mesesArr[fObj.getMonth()]}/${fObj.getFullYear()}`;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // --- ENCABEZADO CORPORATIVO ---
+            doc.setFontSize(22);
+            doc.setTextColor(16, 185, 129); // Verde Alpha
+            doc.text("SISTEMA ALPHA V6", 14, 20);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text("ESTADO DE CUENTA OFICIAL (MÓVIL)", 14, 28);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            const hoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            doc.text(`Impreso: ${hoy}`, 14, 34);
+
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, 38, 196, 38); 
+            
+            let startYDatos = 46; 
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            
+            doc.text(`Cliente: ${nombreCompleto}`, 14, startYDatos);
+            doc.text(`Cédula: ${cli.cedula || 'N/A'}`, 14, startYDatos + 6);
+            doc.text(`Referencia: ${creText}`, 14, startYDatos + 12); 
+            doc.text(`Fecha de Crédito: ${fechaEmisionCredito}`, 14, startYDatos + 18); 
+
+            let totalPagar = parseFloat(window.creditoSeleccionadoCobro.total_pagar).toFixed(2);
+            const cuotaFija = parseFloat(window.creditoSeleccionadoCobro.valor_cuota).toFixed(2);
+            let saldoActual = parseFloat(window.creditoSeleccionadoCobro.saldoNeto).toFixed(2);
+            
+            const moraPDF = parseFloat(window.creditoSeleccionadoCobro.monto_mora) || 0;
+            if(moraPDF > 0) {
+                saldoActual = (parseFloat(saldoActual) + moraPDF).toFixed(2);
+            }
+
+            const cuotasTotales = parseInt(window.creditoSeleccionadoCobro.num_cuotas) || 1;
+            let cuotasPendientes = Math.ceil(parseFloat(saldoActual) / parseFloat(cuotaFija));
+            if (cuotasPendientes < 0) cuotasPendientes = 0;
+
+            doc.text(`Total del Crédito: $${totalPagar}`, 120, startYDatos);
+            doc.text(`Valor de Cuota: $${cuotaFija}`, 120, startYDatos + 6);
+            doc.text(`N° de Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)`, 120, startYDatos + 12);
+
+            let inicioTablaY = startYDatos + 28; 
+            if (moraPDF > 0) {
+                doc.setTextColor(220, 38, 38); 
+                doc.setFont(undefined, 'bold');
+                doc.text(`Mora Acumulada: $${moraPDF.toFixed(2)}`, 120, startYDatos + 18);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Deuda Total a Pagar: $${saldoActual}`, 120, startYDatos + 24);
+                doc.setFont(undefined, 'normal');
+                inicioTablaY = startYDatos + 36;
+            } else {
+                doc.setFont(undefined, 'bold');
+                doc.text(`Saldo Pendiente: $${saldoActual}`, 120, startYDatos + 18);
+                doc.setFont(undefined, 'normal');
+            }
+
+            // --- TABLA HISTÓRICA ---
+            let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
+            let saldoEnTransito = parseFloat(window.creditoSeleccionadoCobro.total_pagar);
+            const filasTabla = [];
+
+            abonosOrdenados.forEach((abono) => {
+                const fPago = new Date(abono.fecha_pago);
+                const diaNombre = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][fPago.getDay()];
+                const mesesArr = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                const diaNum = `${String(fPago.getDate()).padStart(2, '0')}/${mesesArr[fPago.getMonth()]}/${fPago.getFullYear()}`; 
+                
+                let h = fPago.getHours();
+                let m = String(fPago.getMinutes()).padStart(2, '0');
+                const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+                h = h % 12; h = h ? h : 12;
+                const horaExacta = `${String(h).padStart(2,'0')}:${m} ${ampm}`;
+                
+                const fechaTabla = `${diaNombre}. ${diaNum} - ${horaExacta}`;
+                const montoPagado = parseFloat(abono.abono_total);
+                
+                saldoEnTransito = saldoEnTransito - montoPagado;
+                if (saldoEnTransito < 0) saldoEnTransito = 0;
+
+                filasTabla.push([
+                    abono.numero_pago || '-',
+                    fechaTabla,
+                    abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO',
+                    `$${montoPagado.toFixed(2)}`,
+                    `$${saldoEnTransito.toFixed(2)}`
+                ]);
+            });
+
+            doc.autoTable({
+                startY: inicioTablaY, 
+                head: [['N° Pago', 'Fecha y Hora Exacta', 'Método', 'Abono', 'Saldo Restante']],
+                body: filasTabla,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 23, 42] }, 
+                styles: { fontSize: 9, cellPadding: 3 }, 
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 15 },
+                    1: { cellWidth: 55 },
+                    3: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129] }, 
+                    4: { halign: 'right', fontStyle: 'bold' } 
+                }
+            });
+
+            let finalY = doc.lastAutoTable.finalY || inicioTablaY;
+
+            // --- PIE DE PÁGINA ---
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.setFont(undefined, 'normal');
+            doc.text("Este documento es un comprobante de auditoría emitido por Sistema Alpha V6 (Móvil).", 14, finalY + 15);
+            doc.text("Las fechas y horas exactas garantizan la validez e inmutabilidad de cada abono.", 14, finalY + 20);
+
+            doc.save(`Estado_Cuenta_${cli.cedula || 'Cliente'}.pdf`);
+            
+        } catch (error) {
+            alert("❌ Error al generar el PDF: " + error.message);
+            console.error(error);
+        }
+    }
     async function cerrarSesion() {
         if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
             const supa = await esperarSupabase();
