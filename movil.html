@@ -387,6 +387,7 @@
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN VIP DEFINITIVA - RESTAURACIÓN TOTAL) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN MAESTRA ABSOLUTA - SALDOS EXACTOS Y SMS CONECTADO) -->
 <!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN MAESTRA INFALIBLE - SALDOS EXACTOS Y SMS DIRECTO) -->
+<!-- 🧠 MOTOR MÓVIL INDEPENDIENTE (VERSIÓN MAESTRA - EDICIÓN Y ELIMINACIÓN AUDITADA) -->
 <script>
     // =========================================================
     // 🚀 VARIABLES GLOBALES BLINDADAS
@@ -664,23 +665,19 @@
     // =========================================================
     // 🚀 LA ANTENA DIRECTA A MACRODROID (INDEPENDIENTE DE APP.JS)
     // =========================================================
-    async function enviarSMSIndependiente(numero, mensaje) {
+    async function invocarSMSDesdeMovil(numero, mensaje) {
         try {
-            // Intentamos la vía normal si existe
             if (typeof window.enviarSMSAutomatico === 'function') {
                 await window.enviarSMSAutomatico(numero, mensaje);
                 return true;
             } 
-            // Intentamos buscar al padre por si acaso
             else if (window.parent && typeof window.parent.enviarSMSAutomatico === 'function') {
                 await window.parent.enviarSMSAutomatico(numero, mensaje);
                 return true;
             } 
-            // 🔥 SI TODO FALLA, DISPARAMOS DIRECTO AL WEBHOOK DE MACRODROID (EL PLAN MAESTRO) 🔥
             else {
-                console.log("Usando antena SMS independiente del móvil...");
+                console.log("📡 Usando antena SMS independiente del móvil...");
                 const urlMacroDroid = `https://trigger.macrodroid.com/554f217c-000a-4581-896c-551d96459fb2/sms_credito?numero=${encodeURIComponent(numero)}&mensaje=${encodeURIComponent(mensaje)}`;
-                // Disparamos en modo 'no-cors' para que el navegador no lo bloquee por seguridad
                 await fetch(urlMacroDroid, { mode: 'no-cors' });
                 return true;
             }
@@ -820,14 +817,12 @@
     async function cargarEstadoCuentaCreditoMovil(idCreditoInput) {
         if (!idCreditoInput) return;
         
-        // 🔥 CORRECCIÓN DEL SALDO 0.00: Convertir el ID a número estricto para evitar duplicados 🔥
         const idCredito = parseInt(idCreditoInput, 10);
         
         const supa = await esperarSupabase();
         try {
             const { data: pagosFrescos } = await supa.from('historial_pagos').select('id_credito, abono_total, monto_interes, fecha_pago').eq('id_credito', idCredito);
             if(pagosFrescos) {
-                 // Aquí usamos idNum para asegurarnos que filtre y reemplace correctamente
                  windowPagosGlobal = windowPagosGlobal.filter(p => p.id_credito !== idCredito).concat(pagosFrescos);
             }
         } catch(e) { console.error("Error refrescando pagos:", e); }
@@ -985,7 +980,7 @@
     }
 
     // =========================================================
-    // 🔥 EL MOTOR PRINCIPAL: PROCESAR COBRO EN EL MÓVIL Y MANDAR SMS VIP 🔥
+    // 🔥 EL MOTOR PRINCIPAL: PROCESAR COBRO EN EL MÓVIL 🔥
     // =========================================================
     async function procesarCobroOficial() {
         const montoInput = parseFloat(document.getElementById('monto-cobro-input').value);
@@ -1065,7 +1060,7 @@
             alert("✅ ¡Pago registrado correctamente!");
             
             // =================================================================
-            // 🚀 ENVÍO DE SMS VIP (USANDO LA ANTENA INDEPENDIENTE MACRODROID)
+            // 🚀 ENVÍO DE SMS VIP
             // =================================================================
             if (enviarSMS) {
                 const cli = window.creditoSeleccionadoCobro.clientes || {};
@@ -1133,22 +1128,19 @@
                             msjSalida = `=== SISTEMA ALPHA ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numeroNuevoPago}\n💰 Monto: $${montoInput.toFixed(2)}\n📉 Saldo: $${nuevoSaldo.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
                         }
                         
-                        // 🔥 LLAMAMOS A LA ANTENA DIRECTA MACRODROID 🔥
-                        const exitoCliente = await enviarSMSIndependiente(numeroCliente.toString(), msjSalida);
+                        const exitoCliente = await invocarSMSDesdeMovil(numeroCliente.toString(), msjSalida);
                         
                         if (exitoCliente) {
                             await new Promise(resolve => setTimeout(resolve, 2000));
-
                             const numeroGerente = "0939836191";
                             if (numeroCliente.toString().trim() !== numeroGerente) {
                                 const etiquetaAuditoria = esCancelacionTotal ? "[COPIA LIQUIDACIÓN]" : "[COPIA NUEVO ABONO]";
-                                await enviarSMSIndependiente(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
+                                await invocarSMSDesdeMovil(numeroGerente, `${etiquetaAuditoria}\n\n${msjSalida}`);
                             }
                             alert("📲 SMS enviado a MacroDroid para el cliente y copia al gerente.");
                         } else {
                             alert("⚠️ El pago se guardó, pero hubo un error de red al contactar con MacroDroid.");
                         }
-
                     } catch (errorSMS) {
                         alert(`❌ Falló el armado del SMS: ${errorSMS.message}`);
                     }
@@ -1280,8 +1272,24 @@
     }
 
     // =========================================================
-    // ⚔️ FUNCIONES DE AUDITORÍA: REENVIAR, EDITAR Y ELIMINAR
+    // ⚔️ FUNCIONES DE AUDITORÍA: REENVIAR, EDITAR Y ELIMINAR (CON AUDITORÍA)
     // =========================================================
+    async function validarRegla24HorasAbono(idAbono) {
+        const idNum = parseInt(idAbono);
+        const supa = await esperarSupabase();
+        const { data: abono, error } = await supa.from('historial_pagos').select('fecha_pago').eq('id', idNum).single();
+        if (error || !abono) { alert("❌ Error al verificar la fecha del abono."); return false; }
+
+        const fPago = new Date(abono.fecha_pago).getTime();
+        const ahora = new Date().getTime();
+        
+        if ((ahora - fPago) >= 86400000) { 
+            alert("🔒 REGLA DE ORO ALPHA:\nHan pasado más de 24 horas. Este abono está sellado y NO puede ser modificado ni eliminado por seguridad.");
+            return false;
+        }
+        return true;
+    }
+
     async function reenviarReciboAbono(idAbono) {
         const abono = abonosClienteActual.find(a => a.id == idAbono);
         if (!abono) return;
@@ -1333,14 +1341,13 @@
 
             const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO'}\n\nConserva este msj. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
             
-            // 🔥 REENVÍO CON ANTENA INDEPENDIENTE 🔥
-            const exitoCliente = await enviarSMSIndependiente(numeroCliente.toString(), msjAbono);
+            const exitoCliente = await invocarSMSDesdeMovil(numeroCliente.toString(), msjAbono);
             
             if (exitoCliente) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 const numGerente = "0939836191";
                 if (numeroCliente.toString().trim() !== numGerente) {
-                    await enviarSMSIndependiente(numGerente, `[AVISO REENVÍO - ${cobrarCosto ? 'COBRADO' : 'GRATIS'}]\n\n${msjAbono}`);
+                    await invocarSMSDesdeMovil(numGerente, `[AVISO REENVÍO - ${cobrarCosto ? 'COBRADO' : 'GRATIS'}]\n\n${msjAbono}`);
                 }
                 alert(`✅ Recibo enviado exitosamente.`);
             } else {
@@ -1350,45 +1357,295 @@
     }
 
     async function editarAbono(idAbono) {
-        alert("⚠️ Por seguridad administrativa, la EDICIÓN de montos debe realizarse desde la Computadora Matriz.");
+        const idNum = parseInt(idAbono);
+        const esValido = await validarRegla24HorasAbono(idNum);
+        if (!esValido) return;
+
+        try {
+            const supa = await esperarSupabase();
+            const { data: abonoActual, error: errAbono } = await supa.from('historial_pagos').select('*').eq('id', idNum).single();
+            if (errAbono || !abonoActual) throw new Error("No se pudo obtener el abono.");
+
+            const { data: creditoAct, error: errCredito } = await supa.from('creditos').select('*').eq('id', abonoActual.id_credito).single();
+            if (errCredito || !creditoAct) throw new Error("No se pudo obtener el crédito.");
+
+            const numPago = abonoActual.numero_pago || '?';
+            const capitalViejo = parseFloat(abonoActual.monto_capital || 0);
+            const metodoPago = abonoActual.forma_pago || 'efectivo';
+
+            let nuevoMonto = prompt(`✏️ EDICIÓN DE ABONO #${numPago}\n\nMonto actual: $${parseFloat(abonoActual.abono_total).toFixed(2)}\n\nEscribe el NUEVO monto total correcto:`, parseFloat(abonoActual.abono_total));
+            if (!nuevoMonto || isNaN(nuevoMonto)) return;
+            
+            nuevoMonto = parseFloat(nuevoMonto);
+            if (nuevoMonto <= 0) { alert("❌ El monto debe ser mayor a cero."); return; }
+
+            if (!confirm(`¿Confirmas cambiar el abono de $${parseFloat(abonoActual.abono_total).toFixed(2)} a $${nuevoMonto.toFixed(2)}?`)) return;
+
+            const enviarSMS = confirm("📲 ¿Deseas notificar al cliente sobre esta corrección vía SMS?");
+
+            const moraExtra = parseFloat(creditoAct.monto_mora) || 0;
+            const interesPactadoTotal = parseFloat(creditoAct.total_pagar) - parseFloat(creditoAct.monto_capital) + moraExtra;
+            
+            const { data: otrosPagos } = await supa.from('historial_pagos').select('monto_interes').eq('id_credito', abonoActual.id_credito).neq('id', idNum);
+            let interesYaPagadoOtros = 0;
+            if (otrosPagos) interesYaPagadoOtros = otrosPagos.reduce((sum, p) => sum + parseFloat(p.monto_interes || 0), 0);
+
+            const interesRestante = interesPactadoTotal - interesYaPagadoOtros;
+            let nuevoInteres = 0; let nuevoCapital = 0;
+
+            if (nuevoMonto <= interesRestante) {
+                nuevoInteres = nuevoMonto; nuevoCapital = 0;
+            } else {
+                nuevoInteres = interesRestante; nuevoCapital = nuevoMonto - interesRestante;
+            }
+
+            const { data: updatedRows, error: errUpdate } = await supa.from('historial_pagos').update({ 
+                abono_total: nuevoMonto, monto_interes: nuevoInteres > 0 ? nuevoInteres : 0, monto_capital: nuevoCapital > 0 ? nuevoCapital : 0 
+            }).eq('id', idNum).select();
+            if (errUpdate) throw errUpdate;
+
+            const diferenciaCapital = nuevoCapital - capitalViejo;
+
+            let creTextHistorial = "CRE # ?";
+            const lblRefH = document.getElementById('lbl-recaudacion-ref');
+            if (lblRefH && lblRefH.innerText) {
+                const matchH = lblRefH.innerText.match(/CRE\s*#[^|]+/);
+                if (matchH) {
+                    const matchLetraH = matchH[0].match(/\[.*?\]/);
+                    creTextHistorial = matchLetraH ? `CRE #${matchLetraH[0]}` : matchH[0].trim();
+                }
+            }
+
+            if (diferenciaCapital !== 0) {
+                const tipoCaja = (metodoPago.toLowerCase() === 'transferencia' || metodoPago.toLowerCase() === 'banco') ? 'banco' : 'efectivo';
+                const { data: cajasTarget } = await supa.from('cajas_capital').select('id, saldo_actual').eq('tipo', tipoCaja).order('id', { ascending: true }).limit(1);
+                
+                if (cajasTarget && cajasTarget.length > 0) {
+                    const cajaId = cajasTarget[0].id;
+                    const nuevoSaldoCaja = parseFloat(cajasTarget[0].saldo_actual || 0) + diferenciaCapital;
+                    await supa.from('cajas_capital').update({ saldo_actual: nuevoSaldoCaja }).eq('id', cajaId);
+
+                    const cliInfo = window.creditoSeleccionadoCobro.clientes || {};
+                    const nomCliente = `${cliInfo.nombres || ''} ${cliInfo.apellidos || ''}`.toUpperCase().trim();
+
+                    await supa.from('historial_capital').insert([{
+                        caja_id: cajaId, monto: diferenciaCapital,
+                        concepto: `AJUSTE DE EDICIÓN: Abono #${numPago} | ${creTextHistorial} | ${nomCliente} (Ajuste cap. de $${capitalViejo} a $${nuevoCapital})`
+                    }]);
+                }
+            }
+
+            // Recalcular Fecha
+            try {
+                const oldMonto = parseFloat(abonoActual.abono_total || 0);
+                const { data: todosPagosActuales } = await supa.from('historial_pagos').select('abono_total').eq('id_credito', creditoAct.id);
+                let pagadoTotalActualizado = todosPagosActuales ? todosPagosActuales.reduce((acc, p) => acc + parseFloat(p.abono_total || 0), 0) : 0;
+                
+                const totalPagadoAntes = pagadoTotalActualizado - nuevoMonto + oldMonto;
+
+                let freq = (creditoAct.frecuencia_pago || '').toUpperCase();
+                let valorDeUnaCuota = parseFloat(creditoAct.valor_cuota) || 1;
+
+                if (creditoAct.estado === 'congelado') {
+                    const acuerdo = (creditoAct.acuerdo_pago || '').toLowerCase();
+                    if (acuerdo.includes('mensual')) freq = 'MENSUAL';
+                    else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
+                    else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
+                    else if (acuerdo.includes('diario')) freq = 'DIARIO';
+                    const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
+                    if (matchMonto && parseFloat(matchMonto[0]) > 0) valorDeUnaCuota = parseFloat(matchMonto[0]);
+                }
+
+                const cuotasAntes = Math.floor(totalPagadoAntes / valorDeUnaCuota);
+                const cuotasDespues = Math.floor(pagadoTotalActualizado / valorDeUnaCuota);
+                const diferenciaCuotas = cuotasDespues - cuotasAntes;
+
+                if (diferenciaCuotas !== 0 && creditoAct.fecha_vencimiento_actual) {
+                    let fechaObj = new Date(creditoAct.fecha_vencimiento_actual + 'T12:00:00');
+                    if (freq.includes('SEMANAL')) fechaObj.setDate(fechaObj.getDate() + (7 * diferenciaCuotas));
+                    else if (freq.includes('QUINCENAL')) fechaObj.setDate(fechaObj.getDate() + (15 * diferenciaCuotas));
+                    else if (freq.includes('MENSUAL')) fechaObj.setMonth(fechaObj.getMonth() + (1 * diferenciaCuotas));
+                    else if (freq.includes('DIARIO')) fechaObj.setDate(fechaObj.getDate() + (1 * diferenciaCuotas));
+                    
+                    const nuevaFechaCalculada = fechaObj.toISOString().split('T')[0];
+                    await supa.from('creditos').update({ fecha_vencimiento_actual: nuevaFechaCalculada }).eq('id', creditoAct.id);
+                }
+            } catch (e) { console.error(e); }
+
+            if (enviarSMS) {
+                const cli = window.creditoSeleccionadoCobro.clientes || {};
+                let numeroCliente = cli.whatsapp; 
+                if (!numeroCliente) {
+                    const { data: infoDB } = await supa.from('clientes').select('whatsapp').eq('id', creditoAct.cliente_id).single();
+                    if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
+                }
+                
+                if (numeroCliente) {
+                    const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+                    const refFinal = document.getElementById('lbl-recaudacion-ref').innerText.split('|')[0].replace('REF:','').trim();
+                    const ahora = new Date();
+                    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                    let h = ahora.getHours(); let m = String(ahora.getMinutes()).padStart(2,'0'); const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+                    h = h % 12; h = h ? h : 12;
+                    const fechaHoraSMS = `${dias[ahora.getDay()]} ${String(ahora.getDate()).padStart(2,'0')}/${meses[ahora.getMonth()]}/${ahora.getFullYear()} | ${String(h).padStart(2,'0')}:${m} ${ampm}`;
+
+                    const { data: todosLosPagos } = await supa.from('historial_pagos').select('abono_total').eq('id_credito', abonoActual.id_credito);
+                    let pTotal = todosLosPagos ? todosLosPagos.reduce((s, p) => s + parseFloat(p.abono_total||0), 0) : 0;
+                    
+                    const saldoConMora = parseFloat(creditoAct.total_pagar) + parseFloat(creditoAct.monto_mora || 0);
+                    const nuevoSaldoFinal = saldoConMora - pTotal;
+                    
+                    let infoMetodo = `💳 Método: ${abonoActual.forma_pago ? abonoActual.forma_pago.toUpperCase() : 'EFECTIVO'}`;
+                    if (abonoActual.forma_pago === 'transferencia' && abonoActual.detalles_banco) infoMetodo += `\n🏦 Banco: ${abonoActual.detalles_banco}`;
+
+                    const msjActualizacion = `=== SISTEMA ALPHA (Actualización) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creTextHistorial}\n👤 Cliente: ${nombre}\n\nHola, te notificamos un ajuste en tu historial tras nuestra revisión de caja.\n\n🔄 Pago Corregido: #${numPago}\n💰 Monto Exacto: $${nuevoMonto.toFixed(2)}\n📉 Nuevo Saldo: $${nuevoSaldoFinal.toFixed(2)}\n${infoMetodo}\n\nLamentamos las molestias. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
+                    
+                    await invocarSMSDesdeMovil(numeroCliente.toString(), msjActualizacion);
+                    await new Promise(r => setTimeout(r, 2000));
+                    const nGer = "0939836191";
+                    if (numeroCliente.toString().trim() !== nGer) await invocarSMSDesdeMovil(nGer, `[COPIA EDICIÓN ABONO]\n\n${msjActualizacion}`);
+                }
+            }
+
+            alert("✅ Abono editado y saldos recalculados exitosamente.");
+            await cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
+
+        } catch (error) { alert("❌ Error al editar: " + error.message); }
     }
 
     async function eliminarAbono(idAbono) {
         const idNum = parseInt(idAbono);
-        const abono = abonosClienteActual.find(a => a.id == idNum);
-        if(!abono) return;
-        
-        const fPago = new Date(abono.fecha_pago).getTime();
-        if ((new Date().getTime() - fPago) >= 86400000) { 
-            alert("🔒 REGLA DE ORO ALPHA:\nHan pasado más de 24 horas. Este abono está sellado y NO puede ser eliminado por seguridad.");
-            return; 
-        }
+        const esValido = await validarRegla24HorasAbono(idNum);
+        if (!esValido) return;
 
-        if (!confirm("⚠️ ¿Estás absolutamente seguro de ELIMINAR este abono?\nEl saldo de la deuda del cliente volverá a subir y las cajas se ajustarán.")) return;
+        if (!confirm("⚠️ ALERTA DE AUDITORÍA GERENCIAL ⚠️\n\n¿Estás absolutamente seguro de ELIMINAR este abono de la historia?\nEl saldo de la deuda del cliente volverá a subir y las cajas se ajustarán.")) return;
+
+        const enviarSMS = confirm("📲 ¿Deseas enviar el comprobante de ANULACIÓN OFICIAL por SMS al cliente?");
 
         try {
             const supa = await esperarSupabase();
+
+            let creText = "CRE # ?";
+            const lblRef = document.getElementById('lbl-recaudacion-ref');
+            if (lblRef && lblRef.innerText) {
+                const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
+                if (match) {
+                    const matchLetra = match[0].match(/\[.*?\]/);
+                    creText = matchLetra ? `CRE #${matchLetra[0]}` : match[0].trim();
+                }
+            }
+
+            const { data: abonoABorrar, error: errLectura } = await supa.from('historial_pagos').select('*').eq('id', idNum).single();
+            if (errLectura || !abonoABorrar) { alert("⚠️ Error: No se pudo leer el abono para su auditoría."); return; }
+
+            const { data: creditoAct } = await supa.from('creditos').select('*').eq('id', abonoABorrar.id_credito).single();
+
+            // 🔥 MAGIA RESTAURADA: INSERCIÓN EN PAPELERA 🔥
+            const { error: errAuditoria } = await supa.from('auditoria_pagos_eliminados').insert([{
+                id_credito: abonoABorrar.id_credito, abono_total: abonoABorrar.abono_total, numero_pago: abonoABorrar.numero_pago,
+                motivo_eliminacion: 'Corrección interna por gerente (Móvil)', forma_pago: abonoABorrar.forma_pago || 'EFECTIVO',
+                fecha_pago_original: abonoABorrar.fecha_pago, codigo_cre: creText
+            }]);
+            if (errAuditoria) { alert("⚠️ Error al guardar respaldo. Anulación cancelada."); return; }
+
             const { error: errBorrado } = await supa.from('historial_pagos').delete().eq('id', idNum);
             if (errBorrado) throw errBorrado;
 
-            // Reverso de caja
-            const cap = parseFloat(abono.monto_capital || 0);
+            // Reverso de caja y auditoría
+            const cap = parseFloat(abonoABorrar.monto_capital || 0);
             if (cap > 0) {
-                const tipoCaja = (abono.forma_pago || '').toLowerCase() === 'transferencia' ? 'banco' : 'efectivo';
+                const tipoCaja = (abonoABorrar.forma_pago || '').toLowerCase() === 'transferencia' ? 'banco' : 'efectivo';
                 const { data: cajas } = await supa.from('cajas_capital').select('id, saldo_actual').eq('tipo', tipoCaja).limit(1);
                 if (cajas && cajas.length > 0) {
                     await supa.from('cajas_capital').update({ saldo_actual: parseFloat(cajas[0].saldo_actual) - cap }).eq('id', cajas[0].id);
+                    
+                    const cliInfo = window.creditoSeleccionadoCobro.clientes || {};
+                    const nomCliente = `${cliInfo.nombres || ''} ${cliInfo.apellidos || ''}`.toUpperCase().trim();
+                    await supa.from('historial_capital').insert([{
+                        caja_id: cajas[0].id, monto: -cap,
+                        concepto: `REVERSO DE ANULACIÓN: Abono #${abonoABorrar.numero_pago} | ${creText} | ${nomCliente} (Eliminado)`
+                    }]);
                 }
             }
             
+            // Recalcular Fecha de Vencimiento
+            if (creditoAct) {
+                try {
+                    const oldMonto = parseFloat(abonoABorrar.abono_total || 0);
+                    const { data: todosPagosActuales } = await supa.from('historial_pagos').select('abono_total').eq('id_credito', creditoAct.id);
+                    let pagadoTotalActualizado = todosPagosActuales ? todosPagosActuales.reduce((acc, p) => acc + parseFloat(p.abono_total || 0), 0) : 0;
+                    
+                    const totalPagadoAntes = pagadoTotalActualizado + oldMonto;
+                    let freq = (creditoAct.frecuencia_pago || '').toUpperCase();
+                    let valorDeUnaCuota = parseFloat(creditoAct.valor_cuota) || 1;
+
+                    if (creditoAct.estado === 'congelado') {
+                        const acuerdo = (creditoAct.acuerdo_pago || '').toLowerCase();
+                        if (acuerdo.includes('mensual')) freq = 'MENSUAL';
+                        else if (acuerdo.includes('quincenal')) freq = 'QUINCENAL';
+                        else if (acuerdo.includes('semanal')) freq = 'SEMANAL';
+                        else if (acuerdo.includes('diario')) freq = 'DIARIO';
+                        const matchMonto = acuerdo.match(/\d+(\.\d+)?/);
+                        if (matchMonto && parseFloat(matchMonto[0]) > 0) valorDeUnaCuota = parseFloat(matchMonto[0]);
+                    }
+
+                    const cuotasAntes = Math.floor(totalPagadoAntes / valorDeUnaCuota);
+                    const cuotasDespues = Math.floor(pagadoTotalActualizado / valorDeUnaCuota);
+                    const diferenciaCuotas = cuotasDespues - cuotasAntes;
+
+                    if (diferenciaCuotas !== 0 && creditoAct.fecha_vencimiento_actual) {
+                        let fechaObj = new Date(creditoAct.fecha_vencimiento_actual + 'T12:00:00');
+                        if (freq.includes('SEMANAL')) fechaObj.setDate(fechaObj.getDate() + (7 * diferenciaCuotas));
+                        else if (freq.includes('QUINCENAL')) fechaObj.setDate(fechaObj.getDate() + (15 * diferenciaCuotas));
+                        else if (freq.includes('MENSUAL')) fechaObj.setMonth(fechaObj.getMonth() + (1 * diferenciaCuotas));
+                        else if (freq.includes('DIARIO')) fechaObj.setDate(fechaObj.getDate() + (1 * diferenciaCuotas));
+                        
+                        const nuevaFechaCalculada = fechaObj.toISOString().split('T')[0];
+                        await supa.from('creditos').update({ fecha_vencimiento_actual: nuevaFechaCalculada }).eq('id', creditoAct.id);
+                    }
+                } catch (e) { console.error(e); }
+            }
+
             if (window.creditoSeleccionadoCobro.estado === 'finalizado') {
                  await supa.from('creditos').update({ estado: 'activo' }).eq('id', window.creditoSeleccionadoCobro.id);
             }
 
-            alert("✅ Abono eliminado correctamente.");
+            if (enviarSMS) {
+                const cli = window.creditoSeleccionadoCobro.clientes || {};
+                let numeroCliente = cli.whatsapp; 
+                if (!numeroCliente && creditoAct) {
+                    const { data: infoDB } = await supa.from('clientes').select('whatsapp').eq('id', creditoAct.cliente_id).single();
+                    if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
+                }
+                
+                if (numeroCliente) {
+                    const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
+                    const refFinal = document.getElementById('lbl-recaudacion-ref').innerText.split('|')[0].replace('REF:','').trim();
+                    const ahora = new Date();
+                    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                    let h = ahora.getHours(); let m = String(ahora.getMinutes()).padStart(2,'0'); const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+                    h = h % 12; h = h ? h : 12;
+                    const fechaHoraSMS = `${dias[ahora.getDay()]} ${String(ahora.getDate()).padStart(2,'0')}/${meses[ahora.getMonth()]}/${ahora.getFullYear()} | ${String(h).padStart(2,'0')}:${m} ${ampm}`;
+
+                    const nuevoSaldoFinal = parseFloat(window.creditoSeleccionadoCobro.saldoNeto) + parseFloat(abonoABorrar.abono_total);
+                    let infoMetodo = `💳 Método: ${abonoABorrar.forma_pago ? abonoABorrar.forma_pago.toUpperCase() : 'EFECTIVO'}`;
+                    if (abonoABorrar.forma_pago === 'transferencia' && abonoABorrar.detalles_banco) infoMetodo += `\n🏦 Banco: ${abonoABorrar.detalles_banco}`;
+
+                    const msjAnulacion = `=== SISTEMA ALPHA (Anulación Oficial) ===\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinal} | ${creText}\n👤 Cliente: ${nombre}\n\nPor transparencia y control de auditoría, te notificamos que el siguiente abono ha sido ELIMINADO del sistema por una corrección interna.\n\n❌ Pago Anulado: #${abonoABorrar.numero_pago}\n💰 Monto Reversado: $${parseFloat(abonoABorrar.abono_total).toFixed(2)}\n📈 Saldo Restablecido: $${nuevoSaldoFinal.toFixed(2)}\n${infoMetodo}\n\nTu cuenta está protegida. Conserva este msj.\n🚫 NO RESPONDER A ESTE MENSAJE.`;
+                    
+                    await invocarSMSDesdeMovil(numeroCliente.toString(), msjAnulacion);
+                    await new Promise(r => setTimeout(r, 2000));
+                    const nGer = "0939836191";
+                    if (numeroCliente.toString().trim() !== nGer) await invocarSMSDesdeMovil(nGer, `[COPIA ANULACIÓN ABONO]\n\n${msjAnulacion}`);
+                }
+            }
+
+            alert("✅ Abono borrado y FECHAS recalculadas. Respaldado en Bóveda de Pagos (Papelera).");
             await cargarEstadoCuentaCreditoMovil(window.creditoSeleccionadoCobro.id);
 
-        } catch (e) { alert("Error al eliminar: " + e.message); }
+        } catch (e) { alert("Error al anular: " + e.message); }
     }
 
     async function cargarHistorialMovil(idCredito) {
