@@ -1679,6 +1679,153 @@ async function reenviarReciboAbono(idAbono) {
              contenedor.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Error al cargar historial.</div>';
         }
     }
+// =========================================================================
+    // 📲 ENVÍO DE ESTADO DE CUENTA POR SMS (RESUMEN VIP PARA MÓVIL)
+    // =========================================================================
+    async function enviarResumenSMS() {
+        if (!window.creditoSeleccionadoCobro) {
+            alert("⚠️ Selecciona un cliente primero.");
+            return;
+        }
+
+        // 🛡️ BLINDAJE DE DATOS Y BÚSQUEDA DE WHATSAPP
+        let cli = window.creditoSeleccionadoCobro.clientes || {};
+        let numeroCliente = cli.whatsapp;
+
+        try {
+            const supa = await esperarSupabase();
+            
+            if (!numeroCliente || numeroCliente.trim() === "") {
+                const { data: infoDB } = await supa.from('clientes').select('whatsapp').eq('id', window.creditoSeleccionadoCobro.cliente_id).single();
+                if (infoDB && infoDB.whatsapp) numeroCliente = infoDB.whatsapp;
+            }
+
+            if (!numeroCliente || numeroCliente.trim() === "") {
+                alert("❌ Error: Este cliente NO tiene un número de WhatsApp registrado en la base de datos.");
+                return;
+            }
+
+            const cobrar = confirm("💰 SERVICIO DE AUDITORÍA SMS\n\n¿Deseas cobrar $1.00 por el envío de este estado de cuenta detallado?\n\n🟢 [ACEPTAR] = Cobrar $1.00\n🔴 [CANCELAR] = Envío GRATIS (Cortesía)");
+
+            // 1. Cobrar si el gerente aceptó
+            if (cobrar) {
+                const { data: cajaData } = await supa.from('cajas_capital').select('id, saldo_actual').eq('tipo', 'efectivo').limit(1);
+                if(cajaData && cajaData.length > 0) {
+                    await supa.from('cajas_capital').update({ saldo_actual: parseFloat(cajaData[0].saldo_actual) + 1.00 }).eq('id', cajaData[0].id);
+                    await supa.from('historial_capital').insert([{
+                        caja_id: cajaData[0].id,
+                        monto: 1.00,
+                        concepto: `🟢 INGRESO: Servicio Estado de Cuenta SMS - ${cli.nombres} ${cli.apellidos}`
+                    }]);
+                }
+            }
+
+            // 2. Extraer Referencia Completa (Ej: MV-4578 | CRE #[C])
+            let refFinalCompleta = "CRE # ?";
+            const lblRef = document.getElementById('lbl-recaudacion-ref');
+            if (lblRef && lblRef.innerText) {
+                const textoRef = lblRef.innerText;
+                const partes = textoRef.split('|');
+                if (partes.length >= 3) {
+                     const refCliente = partes[0].replace('REF:', '').trim();
+                     const creParte = partes[2].trim();
+                     const matchLetra = creParte.match(/\[.*?\]/);
+                     const creLimpio = matchLetra ? `CRE #${matchLetra[0]}` : creParte;
+                     refFinalCompleta = `${refCliente} | ${creLimpio}`;
+                }
+            }
+
+            // 3. Formatear Fecha "Impreso" 
+            const ahora = new Date();
+            const diasArr = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const mesesArr = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            
+            let hImp = ahora.getHours();
+            let mImp = String(ahora.getMinutes()).padStart(2, '0');
+            const ampmImp = hImp >= 12 ? 'p. m.' : 'a. m.';
+            hImp = hImp % 12; hImp = hImp ? hImp : 12;
+            
+            const fechaImpreso = `${diasArr[ahora.getDay()]} ${ahora.getDate()} de ${mesesArr[ahora.getMonth()]} de ${ahora.getFullYear()} a las ${String(hImp).padStart(2,'0')}:${mImp} ${ampmImp}`;
+
+            // 4. Formatear Fecha Original Crédito
+            let fechaEmisionCredito = "N/A";
+            if (window.creditoSeleccionadoCobro.fecha_emision) {
+                const fObj = new Date(window.creditoSeleccionadoCobro.fecha_emision);
+                if(!isNaN(fObj.getTime())) {
+                    const diaSemanaCap = diasArr[fObj.getDay()].charAt(0).toUpperCase() + diasArr[fObj.getDay()].slice(1);
+                    const diaNum = String(fObj.getDate()).padStart(2, '0');
+                    const mesNombre = mesesArr[fObj.getMonth()];
+                    const anioNum = fObj.getFullYear();
+                    fechaEmisionCredito = `${diaSemanaCap} ${diaNum}/${mesNombre}/${anioNum}`;
+                }
+            }
+
+            // 5. Montos y Cuotas
+            let totalPagar = parseFloat(window.creditoSeleccionadoCobro.total_pagar);
+            let saldo = parseFloat(window.creditoSeleccionadoCobro.saldoNeto);
+            const cuotaFija = parseFloat(window.creditoSeleccionadoCobro.valor_cuota) || 1;
+            const cuotasTotales = parseInt(window.creditoSeleccionadoCobro.num_cuotas) || 1;
+            
+            let cuotasPendientes = Math.ceil(saldo / cuotaFija);
+            if (cuotasPendientes < 0) cuotasPendientes = 0;
+
+            // 6. Historial (Últimos 5 pagos)
+            let historialTxt = "";
+            if (abonosClienteActual && abonosClienteActual.length > 0) {
+                let abonosOrdenados = [...abonosClienteActual].sort((a, b) => new Date(a.fecha_pago) - new Date(b.fecha_pago));
+                
+                const totalAbonado = abonosOrdenados.reduce((sum, abono) => sum + parseFloat(abono.abono_total), 0);
+                let saldoEnTransito = saldo + totalAbonado; 
+                
+                let abonosConSaldo = abonosOrdenados.map(abono => {
+                    saldoEnTransito -= parseFloat(abono.abono_total);
+                    if (saldoEnTransito < 0) saldoEnTransito = 0;
+                    return { ...abono, saldoRestante: saldoEnTransito };
+                });
+
+                let ultimos5 = abonosConSaldo.slice(-5);
+                
+                historialTxt += `\n🧾 ÚLTIMOS 5 MOVIMIENTOS:\n`;
+                ultimos5.forEach((abono) => {
+                    const fPago = new Date(abono.fecha_pago);
+                    const diaFormato = `${String(fPago.getDate()).padStart(2,'0')}/${String(fPago.getMonth()+1).padStart(2,'0')}/${fPago.getFullYear()}`; 
+                    const montoPagado = parseFloat(abono.abono_total);
+                    
+                    historialTxt += `- Pago #${abono.numero_pago || '?'} | ${diaFormato}\n  Abono: $${montoPagado.toFixed(2)} | Queda: $${abono.saldoRestante.toFixed(2)}\n`;
+                });
+                
+                if (abonosConSaldo.length > 5) {
+                    const anteriores = abonosConSaldo.length - 5;
+                    historialTxt += `(Y ${anteriores} pagos anteriores)\n`;
+                }
+            } else {
+                historialTxt += `\n🧾 MOVIMIENTOS:\nSin abonos registrados.\n`;
+            }
+
+            // 7. Ensamblar Mensaje Final
+            const etiqueta = cobrar ? "[ESTADO DE CTA] val $1.00\n" : "";
+            const msj = `=== SISTEMA ALPHA ===\n${etiqueta}Impreso: ${fechaImpreso}\n\n🆔 Ref: ${refFinalCompleta}\n👤 Cliente: ${cli.nombres.toUpperCase()} ${cli.apellidos.toUpperCase()}\n💳 Cédula: ${cli.cedula || 'N/A'}\n📅 Fecha Crédito: ${fechaEmisionCredito}\n\n📊 Total Crédito: $${totalPagar.toFixed(2)}\n💵 Valor Cuota: $${cuotaFija.toFixed(2)}\n📉 Saldo Pendiente: $${saldo.toFixed(2)}\n🔢 N° Cuotas: ${cuotasTotales} (${cuotasPendientes} Pendientes)\n${historialTxt}\n¡Gracias por tu confianza!\n🚫 NO RESPONDER AL MENSAJE.`;
+
+            // 8. Enviar SMS con la Antena Independiente
+            const exitoCliente = await invocarSMSDesdeMovil(numeroCliente.toString(), msj);
+            
+            if (exitoCliente) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const numeroGerente = "0939836191"; 
+                if (numeroCliente.toString().trim() !== numeroGerente) {
+                    await invocarSMSDesdeMovil(numeroGerente, `[COPIA RESUMEN SMS]\n\n${msj}`);
+                }
+                alert("✅ Resumen SMS enviado a: " + numeroCliente + "\n👮‍♂️ Copia de auditoría enviada al Gerente.");
+            } else {
+                 alert("⚠️ Error al intentar enviar el Resumen SMS mediante MacroDroid.");
+            }
+
+        } catch(e) {
+            console.error("Error en Resumen SMS:", e);
+            alert("❌ Error al procesar el resumen SMS: " + e.message);
+        }
+    }
+
 
     async function cerrarSesion() {
         if(confirm("¿Seguro que desea cerrar sesión en este dispositivo?")) {
