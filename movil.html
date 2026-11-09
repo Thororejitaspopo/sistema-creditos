@@ -1289,8 +1289,7 @@
         }
         return true;
     }
-
-    async function reenviarReciboAbono(idAbono) {
+async function reenviarReciboAbono(idAbono) {
         const abono = abonosClienteActual.find(a => a.id == idAbono);
         if (!abono) return;
         const numPago = abono.numero_pago || '?';
@@ -1317,13 +1316,21 @@
             }
 
             const nombre = `${cli.nombres} ${cli.apellidos}`.toUpperCase();
-            let creText = "CRE # ?";
+            
+            // 🔥 RESCATAMOS LA REF COMPLETA DEL HTML (EJ: MV-4578 | CRE #[C]) 🔥
+            let refFinalCompleta = "CRE # ?";
             const lblRef = document.getElementById('lbl-recaudacion-ref');
             if (lblRef && lblRef.innerText) {
-                const match = lblRef.innerText.match(/CRE\s*#[^|]+/);
-                if (match) {
-                    const matchLetra = match[0].match(/\[.*?\]/);
-                    creText = matchLetra ? `CRE #${matchLetra[0]}` : match[0].trim();
+                // Buscamos algo como "REF: MV-4578 | CRÉDITO #603 | CRE #3 [C]"
+                const textoRef = lblRef.innerText;
+                const partes = textoRef.split('|');
+                if (partes.length >= 3) {
+                     // Extraemos "MV-4578" y "CRE #3 [C]" o "CRE #[C]"
+                     const refCliente = partes[0].replace('REF:', '').trim();
+                     const creParte = partes[2].trim();
+                     const matchLetra = creParte.match(/\[.*?\]/);
+                     const creLimpio = matchLetra ? `CRE #${matchLetra[0]}` : creParte;
+                     refFinalCompleta = `${refCliente} | ${creLimpio}`;
                 }
             }
 
@@ -1339,7 +1346,13 @@
             const cuotasTotales = parseInt(window.creditoSeleccionadoCobro.num_cuotas) || 1;
             const cuotasPendientes = Math.max(0, Math.ceil(saldoEnEseMomento / (parseFloat(window.creditoSeleccionadoCobro.valor_cuota) || 1)));
 
-            const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${creText}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📊 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 N° de Cuotas: ${cuotasPendientes}/${cuotasTotales}\n💳 Método: ${abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO'}\n\nConserva este msj. ¡Gracias!\n🚫 NO RESPONDER A ESTE MENSAJE.`;
+            // 🔥 AÑADIMOS EL DETALLE DEL BANCO SI ES TRANSFERENCIA 🔥
+            let infoMetodo = `💳 Método: ${abono.forma_pago ? abono.forma_pago.toUpperCase() : 'EFECTIVO'}`;
+            if (abono.forma_pago === 'transferencia' && abono.detalles_banco) {
+                infoMetodo += `\n🏦 Banco: ${abono.detalles_banco}`;
+            }
+
+            const msjAbono = `${encabezadoSMS}\n${fechaHoraSMS}\n\n🆔 Ref: ${refFinalCompleta}\n👤 Cliente: ${nombre}\n\nHola, aquí tienes el respaldo de tu abono.\n\n✅ Pago: #${numPago}\n💰 Monto: $${parseFloat(abono.abono_total).toFixed(2)}\n📉 Saldo: $${saldoEnEseMomento.toFixed(2)}\n🔢 Cuotas: ${cuotasPendientes}/${cuotasTotales}\n${infoMetodo}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
             
             const exitoCliente = await invocarSMSDesdeMovil(numeroCliente.toString(), msjAbono);
             
