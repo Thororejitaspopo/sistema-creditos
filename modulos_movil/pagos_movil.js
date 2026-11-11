@@ -235,19 +235,26 @@
     }
 
     // =========================================================
-    // 🚀 FUNCIONES AUXILIARES MÓVILES
-    // =========================================================
-    function cifrarNumeroCreditoMovil(numero) {
-        const num = parseInt(numero);
-        const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        if (num > 0 && num <= 26) return letras.charAt(num - 1);
-        if (num > 26) {
-            const cociente = Math.floor((num - 1) / 26);
-            const residuo = (num - 1) % 26;
-            return letras.charAt(cociente - 1) + letras.charAt(residuo);
-        }
-        return '?';
+// 🚀 FUNCIONES AUXILIARES MÓVILES (CRIPTO ALPHA)
+// =========================================================
+function cifrarNumeroCreditoMovil(numero) {
+    if (!numero && numero !== 0) return 'P';
+    
+    const numStr = numero.toString();
+    let codigoOculto = '';
+    
+    const diccionario = {
+        '1': 'H', '2': 'Y', '3': 'R', '4': 'V', '5': 'T',
+        '6': 'N', '7': 'G', '8': 'J', '9': 'Ñ', '0': 'P'
+    };
+    
+    for (let i = 0; i < numStr.length; i++) {
+        const digito = numStr[i];
+        codigoOculto += diccionario[digito] || digito;
     }
+    
+    return codigoOculto;
+}
 
     async function esperarSupabase() {
         let intentos = 0;
