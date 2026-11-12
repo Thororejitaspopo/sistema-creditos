@@ -212,7 +212,7 @@ async function buscarCreditoParaCobro() {
 const totalOriginal = parseFloat(c.total_pagar || 0).toFixed(2);
 const infoDinero = `Total: $${totalOriginal} ➡️ Saldo: $${saldoNeto.toFixed(2)}`;
                 
-// --- FORMATO GERENCIAL [FRECUENCIA][CUOTA] ---
+// --- FORMATO GERENCIAL [CRIPTO][FRECUENCIA][CUOTA][PAGOS] ---
 let letraF = '-';
 let fP = (c.frecuencia_pago || '').toUpperCase();
 if (fP.includes('DIARIO')) letraF = 'D';
@@ -222,10 +222,18 @@ else if (fP.includes('MENSUAL')) letraF = 'M';
 
 let valorC = c.valor_cuota ? parseFloat(c.valor_cuota).toFixed(2) : '0.00';
 if (valorC.endsWith('.00')) valorC = parseInt(valorC);
-// ---------------------------------------------
 
-// 🔥 VERSIÓN VIP ACTUALIZADA: Con letra de frecuencia y valor de cuota
-const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | ${infoDinero}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
+// Calculamos las cuotas pagadas para la "P"
+let cuotasPendientesVisual = Math.ceil(saldoNeto / parseFloat(c.valor_cuota || 1));
+let cuotasOriginalesVisual = parseInt(c.num_cuotas) || 1;
+let pagadasVisual = cuotasOriginalesVisual - cuotasPendientesVisual;
+if (pagadasVisual < 0) pagadasVisual = 0;
+// ------------------------------------------------------------
+
+// 🔥 NUEVA VERSIÓN: [R][D][C3][P20]
+const codigosVisuales = `[${codigoCifrado}][${letraF}][C${valorC}][P${pagadasVisual}]`;
+
+const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} ${codigosVisuales} | Emitido: ${fechaTxtCorta} | ${infoDinero}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
 selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
 });
 

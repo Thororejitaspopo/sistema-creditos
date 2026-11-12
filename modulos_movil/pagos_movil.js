@@ -420,20 +420,37 @@ function cifrarNumeroCreditoMovil(numero) {
                             else if (ultimaAccion.includes('Perdón')) etiquetaAccion = " | 🛡️ PERDONADO";
                         }
                     }
+let alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
 
-                    let alertaCongelado = c.estado === 'congelado' ? ' [🧊 CONGELADO]' : '';
+                const f = new Date(c.fecha_emision);
+                const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                const fechaTxtCorta = `${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()}`;
 
-                    const f = new Date(c.fecha_emision);
-                    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-                    const fechaTxtCorta = `${f.getDate()}/${meses[f.getMonth()]}/${f.getFullYear()}`;
+                // --- FORMATO GERENCIAL [CRIPTO][FRECUENCIA][CUOTA][PAGOS] ---
+                let letraF = '-';
+                let fP = (c.frecuencia_pago || '').toUpperCase();
+                if (fP.includes('DIARIO')) letraF = 'D';
+                else if (fP.includes('SEMANAL')) letraF = 'S';
+                else if (fP.includes('QUINCENAL')) letraF = 'Q';
+                else if (fP.includes('MENSUAL')) letraF = 'M';
 
-                    let letraF = c.frecuencia_pago.toUpperCase().includes('DIARIO') ? 'D' : c.frecuencia_pago.toUpperCase().includes('SEMANAL') ? 'S' : 'M';
-                    let valorC = parseFloat(c.valor_cuota || 0).toFixed(0);
+                let valorC = c.valor_cuota ? parseFloat(c.valor_cuota).toFixed(2) : '0.00';
+                if (valorC.endsWith('.00')) valorC = parseInt(valorC);
 
-                    const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} [${codigoCifrado}][${letraF}][${valorC}] | Emitido: ${fechaTxtCorta} | Total: $${parseFloat(c.total_pagar).toFixed(2)} ➡️ Saldo: $${saldoNeto.toFixed(2)}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
-                    
-                    selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
-                });
+                // Calculamos las cuotas pagadas para la "P"
+                let cuotasPendientesVisual = Math.ceil(saldoNeto / parseFloat(c.valor_cuota || 1));
+                let cuotasOriginalesVisual = parseInt(c.num_cuotas) || 1;
+                let pagadasVisual = cuotasOriginalesVisual - cuotasPendientesVisual;
+                if (pagadasVisual < 0) pagadasVisual = 0;
+                // ------------------------------------------------------------
+
+                // 🔥 NUEVA VERSIÓN: [R][D][C3][P20]
+                const codigosVisuales = `[${codigoCifrado}][${letraF}][C${valorC}][P${pagadasVisual}]`;
+
+                const textoOpcion = `CRÉDITO #${c.id} | CRE #${numeroCredito} ${codigosVisuales} | Emitido: ${fechaTxtCorta} | Total: $${parseFloat(c.total_pagar).toFixed(2)} ➡️ Saldo: $${saldoNeto.toFixed(2)}${textoMoraExtra}${etiquetaAccion}${alertaCongelado}`;
+                
+                selectMulti.innerHTML += `<option value="${c.id}">${textoOpcion}</option>`;
+            });
                 
                 document.getElementById('recaudacion-espera-msg').style.display = 'none';
                 document.getElementById('panel-recaudacion-activo').style.display = 'none';
