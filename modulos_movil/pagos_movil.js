@@ -215,6 +215,118 @@
                 setTimeout(() => cargarListaClientesMovil(), 150); 
             });
         }
+        else if (modulo === 'matriz') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            
+            vistaModulos.innerHTML = `
+                <div style="padding: 20px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <!-- Encabezado Matriz -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 22px; color: var(--texto-oscuro); font-weight: 900;">¡Buenos días, Miguel! ☀️</h2>
+                            <div id="lbl-fecha-matriz" style="color: #64748b; font-size: 12px; margin-top: 4px; font-weight: 600;">Cargando fecha...</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="background: #fef08a; color: #a16207; font-size: 10px; font-weight: 900; padding: 4px 8px; border-radius: 20px; margin-bottom: 6px; border: 1px solid #fde047;">🎯 Meta Hoy: <span id="lbl-meta-hoy">$0.00</span></div>
+                            <button onclick="alert('Función de Moras en desarrollo para móvil')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(239,68,68,0.3); display: flex; align-items: center; gap: 4px; margin-left: auto;">
+                                ⚡ Aplicar Moras
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 TARJETAS FINANCIERAS (Grid 2x2) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
+                        
+                        <!-- Tarjeta Caja Matriz -->
+                        <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                                <span>💵</span> CAJA MATRIZ (EFECTIVO)
+                            </div>
+                            <div id="monto-caja-matriz" style="font-size: 20px; font-weight: 900; color: #1e293b;">$0.00</div>
+                        </div>
+
+                        <!-- Tarjeta Capital en la Calle -->
+                        <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #ef4444; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                                <span>📈</span> CAPITAL EN LA CALLE
+                            </div>
+                            <div id="monto-capital-calle" style="font-size: 20px; font-weight: 900; color: #1e293b;">$0.00</div>
+                        </div>
+
+                        <!-- Tarjeta Cuentas Congeladas -->
+                        <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                                <span>🧊</span> CTAS CONGELADAS
+                            </div>
+                            <div id="num-cuentas-congeladas" style="font-size: 20px; font-weight: 900; color: #1e293b;">0</div>
+                        </div>
+
+                        <!-- Tarjeta Ganancia Proyectada -->
+                        <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #8b5cf6; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+                                <span>💎</span> GANANCIA PROY.
+                            </div>
+                            <div id="monto-ganancia-proyectada" style="font-size: 20px; font-weight: 900; color: #1e293b;">$0.00</div>
+                        </div>
+
+                    </div>
+
+                    <!-- CONTENEDOR RUTA DE COBRO -->
+                    <div style="background: white; border-radius: 16px; border: 1px solid #10b981; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+                        <div style="background: #f0fdf4; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #10b981;">
+                            <h3 style="margin: 0; font-size: 15px; color: #047857; display: flex; align-items: center; gap: 6px;">
+                                <span>🗺️</span> Ruta de Cobro (Hoy)
+                            </h3>
+                            <span id="contador-ruta" style="background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">0 Visitas</span>
+                        </div>
+                        
+                        <div style="padding: 15px;">
+                            <input type="text" id="buscador-ruta-movil" onkeyup="filtrarListaMovil('lista-ruta-movil', this.value)" placeholder="🔍 Escriba el nombre..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
+                            
+                            <div id="lista-ruta-movil" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
+                                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">⏳ Calculando ruta...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENEDOR ALERTAS DE CARTERA -->
+                    <div style="background: white; border-radius: 16px; border: 1px solid #ef4444; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+                        <div style="background: #fef2f2; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ef4444;">
+                            <h3 style="margin: 0; font-size: 15px; color: #b91c1c; display: flex; align-items: center; gap: 6px;">
+                                <span>🔔</span> Alertas de Cartera
+                            </h3>
+                            <span id="contador-alertas" style="background: #fca5a5; color: #7f1d1d; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">0 Vencidos</span>
+                        </div>
+                        
+                        <div style="padding: 15px;">
+                            <input type="text" id="buscador-alertas-movil" onkeyup="filtrarListaMovil('lista-alertas-movil', this.value)" placeholder="🔍 Escriba el nombre..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
+                            
+                            <div id="lista-alertas-movil" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
+                                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">⏳ Analizando cartera...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            `;
+
+            // Colocar la fecha actual dinámica
+            const ahora = new Date();
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            document.getElementById('lbl-fecha-matriz').innerText = `${dias[ahora.getDay()]}, ${ahora.getDate()} de ${meses[ahora.getMonth()]} de ${ahora.getFullYear()}`;
+
+            // Llamada al motor financiero de nuestro nuevo archivo
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof cargarMatrizGlobalMovil === 'function') {
+                        cargarMatrizGlobalMovil();
+                    }
+                }, 100);
+            });
+        }
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
