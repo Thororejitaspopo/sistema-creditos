@@ -215,11 +215,36 @@
                 setTimeout(() => cargarListaClientesMovil(), 150); 
             });
         }
-        else if (modulo === 'matriz') {
+       else if (modulo === 'matriz') {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
             
             vistaModulos.innerHTML = `
+                <style>
+                    /* 🔥 MAGIA DEL CARRUSEL (UN CLIENTE A LA VEZ) 🔥 */
+                    .contenedor-carrusel {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        overflow-x: auto !important;
+                        overflow-y: hidden !important;
+                        scroll-snap-type: x mandatory !important;
+                        gap: 15px;
+                        padding-bottom: 10px;
+                        -webkit-overflow-scrolling: touch;
+                    }
+                    /* Ocultamos la barra gris fea de scroll para que parezca App nativa */
+                    .contenedor-carrusel::-webkit-scrollbar {
+                        display: none; 
+                    }
+                    /* Forzamos a que cada cliente ocupe casi toda la pantalla y se "imante" al centro */
+                    .contenedor-carrusel > div {
+                        min-width: 90% !important;
+                        max-width: 90% !important;
+                        scroll-snap-align: center !important;
+                        margin-bottom: 0 !important;
+                    }
+                </style>
+                
                 <div style="padding: 20px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
                     
                     <!-- Encabezado Matriz -->
@@ -238,39 +263,22 @@
 
                     <!-- 4 TARJETAS FINANCIERAS (Grid 2x2) -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
-                        
-                        <!-- Tarjeta Caja Matriz -->
                         <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-                                <span>💵</span> CAJA MATRIZ (EFECTIVO)
-                            </div>
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><span>💵</span> CAJA MATRIZ</div>
                             <div id="monto-caja-matriz" style="font-size: 20px; font-weight: 900; color: #1e293b;">$0.00</div>
                         </div>
-
-                        <!-- Tarjeta Capital en la Calle -->
                         <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #ef4444; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-                                <span>📈</span> CAPITAL EN LA CALLE
-                            </div>
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><span>📈</span> CAP EN CALLE</div>
                             <div id="monto-capital-calle" style="font-size: 20px; font-weight: 900; color: #1e293b;">$0.00</div>
                         </div>
-
-                        <!-- Tarjeta Cuentas Congeladas -->
                         <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-                                <span>🧊</span> CTAS CONGELADAS
-                            </div>
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><span>🧊</span> CONGELADAS</div>
                             <div id="num-cuentas-congeladas" style="font-size: 20px; font-weight: 900; color: #1e293b;">0</div>
                         </div>
-
-                        <!-- Tarjeta Ganancia Proyectada -->
                         <div style="background: white; border-radius: 12px; padding: 15px; border-top: 4px solid #8b5cf6; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-                                <span>💎</span> GANANCIA PROY.
-                            </div>
+                            <div style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><span>💎</span> GANANCIA</div>
                             <div id="monto-ganancia-proyectada" style="font-size: 20px; font-weight: 900; color: #1e293b;">$0.00</div>
                         </div>
-
                     </div>
 
                     <!-- CONTENEDOR RUTA DE COBRO -->
@@ -282,11 +290,14 @@
                             <span id="contador-ruta" style="background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">0 Visitas</span>
                         </div>
                         
-                        <div style="padding: 15px;">
-                            <input type="text" id="buscador-ruta-movil" onkeyup="filtrarListaMovil('lista-ruta-movil', this.value)" placeholder="🔍 Escriba el nombre..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
+                        <div style="padding: 15px 0 15px 15px;">
+                            <div style="padding-right: 15px;">
+                                <input type="text" id="buscador-ruta-movil" onkeyup="filtrarListaMovil('lista-ruta-movil', this.value)" placeholder="🔍 Buscar cliente..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
+                            </div>
                             
-                            <div id="lista-ruta-movil" style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 10px;">
-                                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">⏳ Calculando ruta...</div>
+                            <!-- 🔥 LISTA CARRUSEL 🔥 -->
+                            <div id="lista-ruta-movil" class="contenedor-carrusel">
+                                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; min-width: 100%;">⏳ Calculando ruta...</div>
                             </div>
                         </div>
                     </div>
@@ -300,11 +311,14 @@
                             <span id="contador-alertas" style="background: #fca5a5; color: #7f1d1d; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">0 Vencidos</span>
                         </div>
                         
-                        <div style="padding: 15px;">
-                            <input type="text" id="buscador-alertas-movil" onkeyup="filtrarListaMovil('lista-alertas-movil', this.value)" placeholder="🔍 Escriba el nombre..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
+                        <div style="padding: 15px 0 15px 15px;">
+                            <div style="padding-right: 15px;">
+                                <input type="text" id="buscador-alertas-movil" onkeyup="filtrarListaMovil('lista-alertas-movil', this.value)" placeholder="🔍 Buscar vencido..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
+                            </div>
                             
-                            <div id="lista-alertas-movil" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
-                                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">⏳ Analizando cartera...</div>
+                            <!-- 🔥 LISTA CARRUSEL 🔥 -->
+                            <div id="lista-alertas-movil" class="contenedor-carrusel">
+                                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; min-width: 100%;">⏳ Analizando cartera...</div>
                             </div>
                         </div>
                     </div>
@@ -312,13 +326,11 @@
                 </div>
             `;
 
-            // Colocar la fecha actual dinámica
             const ahora = new Date();
             const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             document.getElementById('lbl-fecha-matriz').innerText = `${dias[ahora.getDay()]}, ${ahora.getDate()} de ${meses[ahora.getMonth()]} de ${ahora.getFullYear()}`;
 
-            // Llamada al motor financiero de nuestro nuevo archivo
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     if (typeof cargarMatrizGlobalMovil === 'function') {
