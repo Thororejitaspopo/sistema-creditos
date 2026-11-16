@@ -207,8 +207,8 @@ async function cargarMatrizGlobalMovil() {
                         txtCuota = `<span style="font-weight: 900; font-size: 16px; color: #ef4444;">$${r.montoSugerido.toFixed(2)}</span>`;
                     }
                 }
-                return `
-                <div class="tarjeta-ruta-dia" style="border: 1px solid ${colorFondo}; background: #ffffff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${colorBorde}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+               return `
+                <div class="tarjeta-ruta-dia" style="border: 1px solid ${colorFondo}; background: #ffffff; border-radius: 8px; padding: 12px; border-left: 4px solid ${colorBorde}; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex: 0 0 90%;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                         <div>
                             <div style="font-weight: 900; font-size: 13px; color: #1e293b;">${r.nombre}</div>
@@ -260,7 +260,7 @@ async function cargarMatrizGlobalMovil() {
         
         if (alertasVencimiento.length > 0) {
             divAlertas.innerHTML = alertasVencimiento.map(a => `
-                <div class="tarjeta-alerta-movil" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+               <div class="tarjeta-alerta-movil" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); flex: 0 0 90%;">
                     <div style="background: #f8fafc; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <strong style="color: #0f172a; font-size: 14px; display: block;">${a.nombre}</strong>
