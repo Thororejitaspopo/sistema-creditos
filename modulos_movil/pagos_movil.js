@@ -285,7 +285,7 @@
                         <div style="padding: 15px;">
                             <input type="text" id="buscador-ruta-movil" onkeyup="filtrarListaMovil('lista-ruta-movil', this.value)" placeholder="🔍 Escriba el nombre..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; outline: none; margin-bottom: 15px; box-sizing: border-box;">
                             
-                            <div id="lista-ruta-movil" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
+                            <div id="lista-ruta-movil" style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 10px;">
                                 <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12px;">⏳ Calculando ruta...</div>
                             </div>
                         </div>
