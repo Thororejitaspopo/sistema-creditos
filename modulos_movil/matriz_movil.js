@@ -185,8 +185,7 @@ async function cargarMatrizGlobalMovil() {
                 }
             }
         });
-
-        // ==========================================
+// ==========================================
         // C. RENDERIZADO FINAL EN PANTALLA MÓVIL
         // ==========================================
         const capitalEnLaCalle = deudaTotalEsperada - abonoGlobal;
@@ -196,46 +195,146 @@ async function cargarMatrizGlobalMovil() {
         document.getElementById('monto-ganancia-proyectada').innerText = `$${gananciaProyectada.toFixed(2)}`;
         document.getElementById('lbl-meta-hoy').innerText = `$${metaHoy.toFixed(2)}`;
 
-        // RUTA DE HOY
+        // ==========================================
+        // RENDERIZADO: RUTA DE HOY (DISEÑO VIP)
+        // ==========================================
         document.getElementById('contador-ruta').innerText = `${rutaCobroDia.length} Visita(s)`;
         if (rutaCobroDia.length > 0) {
-            divRuta.innerHTML = rutaCobroDia.map(r => `
-                <div style="background: white; border: 1px solid #10b981; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <strong style="font-size: 13px; color: #047857;">${r.nombre}</strong>
-                        <strong style="font-size: 14px; color: #1e293b;">$${r.cuotaFija.toFixed(2)}</strong>
+            divRuta.innerHTML = rutaCobroDia.map(r => {
+                const colorFondo = "#ffffff";
+                const colorBorde = "#10b981";
+                
+                return `
+                <div class="tarjeta-ruta-dia" style="border: 1px solid ${colorFondo}; background: #ffffff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${colorBorde}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div>
+                            <div style="font-weight: 900; font-size: 13px; color: #1e293b;">${r.nombre}</div>
+                            <div style="font-size: 10px; color: ${colorBorde}; font-weight: bold; margin-top: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+                                <span style="text-transform: uppercase;">${r.frecuenciaTxt}</span>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 10px; color: #64748b; display: block;">Sugerido:</span>
+                            <span style="font-weight: 900; font-size: 16px; color: #047857;">$${r.cuotaFija.toFixed(2)}</span>
+                        </div>
                     </div>
-                    <div style="font-size: 10px; color: #64748b; margin-bottom: 8px;">${r.etiquetaCRE} | ${r.frecuenciaTxt}</div>
-                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed #cbd5e1; padding-top: 6px;">
-                        <span style="font-size: 11px; color: #475569;">Saldo: <b>$${r.saldo.toFixed(2)}</b></span>
-                        <button onclick="irACobrarDesdeRuta('${r.idCredito}')" style="background: #10b981; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 10px;">Cobrar</button>
+
+                    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 12px 10px; margin-bottom: 10px; font-size: 11px; color: #334155;">
+                        <div style="margin-bottom: 10px;">
+                            <span style="background: #e0f2fe; color: #0284c7; font-weight: bold; padding: 3px 6px; border-radius: 4px; border: 1px solid #bae6fd; font-size: 10px;">
+                                🆔 REF: ${r.refBancaria} | CRÉDITO #${r.idCredito} | ${r.etiquetaCRE}
+                            </span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; padding-left: 6px; padding-right: 6px;">
+                            <div>
+                                <span style="color: #64748b; font-size: 9px; display: block; text-transform: uppercase;">CAPITAL PRESTADO</span>
+                                <span style="font-weight: bold; color: #1e293b; font-size: 12px;">$${r.capital.toFixed(2)}</span>
+                                <span style="color: #64748b; font-size: 10px;">(${r.cuotas} cuotas 🗓️ ${r.frecuenciaTxt.toLowerCase()})</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="color: #64748b; font-size: 9px; display: block; text-transform: uppercase;">SALDO DEUDA ACTUAL</span>
+                                <span style="font-weight: bold; color: #b91c1c; font-size: 12px;">$${r.saldo.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-left: 6px; padding-right: 6px; align-items: center;">
+                            <span style="color: #16a34a; font-size: 11px; font-weight: bold;">✅ Abonado: $${r.abonado.toFixed(2)}</span>
+                            <span style="color: #ef4444; font-size: 11px; font-weight: bold;">🚨 Mora Acumulada: $${r.mora.toFixed(2)}</span>
+                        </div>
+                        
+                        <div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; font-size: 10px;">
+                            <div style="margin-bottom: 4px;"><span style="color: #475569;">🗓️ <b>Emitido:</b> ${r.emisionTxt}</span></div>
+                            <div><span style="color: #475569;">🚩 <b>Vencimiento:</b> <b style="color: #b91c1c;">${r.venceTxt}</b></span></div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                    
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button onclick="irACobrarDesdeRuta('${r.idCredito}')" style="background: ${colorBorde}; color: white; border: none; padding: 5px 15px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <span>💰</span> Registrar Pago
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
         } else {
-            divRuta.innerHTML = `<div style="text-align: center; padding: 20px; color: #10b981; font-size: 12px; font-weight: bold;">✅ Ruta completada o vacía.</div>`;
+            divRuta.innerHTML = `<div style="text-align: center; padding: 20px; color: #10b981; font-size: 12px; font-weight: bold;">✅ Ruta completada o vacía hoy.</div>`;
         }
 
-        // ALERTAS DE CARTERA
+        // ==========================================
+        // RENDERIZADO: ALERTAS DE CARTERA (DISEÑO VIP)
+        // ==========================================
         alertasVencimiento.sort((a, b) => b.diasAtraso - a.diasAtraso);
         document.getElementById('contador-alertas').innerText = `${alertasVencimiento.length} Vencido(s)`;
         
         if (alertasVencimiento.length > 0) {
-            divAlertas.innerHTML = alertasVencimiento.map(a => `
-                <div class="tarjeta-alerta-movil" style="background: white; border: 1px solid #ef4444; border-left: 4px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong style="font-size: 12px; color: #b91c1c;">${a.nombre}</strong>
-                        <span style="font-size: 10px; font-weight: bold; color: #ef4444; background: #fee2e2; padding: 2px 6px; border-radius: 10px;">${a.diasAtraso} días</span>
+            divAlertas.innerHTML = alertasVencimiento.map(a => {
+                const colorBorde = '#ef4444';
+                const titulo = `VENCIDO HACE ${a.diasAtraso} DÍAS`;
+                const badgePerfil = a.perfil === 'Social' 
+                    ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #bbf7d0;">🛡️ SOCIAL (No Multar)</span>`
+                    : `<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fecaca;">⚠️ NORMAL (Aplica Mora)</span>`;
+
+                return `
+                <div class="tarjeta-alerta-movil" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid ${colorBorde}; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <div style="background: #f8fafc; padding: 10px 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #0f172a; font-size: 14px; display: block; margin-bottom: 4px;">${a.nombre}</strong>
+                            <span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #bae6fd;">
+                                🆔 REF: ${a.refBancaria} | CRÉDITO #${a.idCredito} | ${a.etiquetaCRE}
+                            </span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 20px; font-weight: 900; font-size: 11px; display: inline-block;">
+                                ${titulo}
+                            </span>
+                        </div>
                     </div>
-                    <div style="font-size: 10px; color: #64748b; margin-bottom: 8px;">${a.etiquetaCRE} | Saldo: $${a.saldo.toFixed(2)}</div>
-                    <div style="font-size: 9px; color: #94a3b8;">Venció: ${a.venceTxt}</div>
-                </div>
-            `).join('');
+                    
+                    <div style="padding: 12px 15px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                            <div>
+                                <div style="color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: bold;">Capital Prestado</div>
+                                <div style="color: #0f172a; font-weight: 900; font-size: 13px;">$${a.capital.toFixed(2)} <span style="font-size:10px; font-weight:normal; color:#64748b;">(${a.cuotas} cuotas ${a.frecuenciaTxt.toLowerCase()})</span></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: bold;">Saldo Deuda Actual</div>
+                                <div style="color: #ea580c; font-weight: 900; font-size: 14px;">$${a.saldo.toFixed(2)}</div>
+                            </div>
+                            <div style="grid-column: span 2; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 2px;">
+                                <span style="color: #16a34a; font-size: 11px; font-weight: bold;">✅ Abonado: $${a.abonado.toFixed(2)}</span>
+                                <span style="color: #dc2626; font-size: 11px; font-weight: bold;">🚨 Mora Acumulada: $${a.mora.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div style="color: #475569; font-size: 11px; line-height: 1.6;">
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <span style="font-size: 14px;">📅</span> 
+                                    <span>Emitido: <b style="color: #334155;">${a.emisionTxt}</b></span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
+                                    <span style="font-size: 14px;">🚩</span> 
+                                    <span>Vencimiento: <b style="color: #dc2626;">${a.venceTxt}</b></span>
+                                </div>
+                            </div>
+                            
+                            <button onclick="alert('Funciones de sanción estarán disponibles en la próxima actualización móvil.')" style="background: #0f172a; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                                ⚙️ GESTIONAR
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; padding: 8px 15px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #64748b; font-size: 10px; font-weight: bold;">10 días gracia • Regla: Mitad+1</span>
+                        ${badgePerfil}
+                    </div>
+                </div>`;
+            }).join('');
         } else {
-            divAlertas.innerHTML = `<div style="text-align: center; padding: 20px; color: #10b981; font-size: 12px; font-weight: bold;">✅ Cartera 100% al día.</div>`;
+            divAlertas.innerHTML = `<div style="text-align: center; padding: 20px; color: #10b981; font-size: 12px; font-weight: bold;">✅ Cartera 100% al día. ¡Excelente!</div>`;
         }
 
-        console.log("Matriz Gerencial móvil sincronizada con éxito.");
+        console.log("Matriz Gerencial móvil sincronizada con diseño VIP.");
 
     } catch (error) {
         console.error("Error al cargar la Matriz:", error);
