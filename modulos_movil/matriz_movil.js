@@ -268,40 +268,67 @@ rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuota
         alertasVencimiento.sort((a, b) => b.diasAtraso - a.diasAtraso);
         document.getElementById('contador-alertas').innerText = `${alertasVencimiento.length} Vencido(s)`;
         
-        if (alertasVencimiento.length > 0) {
-            divAlertas.innerHTML = alertasVencimiento.map(a => `
-               <div class="tarjeta-alerta-movil" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); flex: 0 0 90%;">
-                    <div style="background: #f8fafc; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+  if (alertasVencimiento.length > 0) {
+            divAlertas.innerHTML = alertasVencimiento.map(a => {
+                const badgePerfil = a.perfil === 'Social' 
+                    ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; border: 1px solid #bbf7d0;">🛡️ SOCIAL (No Multar)</span>`
+                    : `<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; border: 1px solid #fecaca;">⚠️ NORMAL (Aplica Mora)</span>`;
+                
+                const freqLimpia = a.frecuenciaTxt.replace(/COBRO\s*/i, '').toLowerCase();
+                const freqCap = freqLimpia.charAt(0).toUpperCase() + freqLimpia.slice(1);
+
+                return `
+                <div class="tarjeta-alerta-movil" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid #ef4444; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; flex: 0 0 90%;">
+                    
+                    <div style="background: #f8fafc; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <div>
-                            <strong style="color: #0f172a; font-size: 14px; display: block;">${a.nombre}</strong>
-                            <span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">
-                                🆔 REF: ${a.refBancaria} | CRÉDITO #${a.idCredito}
+                            <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">${a.nombre}</strong>
+                            <span style="background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; border: 1px solid #bae6fd; display: inline-block;">
+                                🆔 REF: ${a.refBancaria} | CRÉDITO #${a.idCredito} | ${a.etiquetaCRE}
                             </span>
                         </div>
-                        <div style="text-align: right;">
-                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 20px; font-weight: 900; font-size: 11px;">
-                                HACE ${a.diasAtraso} DÍAS
+                        <div style="text-align: right; flex-shrink: 0;">
+                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 20px; font-weight: 900; font-size: 10px; display: inline-block;">
+                                VENCIDO HACE ${a.diasAtraso} DÍAS
                             </span>
                         </div>
                     </div>
+
                     <div style="padding: 12px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px dashed #cbd5e1;">
                             <div>
-                                <div style="color: #64748b; font-size: 10px; font-weight: bold;">Capital Prestado</div>
+                                <div style="color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: bold;">Capital Prestado</div>
                                 <div style="color: #0f172a; font-weight: 900; font-size: 13px;">$${a.capital.toFixed(2)}</div>
+                                <div style="font-size: 9px; color: #64748b;">(${a.cuotas} cuotas 📅 ${freqCap})</div>
                             </div>
                             <div style="text-align: right;">
-                                <div style="color: #64748b; font-size: 10px; font-weight: bold;">Saldo Actual</div>
+                                <div style="color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: bold;">Saldo Deuda Actual</div>
                                 <div style="color: #ea580c; font-weight: 900; font-size: 14px;">$${a.saldo.toFixed(2)}</div>
                             </div>
-                            <div style="grid-column: span 2; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 6px;">
+                            <div style="grid-column: span 2; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 2px;">
                                 <span style="color: #16a34a; font-size: 11px; font-weight: bold;">✅ Abonado: $${a.abonado.toFixed(2)}</span>
-                                <span style="color: #dc2626; font-size: 11px; font-weight: bold;">🚨 Mora: $${a.mora.toFixed(2)}</span>
+                                <span style="color: #dc2626; font-size: 11px; font-weight: bold;">🚨 Mora Acumulada: $${a.mora.toFixed(2)}</span>
                             </div>
                         </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 8px;">
+                            <div style="color: #475569; font-size: 10px; line-height: 1.5;">
+                                <div>📅 Emitido: <b style="color: #334155;">${a.emisionTxt}</b></div>
+                                <div style="margin-top: 3px;">🚩 Vencimiento: <b style="color: #dc2626;">${a.venceTxt}</b></div>
+                            </div>
+                            <button onclick="alert('Panel de sanción en desarrollo para móvil')" style="background: #0f172a; color: white; border: none; padding: 7px 12px; border-radius: 6px; font-weight: bold; font-size: 10px; cursor: pointer; flex-shrink: 0;">
+                                ⚙️ GESTIONAR
+                            </button>
+                        </div>
                     </div>
-                </div>`).join('');
-        } else {
+
+                    <div style="background: #f8fafc; padding: 8px 12px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                        <span style="color: #64748b; font-size: 9px; font-weight: bold;">10 días gracia • Regla: Mitad+1</span>
+                        ${badgePerfil}
+                    </div>
+                </div>`;
+            }).join('');
+        }else {
             divAlertas.innerHTML = `<div style="text-align: center; padding: 20px; color: #10b981; font-weight: bold;">✅ Cartera 100% al día.</div>`;
         }
 
