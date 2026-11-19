@@ -182,7 +182,13 @@ async function cargarMatrizGlobalMovil() {
                     let montoSug = baseData.cuotaFija * cuotasAcum;
                     if (montoSug > saldoPendiente) montoSug = saldoPendiente;
                     
-                    rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuotasAcum, diasAtrasoRuta: diasAtrasoRuta});
+                    let venceRutaStr = baseData.venceTxt;
+if (c.fecha_vencimiento_actual) {
+    const fVencExacta = new Date(c.fecha_vencimiento_actual + 'T12:00:00');
+    const txtExacto = fVencExacta.toLocaleDateString('es-ES', opcionesFecha);
+    venceRutaStr = txtExacto.charAt(0).toUpperCase() + txtExacto.slice(1);
+}
+rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuotasAcum, diasAtrasoRuta: diasAtrasoRuta, venceRutaTxt: venceRutaStr});
                 }
             }
         });
@@ -238,9 +244,13 @@ async function cargarMatrizGlobalMovil() {
                                 <span style="font-weight: bold; color: #b91c1c; font-size: 12px;">$${r.saldo.toFixed(2)}</span>
                             </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+                       <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
                             <span style="color: #16a34a; font-size: 11px; font-weight: bold;">✅ Abonado: $${r.abonado.toFixed(2)}</span>
                             <span style="color: #ef4444; font-size: 11px; font-weight: bold;">🚨 Mora: $${r.mora.toFixed(2)}</span>
+                        </div>
+                        <div style="background: #f1f5f9; padding: 6px 10px; border-radius: 4px; font-size: 10px;">
+                            <div style="margin-bottom: 4px;"><span style="color: #475569;">🗓️ <b>Emitido:</b> ${r.emisionTxt}</span></div>
+                            <div><span style="color: #475569;">🚩 <b>Vencimiento:</b> <b style="color: #b91c1c;">${r.venceRutaTxt}</b></span></div>
                         </div>
                     </div>
                     <div style="display: flex; justify-content: flex-end;">
