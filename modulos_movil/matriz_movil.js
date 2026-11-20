@@ -338,3 +338,72 @@ rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuota
         divAlertas.innerHTML = `<div style="text-align: center; padding: 20px; color: #ef4444; font-size: 12px;">❌ Error.</div>`;
     }
 }
+
+
+
+// =========================================================
+// 🚀 PUENTE MÓVIL: SALTO DIRECTO DE RUTA A REGISTRAR PAGO
+// =========================================================
+window.irACobrarDesdeRuta = async function(idCredito) {
+    try {
+        // 1. Abrimos el módulo de Registrar Pago en el móvil
+        if (typeof abrirModulo === 'function') {
+            abrirModulo('pago');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        const supa = window.supabaseClient;
+        if (!supa) return;
+
+        // 2. Buscamos la cédula y nombre del cliente dueño de ese crédito
+        const { data: cred, error } = await supa
+            .from('creditos')
+            .select('clientes(cedula, nombres, apellidos)')
+            .eq('id', idCredito)
+            .single();
+
+        if (error || !cred || !cred.clientes || !cred.clientes.cedula) {
+            alert("⚠️ No se pudo ubicar al cliente de este crédito.");
+            return;
+        }
+
+        const cedulaTarget = cred.clientes.cedula.trim();
+        const nombreTarget = `${cred.clientes.nombres || ''} ${cred.clientes.apellidos || ''}`.trim().toUpperCase();
+
+        // 3. Esperamos a que el selector de clientes termine de cargar desde Supabase
+        let intentos = 0;
+        let selectorCliente = document.getElementById('selector-cliente-recaudacion');
+        while (intentos < 30) {
+            selectorCliente = document.getElementById('selector-cliente-recaudacion');
+            if (selectorCliente && !selectorCliente.innerHTML.includes('Conectando')) break;
+            await new Promise(r => setTimeout(r, 150));
+            intentos++;
+        }
+
+        if (!selectorCliente) return;
+
+        // 4. Seleccionamos al cliente (si no está en la lista, lo agregamos)
+        const existe = Array.from(selectorCliente.options).some(opt => opt.value === cedulaTarget);
+        if (!existe) {
+            selectorCliente.add(new Option(nombreTarget, cedulaTarget, true, true));
+        }
+        selectorCliente.value = cedulaTarget;
+
+        // 5. Ejecutamos la búsqueda nativa del móvil
+        if (typeof buscarCreditoMovil === 'function') {
+            await buscarCreditoMovil();
+        }
+
+        // 6. Si el cliente tiene múltiples créditos, seleccionamos el exacto de la Ruta
+        const selectorMulti = document.getElementById('selector-multicredito');
+        if (selectorMulti && selectorMulti.options.length > 1) {
+            selectorMulti.value = String(idCredito);
+            if (typeof cargarEstadoCuentaCreditoMovil === 'function') {
+                await cargarEstadoCuentaCreditoMovil(idCredito);
+            }
+        }
+    } catch (err) {
+        console.error("Error al saltar a cobros desde la ruta:", err);
+        alert("❌ Error al abrir el cobro: " + err.message);
+    }
+};
