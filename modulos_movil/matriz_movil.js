@@ -254,8 +254,8 @@ rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuota
                         </div>
                     </div>
                     <div style="display: flex; justify-content: flex-end;">
-                        <button onclick="irACobrarDesdeRuta('${r.idCredito}')" style="background: ${colorBorde}; color: white; border: none; padding: 6px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                            💰 Registrar Pago
+                        <button onclick="irACobrarDesdeRutaMovil('${r.idCredito}')" style="background: ${colorBorde}; color: white; border: none; padding: 6px 15px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                        💰 Registrar Pago
                         </button>
                     </div>
                 </div>`;
@@ -344,7 +344,7 @@ rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuota
 // =========================================================
 // 🚀 PUENTE MÓVIL: SALTO DIRECTO DE RUTA A REGISTRAR PAGO
 // =========================================================
-window.irACobrarDesdeRuta = async function(idCredito) {
+window.irACobrarDesdeRutaMovil = async function(idCredito) {
     try {
         // 1. Abrimos el módulo de Registrar Pago en el móvil
         if (typeof abrirModulo === 'function') {
