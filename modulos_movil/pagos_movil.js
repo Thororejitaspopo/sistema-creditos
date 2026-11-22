@@ -459,6 +459,40 @@ else if (modulo === 'credito' || modulo === 'creditos') {
                 }, 100);
             });
         }
+
+else if (modulo === 'depurar' || modulo === 'papelera' || modulo === 'eliminar') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+
+            vistaModulos.innerHTML = `
+                <div style="padding: 20px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
+                    <div style="margin-bottom: 15px;">
+                        <h2 style="margin: 0; font-size: 20px; color: var(--texto-oscuro); font-weight: 900;">🗑️ Centro de Depuración</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 4px;">Administra registros inactivos, anulados y finalizados</div>
+                    </div>
+
+                    <!-- BUSCADOR GLOBAL -->
+                    <input type="text" id="input-buscador-global-papelera-movil" onkeyup="filtrarPapeleraGlobalMovil()" placeholder="🔍 Buscar en esta sección..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; font-size: 13px; margin-bottom: 12px; box-sizing: border-box;">
+
+                    <!-- PESTAÑAS HORIZONTALES -->
+                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px;">
+                        <button class="btn-tab-papelera-movil" data-cat="creditos" onclick="cargarPapeleraMovil('creditos')" style="flex-shrink:0; padding:10px 14px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">💸 Créditos Anulados</button>
+                        <button class="btn-tab-papelera-movil" data-cat="clientes" onclick="cargarPapeleraMovil('clientes')" style="flex-shrink:0; padding:10px 14px; background:#0284c7; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">👥 Clientes Archivados</button>
+                        <button class="btn-tab-papelera-movil" data-cat="pagos_eliminados" onclick="cargarPapeleraMovil('pagos_eliminados')" style="flex-shrink:0; padding:10px 14px; background:#f59e0b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">🛡️ Bóveda Pagos</button>
+                        <button class="btn-tab-papelera-movil" data-cat="finalizados" onclick="cargarPapeleraMovil('finalizados')" style="flex-shrink:0; padding:10px 14px; background:#8b5cf6; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">🏆 Créditos Pagados</button>
+                    </div>
+
+                    <div id="contenedor-papelera-movil"></div>
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof cargarPapeleraMovil === 'function') cargarPapeleraMovil('creditos');
+                }, 100);
+            });
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
