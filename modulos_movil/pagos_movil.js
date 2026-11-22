@@ -504,91 +504,176 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
 
+            const estiloLabel = 'display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;';
+            const estiloInput = 'width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#0f172a; background:#ffffff; box-sizing:border-box; outline:none;';
+            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
+            const estiloTituloBloque = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 14px 0;';
+
             vistaModulos.innerHTML = `
-                <div style="padding: 16px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
-                    <div style="margin-bottom: 14px;">
-                        <h2 style="margin: 0; font-size: 20px; color: var(--texto-oscuro); font-weight: 900;">👥 Gestión de Clientes</h2>
-                        <div style="color: #64748b; font-size: 12px;">Registro, edición y directorio de cartera</div>
+                <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <div style="margin-bottom: 16px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">Gestión de Clientes</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Fichas técnicas y registro de usuarios.</div>
                     </div>
 
-                    <!-- FORMULARIO DE CLIENTE -->
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 15px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <input type="text" id="cli-nombres-movil" placeholder="Nombres *" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
-                            <input type="text" id="cli-apellidos-movil" placeholder="Apellidos *" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <input type="tel" id="cli-cedula-movil" placeholder="Cédula / RUC *" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
-                            <input type="tel" id="cli-whatsapp-movil" placeholder="WhatsApp (10 díg) *" maxlength="10" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
-                        </div>
-                        <input type="email" id="cli-correo-movil" placeholder="Correo electrónico *" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px; box-sizing:border-box;">
+                    <!-- ===================================================== -->
+                    <!-- BLOQUE 1: PERSONAL Y IDENTIFICACIÓN                   -->
+                    <!-- ===================================================== -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">PERSONAL Y IDENTIFICACIÓN</h3>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <select id="cli-sector-movil" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; background:#f8fafc;">
-                                <option value="">-- Sector * --</option>
-                                <option value="Sector 1 (San Camilo)">Sector 1 (San Camilo)</option>
-                                <option value="Sector 2 (San Cristóbal)">Sector 2 (San Cristóbal)</option>
-                                <option value="Sector 3 (Venus del Río Quevedo)">Sector 3 (Venus del Río)</option>
-                                <option value="Sector 4 (Nicolás Infante Díaz)">Sector 4 (Nicolás Infante)</option>
-                                <option value="Sector 5 (Guayacán)">Sector 5 (Guayacán)</option>
-                                <option value="Sector 6 (Siete de Octubre)">Sector 6 (Siete de Octubre)</option>
-                                <option value="Sector 7 (24 de Mayo)">Sector 7 (24 de Mayo)</option>
-                                <option value="Sector 8 (Viva Alfaro)">Sector 8 (Viva Alfaro)</option>
-                                <option value="Sector 9 (Ruta del Río)">Sector 9 (Ruta del Río)</option>
-                                <option value="Sector 10 (Zona Periférica)">Sector 10 (Zona Periférica)</option>
+                        <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <label style="${estiloLabel}">ID Sistema</label>
+                                <input type="text" id="cli-id-auto-movil" value="AUTO" readonly style="width:100%; padding:11px 12px; border:1px dashed #cbd5e1; border-radius:8px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="${estiloLabel}">Nombres *</label>
+                                <input type="text" id="cli-nombres-movil" placeholder="Ej: JUAN CARLOS" style="${estiloInput}">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Apellidos *</label>
+                            <input type="text" id="cli-apellidos-movil" placeholder="Ej: PÉREZ MORA" style="${estiloInput}">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <label style="${estiloLabel}">Cédula / RUC *</label>
+                                <input type="tel" id="cli-cedula-movil" placeholder="Ej: 120XXXXXXX" style="${estiloInput}">
+                            </div>
+                            <div>
+                                <label style="${estiloLabel}">WhatsApp *</label>
+                                <input type="tel" id="cli-whatsapp-movil" placeholder="Ej: 09XXXXXXXX" maxlength="10" style="${estiloInput}">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Correo Electrónico *</label>
+                            <input type="email" id="cli-correo-movil" placeholder="juan@gmail.com" style="${estiloInput}">
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Garante / Referido (Clientes en Sistema)</label>
+                            <select id="cli-garante-movil" style="${estiloInput} background:#f8fafc;">
+                                <option value="">🚫 Sin Garante / Cliente Directo</option>
                             </select>
-                            <input type="text" id="cli-ruta-movil" list="rutas-sugeridas-movil" placeholder="Ruta * (Ej: Ruta 1)" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                        </div>
+
+                        <div>
+                            <label style="${estiloLabel}">Perfil / Castigo de Mora</label>
+                            <select id="cli-perfil-mora-movil" style="${estiloInput} border:1.5px solid #0284c7; font-weight:700;">
+                                <option value="Normal">🟢 Mora NORMAL (Multar al vencer)</option>
+                                <option value="Social">🛡️ Perfil SOCIAL (Inmune a Mora)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ===================================================== -->
+                    <!-- BLOQUE 2: UBICACIÓN Y LOGÍSTICA DE RUTA               -->
+                    <!-- ===================================================== -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">UBICACIÓN Y LOGÍSTICA DE RUTA</h3>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Sector (Quevedo) *</label>
+                            <select id="cli-sector-movil" style="${estiloInput} background:#f8fafc;">
+                                <option value="">-- Seleccione un Sector --</option>
+                                <option value="Sector 1 (San Camilo)">📍 Sector 1 (San Camilo)</option>
+                                <option value="Sector 2 (San Cristóbal)">📍 Sector 2 (San Cristóbal)</option>
+                                <option value="Sector 3 (Venus del Río Quevedo)">📍 Sector 3 (Venus del Río Quevedo)</option>
+                                <option value="Sector 4 (Nicolás Infante Díaz)">📍 Sector 4 (Nicolás Infante Díaz)</option>
+                                <option value="Sector 5 (Guayacán)">📍 Sector 5 (Guayacán)</option>
+                                <option value="Sector 6 (Siete de Octubre)">📍 Sector 6 (Siete de Octubre)</option>
+                                <option value="Sector 7 (24 de Mayo)">📍 Sector 7 (24 de Mayo)</option>
+                                <option value="Sector 8 (Viva Alfaro)">📍 Sector 8 (Viva Alfaro)</option>
+                                <option value="Sector 9 (Ruta del Río)">📍 Sector 9 (Ruta del Río)</option>
+                                <option value="Sector 10 (Zona Periférica)">📍 Sector 10 (Zona Periférica)</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Ruta de Cobro *</label>
+                            <input type="text" id="cli-ruta-movil" list="rutas-sugeridas-movil" placeholder="Ej: Ruta Centro / Ruta 1" style="${estiloInput}">
                             <datalist id="rutas-sugeridas-movil">
-                                <option value="Ruta 1"><option value="Ruta 2"><option value="Ruta 3"><option value="Ruta 4"><option value="Ruta 5">
+                                <option value="Ruta Centro"><option value="Ruta 1"><option value="Ruta 2"><option value="Ruta 3"><option value="Ruta 4"><option value="Ruta 5">
                             </datalist>
                         </div>
 
-                        <select id="cli-garante-movil" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; background:#f8fafc; margin-bottom:10px;">
-                            <option value="">🚫 Sin Garante / Cliente Directo</option>
-                        </select>
-
-                        <input type="text" id="cli-direccion-movil" placeholder="Dirección exacta" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:8px; box-sizing:border-box;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <input type="text" id="cli-referencia-movil" placeholder="Referencia familiar" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; box-sizing:border-box;">
-                            <input type="tel" id="cli-tel-referencia-movil" placeholder="Tel. referencia" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; box-sizing:border-box;">
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Dirección Exacta</label>
+                            <input type="text" id="cli-direccion-movil" placeholder="Calles principales y referencia de casa" style="${estiloInput}">
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <select id="cli-nivel-movil" onchange="actualizarLimiteMovil()" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; background:#f8fafc;">
-                                <option value="🥉 Bronce(Nuevo)">🥉 Bronce(Nuevo)</option>
-                                <option value="🥈 Plata(Cumplidor)">🥈 Plata(Cumplidor)</option>
-                                <option value="🥇 Oro(Excelente)">🥇 Oro(Excelente)</option>
-                                <option value="💎 Platino(Vip)">💎 Platino(Vip)</option>
-                                <option value="👑 Diamante(Inversionista)">👑 Diamante(Inversionista)</option>
-                            </select>
-                            <input type="number" id="cli-limite-movil" value="2" min="1" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:bold; text-align:center; box-sizing:border-box;">
-                        </div>
-
-                        <select id="cli-perfil-mora-movil" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; background:#f8fafc; margin-bottom:10px;">
-                            <option value="Normal">⚠️ Perfil Normal (Aplica Mora)</option>
-                            <option value="Social">🛡️ Perfil Social (Inmune a Mora)</option>
-                        </select>
-
-                        <textarea id="cli-observaciones-movil" rows="2" placeholder="Observaciones..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; margin-bottom:10px; box-sizing:border-box;"></textarea>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; font-size: 11px; color: #475569;">
-                            <div><label style="font-weight:bold; display:block; margin-bottom:4px;">📸 Foto Perfil:</label><input type="file" id="cli-foto-perfil-movil" accept="image/*" style="width:100%; font-size:10px;"></div>
-                            <div><label style="font-weight:bold; display:block; margin-bottom:4px;">🪪 Foto Cédula:</label><input type="file" id="cli-foto-cedula-movil" accept="image/*" style="width:100%; font-size:10px;"></div>
-                        </div>
-
-                        <div style="display: flex; gap: 8px;">
-                            <button id="btn-guardar-cliente-movil" onclick="registrarClienteMovil()" style="flex:1; padding:14px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:14px;">💾 REGISTRAR CLIENTE ALPHA</button>
-                            <button onclick="limpiarFormularioClientesMovil()" style="padding:14px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:10px; font-weight:bold;">🧹</button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="${estiloLabel}">Referencia Familiar</label>
+                                <input type="text" id="cli-referencia-movil" placeholder="Nombre familiar" style="${estiloInput}">
+                            </div>
+                            <div>
+                                <label style="${estiloLabel}">Teléf. Referencia</label>
+                                <input type="tel" id="cli-tel-referencia-movil" placeholder="09XXXXXXXX" style="${estiloInput}">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- DIRECTORIO DE CLIENTES -->
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-                        <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">📋 Directorio Activo</h3>
-                        <input type="text" id="input-buscar-cliente-movil" onkeyup="filtrarClientesMovil()" placeholder="🔍 Buscar por nombre, apellido o cédula..." style="width:100%; padding:11px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; font-size:13px; margin-bottom:12px; box-sizing:border-box;">
+                    <!-- ===================================================== -->
+                    <!-- BLOQUE 3: PERFIL CREDITICIO Y RESPALDOS               -->
+                    <!-- ===================================================== -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">PERFIL CREDITICIO Y DOCUMENTACIÓN</h3>
+
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <label style="${estiloLabel}">Categoría / Nivel</label>
+                                <select id="cli-nivel-movil" onchange="actualizarLimiteMovil()" style="${estiloInput} background:#f8fafc;">
+                                    <option value="🥉 Bronce(Nuevo)">🥉 Bronce(Nuevo)</option>
+                                    <option value="🥈 Plata(Cumplidor)">🥈 Plata(Cumplidor)</option>
+                                    <option value="🥇 Oro(Excelente)">🥇 Oro(Excelente)</option>
+                                    <option value="💎 Platino(Vip)">💎 Platino(Vip)</option>
+                                    <option value="👑 Diamante(Inversionista)">👑 Diamante(Inversionista)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="${estiloLabel}">Límite Créd.</label>
+                                <input type="number" id="cli-limite-movil" value="2" min="1" style="${estiloInput} font-weight:900; text-align:center;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 14px;">
+                            <label style="${estiloLabel}">Observaciones</label>
+                            <textarea id="cli-observaciones-movil" rows="2" placeholder="Notas adicionales del cliente..." style="${estiloInput} resize:vertical;"></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:10px;">
+                                <label style="${estiloLabel}">📸 Foto Perfil</label>
+                                <input type="file" id="cli-foto-perfil-movil" accept="image/*" style="width:100%; font-size:11px; color:#475569;">
+                            </div>
+                            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:10px;">
+                                <label style="${estiloLabel}">🪪 Foto Cédula</label>
+                                <input type="file" id="cli-foto-cedula-movil" accept="image/*" style="width:100%; font-size:11px; color:#475569;">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button id="btn-guardar-cliente-movil" onclick="registrarClienteMovil()" style="flex:1; padding:14px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:14px; box-shadow:0 4px 10px rgba(37,99,235,0.25);">💾 REGISTRAR CLIENTE ALPHA</button>
+                            <button onclick="limpiarFormularioClientesMovil()" title="Limpiar formulario" style="padding:14px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:10px; font-weight:bold;">🧹</button>
+                        </div>
+                    </div>
+
+                    <!-- ===================================================== -->
+                    <!-- BLOQUE 4: CLIENTES REGISTRADOS EN SISTEMA             -->
+                    <!-- ===================================================== -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">CLIENTES REGISTRADOS EN SISTEMA</h3>
+                        <input type="text" id="input-buscar-cliente-movil" onkeyup="filtrarClientesMovil()" placeholder="🔍 Buscar por Nombre o Cédula..." style="${estiloInput} background:#f8fafc; margin-bottom:14px;">
                         <div id="lista-clientes-movil"></div>
                         <div id="paginacion-clientes-movil"></div>
                     </div>
+
                 </div>
             `;
 

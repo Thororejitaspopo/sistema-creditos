@@ -472,34 +472,110 @@ window.anularCreditoMovil = async function(idCredito, capitalPrestado) {
     }
 };
 
-// 9. REENVIAR VOUCHER SMS
+// 9. REENVIAR VOUCHER SMS (CLON EXACTO DE COMPUTADORA)
 window.reenviarVoucherMovil = async function(idCredito) {
     try {
         const supa = window.supabaseClient;
-        const { data: cred } = await supa.from('creditos').select('*').eq('id', idCredito).single();
-        const { data: cli } = await supa.from('clientes').select('*').eq('id', cred.cliente_id).single();
+        const { data: credito, error: errCred } = await supa.from('creditos').select('*').eq('id', idCredito).single();
+        if (errCred) throw errCred;
 
-        const numEnvio = prompt(`📱 REENVÍO DE RESPALDO (Crédito #${idCredito})\nTeléfono registrado:`, cli.whatsapp || "");
-        if (!numEnvio || !numEnvio.trim()) return;
+        const { data: cliente, error: errCli } = await supa.from('clientes').select('*').eq('id', credito.cliente_id).single();
+        if (errCli) throw errCli;
 
-        const cobrar = confirm("💰 ¿Cobrar $0.50 por reenvío?\n🟢 ACEPTAR = Cobrar $0.50\n🔴 CANCELAR = Gratis");
-        const nomComp = `${cli.nombres.toUpperCase()} ${cli.apellidos.toUpperCase()}`;
+        const inicialN = cliente.nombres.charAt(0).toUpperCase();
+        const inicialA = cliente.apellidos.charAt(0).toUpperCase();
+        const ultimos4 = cliente.cedula.slice(-4);
+        const codigoClienteBancario = `${inicialN}${inicialA}-${ultimos4}`;
 
-        if (cobrar) {
-            const { data: caja } = await supa.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
-            await supa.from('cajas_capital').update({ saldo_actual: parseFloat(caja.saldo_actual) + 0.50 }).eq('id', 1);
-            await supa.from('historial_capital').insert([{ caja_id: 1, monto: 0.50, concepto: `🟢 INGRESO: Reenvío voucher Crédito #${idCredito} - ${nomComp}` }]);
+        const { data: todosCreditos } = await supa
+            .from('creditos')
+            .select('id')
+            .eq('cliente_id', cliente.id)
+            .order('id', { ascending: true });
+
+        let numeroCredito = 1;
+        if (todosCreditos) {
+            const index = todosCreditos.findIndex(c => c.id === idCredito);
+            if (index !== -1) numeroCredito = index + 1;
         }
 
-        const etiq = cobrar ? "[COPIA DE RESPALDO] val 0.50ctv\n" : "";
-        const msj = `=== SISTEMA ALPHA ===\n${etiq}👤 Cliente: ${nomComp}\n\nRespaldo de tu crédito #${idCredito}.\n💰 Monto: $${parseFloat(cred.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(cred.valor_cuota).toFixed(2)}\n📊 Total: $${parseFloat(cred.total_pagar).toFixed(2)}\n🔢 Cuotas: ${cred.num_cuotas}\n\n🚫 NO RESPONDER A ESTE MENSAJE.`;
+        const codigoCifrado = typeof cifrarNumeroCreditoMovil === 'function' ? cifrarNumeroCreditoMovil(numeroCredito).toUpperCase() : '?';
+        const codigoCreditoOficial = `${codigoClienteBancario} | CRE #${numeroCredito} [${codigoCifrado}]`;
+        const codigoCreditoSMS = `${codigoClienteBancario} | CRE #${codigoCifrado}`;
+        const nombreCompleto = `${cliente.nombres.toUpperCase()} ${cliente.apellidos.toUpperCase()}`;
 
-        await enviarSMSCreditoMovil(numEnvio.trim(), msj);
+        const numeroEnvio = prompt(`📱 REENVÍO DE RESPALDO (${codigoCreditoOficial})\n\nTeléfono registrado:\nSi cambió de chip, pon el nuevo número aquí:`, cliente.whatsapp || "");
+        if (!numeroEnvio || numeroEnvio.trim() === "") return;
+
+        const cobrar = confirm(`💰 TIPO DE REENVÍO\n\n¿Deseas cobrar los $0.50 de penalidad?\n\n🟢 ACEPTAR = Cobrar $0.50 (Perdió el chip)\n🔴 CANCELAR = Envío GRATIS (Fallo de internet)`);
+
+        let etiquetaMensaje = "";
+        if (cobrar) {
+            const { data: cajaData } = await supa.from('cajas_capital').select('saldo_actual').eq('id', 1).single();
+            const nuevoSaldoCaja = parseFloat(cajaData.saldo_actual) + 0.50;
+            await supa.from('cajas_capital').update({ saldo_actual: nuevoSaldoCaja }).eq('id', 1);
+
+            await supa.from('historial_capital').insert([{
+                caja_id: 1,
+                monto: 0.50,
+                concepto: `🟢 INGRESO: Penalidad por reenvío de voucher - ${codigoCreditoOficial} - ${nombreCompleto}`
+            }]);
+
+            etiquetaMensaje = "[COPIA DE RESPALDO] val 0.50ctv\n";
+        }
+
+        const modalidad = (credito.frecuencia_pago || "Fija").replace(/.*Cobro\s+/i, "").replace("📅", "").trim();
+
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+        // Fecha actual del reenvío
+        const ahora = new Date();
+        let horasA = ahora.getHours();
+        const minutosA = String(ahora.getMinutes()).padStart(2, '0');
+        const ampmA = horasA >= 12 ? 'p.m.' : 'a.m.';
+        horasA = String(horasA % 12 || 12).padStart(2, '0');
+        const fechaHoraSMS = `${dias[ahora.getDay()]} ${String(ahora.getDate()).padStart(2, '0')}/${meses[ahora.getMonth()]}/${ahora.getFullYear()} | ${horasA}:${minutosA} ${ampmA}`;
+
+        // Fecha original de emisión con hora y segundos
+        let fechaEmisionTexto = "N/A";
+        if (credito.fecha_emision) {
+            let fEmi = new Date(credito.fecha_emision);
+            if (isNaN(fEmi.getTime()) && typeof credito.fecha_emision === 'string') {
+                fEmi = new Date(credito.fecha_emision.replace(/-/g, '/').replace('T', ' ').split('.')[0]);
+            }
+            if (!isNaN(fEmi.getTime())) {
+                let hE = fEmi.getHours();
+                const mE = String(fEmi.getMinutes()).padStart(2, '0');
+                const sE = String(fEmi.getSeconds()).padStart(2, '0');
+                const ampmE = hE >= 12 ? 'p.m.' : 'a.m.';
+                hE = String(hE % 12 || 12).padStart(2, '0');
+                fechaEmisionTexto = `${dias[fEmi.getDay()]} ${String(fEmi.getDate()).padStart(2, '0')}/${meses[fEmi.getMonth()]}/${fEmi.getFullYear()} | ${hE}:${mE}:${sE} ${ampmE}`;
+            }
+        }
+
+        // Bloque de mora si aplica
+        const moraExtra = parseFloat(credito.monto_mora) || 0;
+        let bloqueMora = "";
+        if (moraExtra > 0) {
+            const deudaTotal = parseFloat(credito.total_pagar) + moraExtra;
+            bloqueMora = `\n⚠️ Mora: $${moraExtra.toFixed(2)}\n👉 Deuda Total: $${deudaTotal.toFixed(2)}`;
+        }
+
+        const msjReenvio = `=== SISTEMA ALPHA ===\n${etiquetaMensaje}${fechaHoraSMS}\n\n🆔 Ref: ${codigoCreditoSMS}\n👤 Cliente: ${nombreCompleto}\n📅 Emitido: ${fechaEmisionTexto}\n\nHola, aqui tienes el respaldo de tu credito.\n\n💰 Monto: $${parseFloat(credito.monto_capital).toFixed(2)}\n💵 Cuota: $${parseFloat(credito.valor_cuota).toFixed(2)}\n🔄 Modalidad: ${modalidad}\n📊 Total: $${parseFloat(credito.total_pagar).toFixed(2)}\n🔢 Nro Cuotas: ${credito.num_cuotas}${bloqueMora}\n\nConserva este msj. ¡Gracias!\n🚫 POR FAVOR, NO RESPONDER A ESTE MENSAJE.`;
+
+        await enviarSMSCreditoMovil(numeroEnvio.trim(), msjReenvio);
         await new Promise(r => setTimeout(r, 2000));
-        if (numEnvio.trim() !== "0939836191") await enviarSMSCreditoMovil("0939836191", `[AVISO REENVÍO ${cobrar ? 'COBRADO $0.50' : 'GRATIS'}]\n\n${msj}`);
 
-        alert(cobrar ? `✅ Copia cobrada ($0.50) y enviada a ${numEnvio}` : `✅ Copia gratuita enviada a ${numEnvio}`);
+        const numeroGerente = "0939836191";
+        if (numeroEnvio.trim() !== numeroGerente) {
+            const estadoCobro = cobrar ? "COBRADO $0.50" : "GRATIS";
+            await enviarSMSCreditoMovil(numeroGerente, `[AVISO REENVÍO ${estadoCobro}]\n\n${msjReenvio}`);
+        }
+
+        alert(cobrar ? `✅ Copia cobrada ($0.50) y enviada a: ${numeroEnvio}` : `✅ Mensaje enviado de cortesía (Gratis) a: ${numeroEnvio}`);
     } catch (e) {
-        alert("❌ Error al reenviar: " + e.message);
+        console.error("Error al reenviar voucher:", e);
+        alert("❌ Error al intentar reenviar el mensaje: " + e.message);
     }
 };
