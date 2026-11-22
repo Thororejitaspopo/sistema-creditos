@@ -316,8 +316,8 @@ rutaCobroDia.push({...baseData, montoSugerido: montoSug, cuotasAcumuladas: cuota
                                 <div>📅 Emitido: <b style="color: #334155;">${a.emisionTxt}</b></div>
                                 <div style="margin-top: 3px;">🚩 Vencimiento: <b style="color: #dc2626;">${a.venceTxt}</b></div>
                             </div>
-                            <button onclick="alert('Panel de sanción en desarrollo para móvil')" style="background: #0f172a; color: white; border: none; padding: 7px 12px; border-radius: 6px; font-weight: bold; font-size: 10px; cursor: pointer; flex-shrink: 0;">
-                                ⚙️ GESTIONAR
+                           <button onclick="abrirPanelSancionMovil(${a.idCredito}, '${a.nombre.replace(/'/g, "\\'")}', ${a.capital}, 0, ${a.saldo}, 20, 'activo', '${a.etiquetaCRE}', 'REF: ${a.refBancaria}')" style="background: #0f172a; color: white; border: none; padding: 7px 12px; border-radius: 6px; font-weight: bold; font-size: 10px; cursor: pointer; flex-shrink: 0;">
+                             ⚙️ GESTIONAR
                             </button>
                         </div>
                     </div>

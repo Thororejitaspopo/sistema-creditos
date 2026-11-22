@@ -339,6 +339,36 @@
                 }, 100);
             });
         }
+
+else if (modulo === 'gestion_mora' || modulo === 'mora') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            vistaModulos.innerHTML = `
+                <div style="padding: 20px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
+                    <div style="margin-bottom: 15px;">
+                        <h2 style="margin: 0; font-size: 20px; color: var(--texto-oscuro); font-weight: 900;">⚖️ Gestión y Mora</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 4px;">Control de cartera, sanciones y convenios</div>
+                    </div>
+
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                        <label style="font-size: 11px; font-weight: bold; color: #64748b; display: block; margin-bottom: 6px;">📍 Filtrar Cartera:</label>
+                        <select id="buscador-gestion-mora-movil" onchange="cargarTablaGestionMoraMovil()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; font-weight: bold; outline: none;">
+                            <option value="">🌍 TODOS LOS CLIENTES ACTIVOS</option>
+                        </select>
+                    </div>
+
+                    <div id="contenedor-tabla-mora-movil">
+                        <div style="text-align:center; padding:25px; color:#94a3b8; font-size:13px;">⏳ Cargando cartera...</div>
+                    </div>
+                </div>
+            `;
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof cargarTablaGestionMoraMovil === 'function') cargarTablaGestionMoraMovil();
+                }, 100);
+            });
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
