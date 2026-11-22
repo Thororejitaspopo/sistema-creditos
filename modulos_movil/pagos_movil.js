@@ -368,7 +368,97 @@ else if (modulo === 'gestion_mora' || modulo === 'mora') {
                 }, 100);
             });
         }
+else if (modulo === 'credito' || modulo === 'creditos') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            const tasaDefecto = typeof tasaBaseSistema !== 'undefined' ? tasaBaseSistema : 20;
 
+            vistaModulos.innerHTML = `
+                <div style="padding: 20px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
+                    <div style="margin-bottom: 15px;">
+                        <h2 style="margin: 0; font-size: 20px; color: var(--texto-oscuro); font-weight: 900;">💳 Crear Crédito</h2>
+                        <div id="cred-fecha-servidor-movil" style="color: #64748b; font-size: 11px; margin-top: 4px; font-weight: 600;">Cargando reloj...</div>
+                    </div>
+
+                    <!-- FORMULARIO DE CRÉDITO -->
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 15px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                        <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 6px;">1. Cliente:</label>
+                        <input type="text" id="cred-cliente-buscar-movil" oninput="filtrarClientesCreditoMovil(this.value)" placeholder="🔍 Escribe para buscar cliente..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; margin-bottom: 8px; box-sizing: border-box;">
+                        <select id="cred-cliente-id-movil" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; font-size: 13px; font-weight: bold; margin-bottom: 14px;">
+                            <option value="">-- Seleccione un cliente activo --</option>
+                        </select>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">2. Monto ($):</label>
+                                <input type="text" inputmode="decimal" id="cred-monto-movil" oninput="calcularProyeccionCreditoMovil()" placeholder="Ej: 100" style="width: 100%; padding: 12px; border: 2px solid #0284c7; border-radius: 8px; font-size: 16px; font-weight: 900; box-sizing: border-box;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">3. Interés (%):</label>
+                                <input type="number" id="cred-tasa-interes-movil" value="${tasaDefecto}" oninput="calcularProyeccionCreditoMovil()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight: bold; box-sizing: border-box;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">4. Modalidad:</label>
+                                <select id="cred-modalidad-movil" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 12px; font-weight: bold;">
+                                    <option value="Diario">📅 Cobro Diario (Lun a Sáb)</option>
+                                    <option value="Semanal">📅 Cobro Semanal</option>
+                                    <option value="Quincenal">📅 Cobro Quincenal</option>
+                                    <option value="Mensual">📅 Cobro Mensual</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">5. N° Cuotas:</label>
+                                <input type="number" id="cred-cuotas-movil" value="30" min="1" oninput="calcularProyeccionCreditoMovil()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight: bold; box-sizing: border-box;">
+                            </div>
+                        </div>
+
+                        <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">6. Forma de Entrega (Caja):</label>
+                        <select id="cred-forma-entrega-movil" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; font-weight: bold; margin-bottom: 16px;">
+                            <option value="">-- Seleccione forma de entrega --</option>
+                        </select>
+
+                        <!-- TABLERO NEGRO DE PROYECCIÓN -->
+                        <div style="background: #0f172a; color: white; border-radius: 12px; padding: 14px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
+                            <div>
+                                <div style="font-size: 9px; color: #94a3b8; font-weight: bold;">CUOTA</div>
+                                <div id="lbl-cuota-valor-movil" style="font-size: 16px; font-weight: 900; color: #38bdf8;">$0.00</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 9px; color: #94a3b8; font-weight: bold;">INTERÉS</div>
+                                <div id="lbl-interes-total-movil" style="font-size: 16px; font-weight: 900; color: #facc15;">$0.00</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 9px; color: #94a3b8; font-weight: bold;">TOTAL</div>
+                                <div id="lbl-pagar-total-movil" style="font-size: 16px; font-weight: 900; color: #4ade80;">$0.00</div>
+                            </div>
+                        </div>
+
+                        <button onclick="guardarNuevoCreditoMovil()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 15px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
+                            ✅ Aprobar y Desembolsar Crédito
+                        </button>
+                    </div>
+
+                    <!-- HISTORIAL DE CRÉDITOS -->
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+                        <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">📋 Créditos Recientes</h3>
+                        <input type="text" id="buscador-creditos-movil" onkeyup="buscarCreditoEnVivoMovil()" placeholder="🔍 Buscar por nombre o cédula..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 13px; margin-bottom: 12px; box-sizing: border-box;">
+                        <div id="lista-creditos-movil"></div>
+                    </div>
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof iniciarRelojCreditoMovil === 'function') iniciarRelojCreditoMovil();
+                    if (typeof cargarClientesDropdownMovil === 'function') cargarClientesDropdownMovil();
+                    if (typeof cargarSaldosEnSelectorCreditoMovil === 'function') cargarSaldosEnSelectorCreditoMovil();
+                    if (typeof cargarHistorialCreditosMovil === 'function') cargarHistorialCreditosMovil();
+                }, 100);
+            });
+        }
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
