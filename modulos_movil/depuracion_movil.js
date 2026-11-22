@@ -302,7 +302,7 @@ window.cargarPapeleraMovil = async function(categoria) {
             }).join('');
         } catch (e) { contenedor.innerHTML = `<p style="color:#ef4444; text-align:center;">❌ Error: ${e.message}</p>`; }
     }
-};
+
 
 // =====================================================================
     // SECCIÓN E: PERSONAL INACTIVO (COBRADORES Y SUPERVISORES)
@@ -315,7 +315,7 @@ window.cargarPapeleraMovil = async function(categoria) {
                 <div style="color: #64748b; font-size: 12px;">✨ No hay cobradores ni supervisores inactivos registrados aún. Cuando desactives personal del sistema, aparecerán aquí para restaurarlos o auditarlos.</div>
             </div>`;
     }
-
+};
 // BUSCADOR GLOBAL
 window.filtrarPapeleraGlobalMovil = function() {
     const txt = (document.getElementById('input-buscador-global-papelera-movil')?.value || '').toLowerCase();

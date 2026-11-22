@@ -12,6 +12,7 @@
     // 🖥️ CONTROL DE NAVEGACIÓN
     // =========================================================
     function abrirModulo(modulo) {
+        window.scrollTo(0, 0);
         document.getElementById('vista-inicio').style.display = 'none';
         document.getElementById('vista-modulos').style.display = 'none';
         
