@@ -465,21 +465,27 @@ else if (modulo === 'depurar' || modulo === 'papelera' || modulo === 'eliminar')
             vistaModulos.style.display = 'block';
 
             vistaModulos.innerHTML = `
-                <div style="padding: 20px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
-                    <div style="margin-bottom: 15px;">
-                        <h2 style="margin: 0; font-size: 20px; color: var(--texto-oscuro); font-weight: 900;">🗑️ Centro de Depuración</h2>
-                        <div style="color: #64748b; font-size: 12px; margin-top: 4px;">Administra registros inactivos, anulados y finalizados</div>
+                <div style="padding: 16px; padding-bottom: 90px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <!-- ENCABEZADO EJECUTIVO -->
+                    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: 0 6px 15px rgba(15,23,42,0.18);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <span style="font-size: 24px;">🗑️</span>
+                            <div>
+                                <h2 style="margin: 0; font-size: 18px; font-weight: 900; letter-spacing: 0.3px;">Centro de Depuración</h2>
+                                <div style="color: #94a3b8; font-size: 11px;">Auditoría estricta y restauración de registros</div>
+                            </div>
+                        </div>
+                        <input type="text" id="input-buscador-global-papelera-movil" onkeyup="filtrarPapeleraGlobalMovil()" placeholder="🔍 Buscar por nombre, cédula o # de crédito..." style="width: 100%; margin-top: 10px; padding: 11px 14px; border: none; border-radius: 10px; background: rgba(255,255,255,0.95); color: #0f172a; font-size: 13px; box-sizing: border-box; outline: none;">
                     </div>
 
-                    <!-- BUSCADOR GLOBAL -->
-                    <input type="text" id="input-buscador-global-papelera-movil" onkeyup="filtrarPapeleraGlobalMovil()" placeholder="🔍 Buscar en esta sección..." style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; font-size: 13px; margin-bottom: 12px; box-sizing: border-box;">
-
-                    <!-- PESTAÑAS HORIZONTALES -->
-                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px;">
-                        <button class="btn-tab-papelera-movil" data-cat="creditos" onclick="cargarPapeleraMovil('creditos')" style="flex-shrink:0; padding:10px 14px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">💸 Créditos Anulados</button>
-                        <button class="btn-tab-papelera-movil" data-cat="clientes" onclick="cargarPapeleraMovil('clientes')" style="flex-shrink:0; padding:10px 14px; background:#0284c7; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">👥 Clientes Archivados</button>
-                        <button class="btn-tab-papelera-movil" data-cat="pagos_eliminados" onclick="cargarPapeleraMovil('pagos_eliminados')" style="flex-shrink:0; padding:10px 14px; background:#f59e0b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">🛡️ Bóveda Pagos</button>
-                        <button class="btn-tab-papelera-movil" data-cat="finalizados" onclick="cargarPapeleraMovil('finalizados')" style="flex-shrink:0; padding:10px 14px; background:#8b5cf6; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">🏆 Créditos Pagados</button>
+                    <!-- LAS 5 BÓVEDAS VISIBLES EN CUADRÍCULA -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                        <button class="btn-tab-papelera-movil" data-cat="creditos" onclick="cargarPapeleraMovil('creditos')" style="padding: 11px 8px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(16,185,129,0.25);">💸 Créditos Anulados</button>
+                        <button class="btn-tab-papelera-movil" data-cat="clientes" onclick="cargarPapeleraMovil('clientes')" style="padding: 11px 8px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(2,132,199,0.25);">👥 Clientes Archivados</button>
+                        <button class="btn-tab-papelera-movil" data-cat="pagos_eliminados" onclick="cargarPapeleraMovil('pagos_eliminados')" style="padding: 11px 8px; background: #f59e0b; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(245,158,11,0.25);">🛡️ Bóveda Pagos</button>
+                        <button class="btn-tab-papelera-movil" data-cat="finalizados" onclick="cargarPapeleraMovil('finalizados')" style="padding: 11px 8px; background: #8b5cf6; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(139,92,246,0.25);">🏆 Créditos Pagados</button>
+                        <button class="btn-tab-papelera-movil" data-cat="personal" onclick="cargarPapeleraMovil('personal')" style="grid-column: span 2; padding: 11px 8px; background: #475569; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(71,85,105,0.25);">👔 Personal Inactivo (Cobradores y Supervisores)</button>
                     </div>
 
                     <div id="contenedor-papelera-movil"></div>

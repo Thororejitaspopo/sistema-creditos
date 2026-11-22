@@ -304,6 +304,18 @@ window.cargarPapeleraMovil = async function(categoria) {
     }
 };
 
+// =====================================================================
+    // SECCIÓN E: PERSONAL INACTIVO (COBRADORES Y SUPERVISORES)
+    // =====================================================================
+    else if (categoria === 'personal') {
+        contenedor.innerHTML = `
+            <div style="background: white; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 28px 16px; text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">👔</div>
+                <div style="font-weight: 900; color: #334155; font-size: 14px; margin-bottom: 4px;">Bóveda de Personal Inactivo</div>
+                <div style="color: #64748b; font-size: 12px;">✨ No hay cobradores ni supervisores inactivos registrados aún. Cuando desactives personal del sistema, aparecerán aquí para restaurarlos o auditarlos.</div>
+            </div>`;
+    }
+
 // BUSCADOR GLOBAL
 window.filtrarPapeleraGlobalMovil = function() {
     const txt = (document.getElementById('input-buscador-global-papelera-movil')?.value || '').toLowerCase();
