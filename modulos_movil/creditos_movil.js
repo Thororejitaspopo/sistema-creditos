@@ -374,9 +374,10 @@ window.cargarHistorialCreditosMovil = async function() {
                 <div style="color:#0284c7;">Total: <b>$${parseFloat(c.total_pagar).toFixed(2)}</b></div>
                 ${moraExtra > 0 ? `<div style="grid-column:span 2; color:#b91c1c; font-weight:bold;">🚨 Mora: $${moraExtra.toFixed(2)} | Deuda: $${deudaTotal.toFixed(2)}</div>` : ''}
             </div>
-            <div style="font-size:10px; color:#475569; border-top:1px dashed #cbd5e1; padding-top:6px;">
-                <div>🔄 ${c.frecuencia_pago || 'N/A'} • 🔢 ${c.num_cuotas || 'N/A'} cuotas</div>
-                <div style="margin-top:2px;">💳 ${c.forma_entrega || 'N/A'}</div>
+           <div style="font-size:10px; color:#475569; border-top:1px dashed #cbd5e1; padding-top:6px;">
+                <div>🔄 ${c.frecuencia_pago || 'N/A'}</div>
+                <div style="margin-top:3px;">🔢 ${c.num_cuotas || 'N/A'} cuotas</div>
+                <div style="margin-top:3px;">💳 ${c.forma_entrega || 'N/A'}</div>
             </div>
         </div>`;
     }).join('');
