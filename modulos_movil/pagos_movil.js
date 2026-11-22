@@ -529,34 +529,34 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
                                 <input type="text" id="cli-id-auto-movil" value="AUTO" readonly style="width:100%; padding:11px 12px; border:1px dashed #cbd5e1; border-radius:8px; font-size:13px; font-weight:800; color:#64748b; background:#f8fafc; box-sizing:border-box;">
                             </div>
                             <div>
-                                <label style="${estiloLabel}">Nombres *</label>
+                                <label style="${estiloLabel}">Nombres</label>
                                 <input type="text" id="cli-nombres-movil" placeholder="Ej: JUAN CARLOS" style="${estiloInput}">
                             </div>
                         </div>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="${estiloLabel}">Apellidos *</label>
+                            <label style="${estiloLabel}">Apellidos</label>
                             <input type="text" id="cli-apellidos-movil" placeholder="Ej: PÉREZ MORA" style="${estiloInput}">
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div>
-                                <label style="${estiloLabel}">Cédula / RUC *</label>
+                                <label style="${estiloLabel}">Cédula / RUC</label>
                                 <input type="tel" id="cli-cedula-movil" placeholder="Ej: 120XXXXXXX" style="${estiloInput}">
                             </div>
                             <div>
-                                <label style="${estiloLabel}">WhatsApp *</label>
+                                <label style="${estiloLabel}">WhatsApp</label>
                                 <input type="tel" id="cli-whatsapp-movil" placeholder="Ej: 09XXXXXXXX" maxlength="10" style="${estiloInput}">
                             </div>
                         </div>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="${estiloLabel}">Correo Electrónico *</label>
+                            <label style="${estiloLabel}">Correo Electrónico</label>
                             <input type="email" id="cli-correo-movil" placeholder="juan@gmail.com" style="${estiloInput}">
                         </div>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="${estiloLabel}">Garante / Referido (Clientes en Sistema)</label>
+                            <label style="${estiloLabel}">Garante / Referido (Clientes Guardados en Sistema)</label>
                             <select id="cli-garante-movil" style="${estiloInput} background:#f8fafc;">
                                 <option value="">🚫 Sin Garante / Cliente Directo</option>
                             </select>
@@ -578,7 +578,7 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
                         <h3 style="${estiloTituloBloque}">UBICACIÓN Y LOGÍSTICA DE RUTA</h3>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="${estiloLabel}">Sector (Quevedo) *</label>
+                            <label style="${estiloLabel}">Sector (Quevedo)</label>
                             <select id="cli-sector-movil" style="${estiloInput} background:#f8fafc;">
                                 <option value="">-- Seleccione un Sector --</option>
                                 <option value="Sector 1 (San Camilo)">📍 Sector 1 (San Camilo)</option>
@@ -595,8 +595,8 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
                         </div>
 
                         <div style="margin-bottom: 12px;">
-                            <label style="${estiloLabel}">Ruta de Cobro *</label>
-                            <input type="text" id="cli-ruta-movil" list="rutas-sugeridas-movil" placeholder="Ej: Ruta Centro / Ruta 1" style="${estiloInput}">
+                            <label style="${estiloLabel}">Ruta de Cobro</label>
+                            <input type="text" id="cli-ruta-movil" list="rutas-sugeridas-movil" placeholder="-- Seleccione una Ruta --" style="${estiloInput}">
                             <datalist id="rutas-sugeridas-movil">
                                 <option value="Ruta Centro"><option value="Ruta 1"><option value="Ruta 2"><option value="Ruta 3"><option value="Ruta 4"><option value="Ruta 5">
                             </datalist>
@@ -604,30 +604,35 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
 
                         <div style="margin-bottom: 12px;">
                             <label style="${estiloLabel}">Dirección Exacta</label>
-                            <input type="text" id="cli-direccion-movil" placeholder="Calles principales y referencia de casa" style="${estiloInput}">
+                            <input type="text" id="cli-direccion-movil" placeholder="Ej: AV. QUITO Y CALLE 12" style="${estiloInput}">
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div>
-                                <label style="${estiloLabel}">Referencia Familiar</label>
-                                <input type="text" id="cli-referencia-movil" placeholder="Nombre familiar" style="${estiloInput}">
+                                <label style="${estiloLabel}">Referencia Física</label>
+                                <input type="text" id="cli-referencia-movil" placeholder="Ej: JUNTO A LA FARMACIA" style="${estiloInput}">
                             </div>
                             <div>
-                                <label style="${estiloLabel}">Teléf. Referencia</label>
-                                <input type="tel" id="cli-tel-referencia-movil" placeholder="09XXXXXXXX" style="${estiloInput}">
+                                <label style="${estiloLabel}">Teléfono Referencia</label>
+                                <input type="tel" id="cli-tel-referencia-movil" placeholder="Ej: 09XXXXXXXX" style="${estiloInput}">
                             </div>
+                        </div>
+
+                        <div>
+                            <label style="${estiloLabel}">Observaciones de Ruta</label>
+                            <textarea id="cli-observaciones-movil" rows="2" placeholder="Ej: COBRAR SOLO LOS SÁBADOS POR LA MAÑANA" style="${estiloInput} resize:vertical;"></textarea>
                         </div>
                     </div>
 
                     <!-- ===================================================== -->
-                    <!-- BLOQUE 3: PERFIL CREDITICIO Y RESPALDOS               -->
+                    <!-- BLOQUE 3: INFORMACIÓN FINANCIERA                      -->
                     <!-- ===================================================== -->
                     <div style="${estiloTarjeta}">
-                        <h3 style="${estiloTituloBloque}">PERFIL CREDITICIO Y DOCUMENTACIÓN</h3>
+                        <h3 style="${estiloTituloBloque}">INFORMACIÓN FINANCIERA</h3>
 
-                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px;">
                             <div>
-                                <label style="${estiloLabel}">Categoría / Nivel</label>
+                                <label style="${estiloLabel}">Nivel de Cliente</label>
                                 <select id="cli-nivel-movil" onchange="actualizarLimiteMovil()" style="${estiloInput} background:#f8fafc;">
                                     <option value="🥉 Bronce(Nuevo)">🥉 Bronce(Nuevo)</option>
                                     <option value="🥈 Plata(Cumplidor)">🥈 Plata(Cumplidor)</option>
@@ -637,35 +642,38 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
                                 </select>
                             </div>
                             <div>
-                                <label style="${estiloLabel}">Límite Créd.</label>
+                                <label style="${estiloLabel}">Límite de Créditos Activos</label>
                                 <input type="number" id="cli-limite-movil" value="2" min="1" style="${estiloInput} font-weight:900; text-align:center;">
                             </div>
-                        </div>
-
-                        <div style="margin-bottom: 14px;">
-                            <label style="${estiloLabel}">Observaciones</label>
-                            <textarea id="cli-observaciones-movil" rows="2" placeholder="Notas adicionales del cliente..." style="${estiloInput} resize:vertical;"></textarea>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-                            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:10px;">
-                                <label style="${estiloLabel}">📸 Foto Perfil</label>
-                                <input type="file" id="cli-foto-perfil-movil" accept="image/*" style="width:100%; font-size:11px; color:#475569;">
-                            </div>
-                            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:10px;">
-                                <label style="${estiloLabel}">🪪 Foto Cédula</label>
-                                <input type="file" id="cli-foto-cedula-movil" accept="image/*" style="width:100%; font-size:11px; color:#475569;">
-                            </div>
-                        </div>
-
-                        <div style="display: flex; gap: 10px;">
-                            <button id="btn-guardar-cliente-movil" onclick="registrarClienteMovil()" style="flex:1; padding:14px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:14px; box-shadow:0 4px 10px rgba(37,99,235,0.25);">💾 REGISTRAR CLIENTE ALPHA</button>
-                            <button onclick="limpiarFormularioClientesMovil()" title="Limpiar formulario" style="padding:14px 16px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:10px; font-weight:bold;">🧹</button>
                         </div>
                     </div>
 
                     <!-- ===================================================== -->
-                    <!-- BLOQUE 4: CLIENTES REGISTRADOS EN SISTEMA             -->
+                    <!-- BLOQUE 4: DOCUMENTACIÓN DIGITAL                       -->
+                    <!-- ===================================================== -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">DOCUMENTACIÓN DIGITAL</h3>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+                                <label style="${estiloLabel}">Foto del Cliente</label>
+                                <input type="file" id="cli-foto-perfil-movil" accept="image/*" style="width:100%; font-size:11px; color:#475569;">
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+                                <label style="${estiloLabel}">Foto de la Cédula</label>
+                                <input type="file" id="cli-foto-cedula-movil" accept="image/*" style="width:100%; font-size:11px; color:#475569;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTÓN PRINCIPAL DE REGISTRO -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 22px;">
+                        <button id="btn-guardar-cliente-movil" onclick="registrarClienteMovil()" style="flex:1; padding:15px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:14px; box-shadow:0 4px 12px rgba(37,99,235,0.3);">💾 REGISTRAR CLIENTE ALPHA</button>
+                        <button onclick="limpiarFormularioClientesMovil()" title="Limpiar formulario" style="padding:15px 16px; background:white; color:#475569; border:1px solid #cbd5e1; border-radius:10px; font-weight:bold;">🧹</button>
+                    </div>
+
+                    <!-- ===================================================== -->
+                    <!-- BLOQUE 5: CLIENTES REGISTRADOS EN SISTEMA             -->
                     <!-- ===================================================== -->
                     <div style="${estiloTarjeta}">
                         <h3 style="${estiloTituloBloque}">CLIENTES REGISTRADOS EN SISTEMA</h3>
