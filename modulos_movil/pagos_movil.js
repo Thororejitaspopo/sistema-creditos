@@ -769,6 +769,99 @@ else if (modulo === 'gastos' || modulo === 'gasto') {
             });
         }
 
+else if (modulo === 'capital' || modulo === 'caja') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+
+            const estiloLabel = 'display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;';
+            const estiloInput = 'width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#0f172a; background:#ffffff; box-sizing:border-box; outline:none;';
+            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
+            const estiloTituloBloque = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 14px 0;';
+
+            vistaModulos.innerHTML = `
+                <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <div style="margin-bottom: 16px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">🏛️ Módulo Capital</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Control de bóvedas, inyecciones y retiros</div>
+                    </div>
+
+                    <!-- BLOQUE 1: SALDOS EN VIVO -->
+                    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 6px 15px rgba(15,23,42,0.18);">
+                        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px;">CAPITAL GENERAL DISPONIBLE</div>
+                        <div id="saldo-general-txt-movil" style="font-size: 28px; font-weight: 900; color: #4ade80; margin: 4px 0 14px 0;">$0.00</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px dashed #334155; padding-top: 12px;">
+                            <div>
+                                <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">💵 EFECTIVO MATRIZ</div>
+                                <div id="saldo-efectivo-txt-movil" style="font-size: 16px; font-weight: 900; color: #f8fafc; margin-top: 2px;">$0.00</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 10px; color: #94a3b8; font-weight: bold;">🏦 BANCOS</div>
+                                <div id="saldo-bancos-txt-movil" style="font-size: 16px; font-weight: 900; color: #38bdf8; margin-top: 2px;">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 2: INGRESAR O RETIRAR CAPITAL -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">MOVIMIENTO DE CAPITAL</h3>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Caja o Banco Destino *</label>
+                            <select id="cap-caja-destino-movil" style="${estiloInput} background:#f8fafc; font-weight:700;">
+                                <option value="">-- Cargando cajas... --</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Monto ($) *</label>
+                            <input type="number" id="cap-monto-movil" step="0.01" placeholder="Ej: 500.00" style="${estiloInput} border:1.5px solid #0284c7; font-size:18px; font-weight:900;">
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="${estiloLabel}">Concepto / Detalle *</label>
+                            <input type="text" id="cap-concepto-movil" placeholder="Ej: Inyección de capital o retiro gerencial" style="${estiloInput}">
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button onclick="procesarTransaccionCapitalMovil('INGRESAR')" style="padding:13px 8px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:13px;">➕ INGRESAR</button>
+                            <button onclick="procesarTransaccionCapitalMovil('RETIRAR')" style="padding:13px 8px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:13px;">➖ RETIRAR</button>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 3: AUDITORÍA DE MOVIMIENTOS -->
+                    <div style="${estiloTarjeta}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin-bottom:12px;">
+                            <h3 style="font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; margin:0;">AUDITORÍA DE CAPITAL</h3>
+                            <span id="contador-movimientos-capital-movil" style="background:#f1f5f9; color:#475569; padding:4px 8px; border-radius:20px; font-size:11px; font-weight:bold;">Movimientos: 0</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 10px;">
+                            <select id="filtro-tiempo-capital-movil" onchange="cambiarFiltroCapitalMovil(this.value)" style="${estiloInput} background:#f8fafc; font-weight:bold; font-size:12px;">
+                                <option value="DIARIO">📅 Vista Diaria (Máquina del Tiempo)</option>
+                                <option value="MES_ACTUAL">🗓️ Todo el Mes Actual</option>
+                                <option value="MES_ANTERIOR">⏮️ Mes Anterior</option>
+                                <option value="TODO">🌎 Todo el Historial</option>
+                            </select>
+                            <button onclick="limpiarFiltrosCapitalMovil()" title="Reiniciar filtros" style="padding:0 14px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; font-weight:bold;">🧹</button>
+                        </div>
+
+                        <input type="text" id="input-buscar-general-capital-movil" oninput="filtrarHistorialCapitalMovil(this.value)" placeholder="🔍 Buscar por cliente, ID o concepto..." style="${estiloInput} background:#f8fafc; margin-bottom:14px;">
+
+                        <div id="historial-capital-lista-movil"></div>
+                        <div id="paginacion-historial-controles-movil"></div>
+                    </div>
+
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof inicializarModuloCapitalMovil === 'function') inicializarModuloCapitalMovil();
+                }, 100);
+            });
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
