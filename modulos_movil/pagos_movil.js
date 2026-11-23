@@ -565,8 +565,9 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
                         <div>
                             <label style="${estiloLabel}">Perfil / Castigo de Mora</label>
                             <select id="cli-perfil-mora-movil" style="${estiloInput} border:1.5px solid #0284c7; font-weight:700;">
-                                <option value="Normal">🟢 Mora NORMAL (Multar al vencer)</option>
-                                <option value="Social">🛡️ Perfil SOCIAL (Inmune a Mora)</option>
+                                <option value="Normal">🟢 Mora NORMAL (Multar al vencerse)</option>
+                                <option value="Social">🛡️ Perfil SOCIAL (Nunca cobrar mora)</option>
+                                <option value="Lista Negra">⛔ LISTA NEGRA (Deuda incobrable)</option>
                             </select>
                         </div>
                     </div>
