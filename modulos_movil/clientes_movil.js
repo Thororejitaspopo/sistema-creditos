@@ -263,22 +263,23 @@ window.renderizarListaClientesMovil = function(clientes) {
         else if ((c.nivel || '').includes('Plata')) colorNivel = '#475569';
         else if ((c.nivel || '').includes('Diamante')) colorNivel = '#7c3aed';
 
-        return `
-        <div style="background:white; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; box-shadow:0 2px 4px rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-                <div style="width:40px; height:40px; border-radius:50%; background:#e0f2fe; color:#0284c7; font-weight:900; font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${inic}</div>
-                <div style="min-width:0;">
-                    <div style="font-size:10px; font-weight:bold; color:#0284c7;">${cod}</div>
-                    <div style="font-size:13px; font-weight:900; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.nombres.toUpperCase()} ${c.apellidos.toUpperCase()}</div>
-                    <div style="font-size:11px; color:#64748b;">C.I: ${c.cedula} | ${c.ruta || 'S/R'}</div>
-                    <div style="font-size:10px; font-weight:bold; color:${colorNivel};">${c.nivel || 'Bronce'}</div>
+       return `
+        <div style="background:white; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:12px; box-shadow:0 2px 6px rgba(15,23,42,0.04);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:42px; height:42px; border-radius:50%; background:#e0f2fe; color:#0284c7; font-weight:900; font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${inic}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:900; color:#0f172a; line-height:1.3;">
+                        <span style="color:#0284c7;">${cod}</span> - ${c.nombres.toUpperCase()} ${c.apellidos.toUpperCase()}
+                    </div>
+                    <div style="font-size:11px; color:#64748b; margin-top:3px;">C.I: ${c.cedula} | ${c.ruta || 'Sin Ruta'}</div>
+                    <div style="font-size:11px; font-weight:700; color:${colorNivel}; margin-top:2px;">${c.nivel || '🥉 Bronce(Nuevo)'}</div>
                 </div>
             </div>
-            <div style="display:flex; gap:6px; flex-shrink:0;">
-                <button onclick="verClienteMovil(${c.id})" style="background:#f1f5f9; border:none; border-radius:8px; width:34px; height:34px; font-size:15px;">👁️</button>
-                <button onclick="prepararEdicionClienteMovil(${c.id})" style="background:#fef3c7; border:none; border-radius:8px; width:34px; height:34px; font-size:15px;">✏️</button>
-                <button onclick="redirigirACrearCreditoMovil(${c.id})" style="background:#dcfce7; border:none; border-radius:8px; width:34px; height:34px; font-size:15px;">💳</button>
-                <button onclick="eliminarClienteMovil(${c.id})" style="background:#fee2e2; border:none; border-radius:8px; width:34px; height:34px; font-size:15px;">🗑️</button>
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:12px; padding-top:10px; border-top:1px dashed #e2e8f0;">
+                <button onclick="verClienteMovil(${c.id})" title="Ver Ficha" style="background:#f1f5f9; border:none; border-radius:8px; padding:8px 0; font-size:16px; cursor:pointer;">👁️</button>
+                <button onclick="prepararEdicionClienteMovil(${c.id})" title="Editar" style="background:#fef3c7; border:none; border-radius:8px; padding:8px 0; font-size:16px; cursor:pointer;">✏️</button>
+                <button onclick="redirigirACrearCreditoMovil(${c.id})" title="Crear Crédito" style="background:#dcfce7; border:none; border-radius:8px; padding:8px 0; font-size:16px; cursor:pointer;">💳</button>
+                <button onclick="eliminarClienteMovil(${c.id})" title="Eliminar / Archivar" style="background:#fee2e2; border:none; border-radius:8px; padding:8px 0; font-size:16px; cursor:pointer;">🗑️</button>
             </div>
         </div>`;
     }).join('');
