@@ -883,6 +883,92 @@ else if (modulo === 'interes' || modulo === 'intereses' || modulo === 'utilidad'
             });
         }
 
+else if (modulo === 'cierre' || modulo === 'cierre_caja') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+            window.ultimaCajaChicaGuardadaMovil = 0;
+
+            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
+            const estiloTituloBloque = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 12px 0;';
+
+            vistaModulos.innerHTML = `
+                <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <div style="margin-bottom: 14px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">🔒 Cierre de Caja</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Arqueo físico diario y auditoría de bóvedas</div>
+                    </div>
+
+                    <!-- BLOQUE 1: BASE INICIAL Y BOTÓN CALCULAR -->
+                    <div style="${estiloTarjeta} border: 2px dashed #bae6fd; background: #f8fafc; text-align: center;">
+                        <div style="font-size: 12px; font-weight: 900; color: #0f172a; margin-bottom: 4px;">💼 BASE INICIAL (CAJA CHICA FÍSICA)</div>
+                        <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">Dinero físico con el que salió a la calle hoy</div>
+                        <input type="number" id="input-base-caja-movil" placeholder="0.00" step="0.01" style="width: 100%; max-width: 220px; padding: 12px; font-size: 22px; font-weight: 900; text-align: center; border: 2px solid #38bdf8; border-radius: 10px; color: #0f172a; background: white; margin-bottom: 12px; box-sizing: border-box;">
+                        <button onclick="ejecutarCierreDiarioMovil()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
+                            ⚡ CALCULAR CIERRE DE HOY
+                        </button>
+                    </div>
+
+                    <!-- BLOQUE 2: EFECTIVO EN MANO (TABLERO OSCURO) -->
+                    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 16px; padding: 18px; margin-bottom: 14px; text-align: center; box-shadow: 0 6px 15px rgba(15,23,42,0.2);">
+                        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px;">EFECTIVO FÍSICO QUE DEBE TENER EN MANO</div>
+                        <div id="cierre-efectivo-mano-movil" style="font-size: 34px; font-weight: 900; color: #38bdf8; margin: 6px 0 12px 0;">$0.00</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; border-top: 1px dashed #334155; padding-top: 12px;">
+                            <div>
+                                <div style="font-size: 9px; color: #94a3b8; font-weight: bold;">RECAUDADO</div>
+                                <div id="cierre-total-ingresos-movil" style="font-size: 14px; font-weight: 900; color: #4ade80;">$0.00</div>
+                                <div style="font-size: 9px; color: #64748b;">C:<span id="cierre-ingreso-cap-movil">$0</span> | I:<span id="cierre-ingreso-int-movil">$0</span></div>
+                            </div>
+                            <div>
+                                <div style="font-size: 9px; color: #94a3b8; font-weight: bold;">GASTOS</div>
+                                <div id="cierre-total-gastos-movil" style="font-size: 14px; font-weight: 900; color: #f87171;">$0.00</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 9px; color: #94a3b8; font-weight: bold;">PRÉSTAMOS</div>
+                                <div id="cierre-total-prestamos-movil" style="font-size: 14px; font-weight: 900; color: #fbbf24;">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ALERTA JUEZ CONTABLE -->
+                    <div id="alerta-cruce-bovedas-movil" style="display: none;"></div>
+
+                    <!-- BLOQUE 3: SEPARACIÓN DE FONDOS -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">SEPARACIÓN DE FONDOS</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+                            <div style="background:#f1f5f9; padding:10px 12px; border-radius:8px; display:flex; justify-content:space-between; font-weight:bold; color:#0f172a;">
+                                <span>🏦 Capital (Efectivo)</span><span id="cierre-guardar-capital-movil">$0.00</span>
+                            </div>
+                            <div style="background:#fefce8; padding:10px 12px; border-radius:8px; display:flex; justify-content:space-between; font-weight:bold; color:#a16207;">
+                                <span>💎 Utilidades (Efectivo)</span><span id="cierre-guardar-interes-movil">$0.00</span>
+                            </div>
+                            <div style="background:#f5f3ff; padding:10px 12px; border-radius:8px; display:flex; justify-content:space-between; font-weight:bold; color:#6d28d9;">
+                                <span>💳 Capital en Bancos</span><span id="cierre-banco-capital-movil">$0.00</span>
+                            </div>
+                            <div style="background:#fdf4ff; padding:10px 12px; border-radius:8px; display:flex; justify-content:space-between; font-weight:bold; color:#a21caf;">
+                                <span>✨ Utilidades en Bancos</span><span id="cierre-banco-interes-movil">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px;">
+                            <button onclick="generarPDFCierreDiarioMovil()" style="padding:11px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📄 PDF Cierre</button>
+                            <button onclick="ejecutarRespaldoCorreoMovil(this)" style="padding:11px; background:#0f172a; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">🛡️ Backup Correo</button>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 4: RADIOGRAFÍA DETALLADA DEL DÍA -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">RADIOGRAFÍA DEL DÍA</h3>
+                        <div id="cierre-detalle-lista-movil">
+                            <div style="text-align:center; color:#94a3b8; padding:15px; font-size:12px;">Presione "CALCULAR CIERRE DE HOY" arriba para auditar el día.</div>
+                        </div>
+                    </div>
+
+                </div>
+            `;
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
