@@ -635,7 +635,7 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
                     <div style="${estiloTarjeta}">
                         <h3 style="${estiloTituloBloque}">INFORMACIÓN FINANCIERA</h3>
 
-                        <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px;">
+                       <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; align-items: end;">
                             <div>
                                 <label style="${estiloLabel}">Nivel de Cliente</label>
                                 <select id="cli-nivel-movil" onchange="actualizarLimiteMovil()" style="${estiloInput} background:#f8fafc;">
