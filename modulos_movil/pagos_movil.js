@@ -597,10 +597,14 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
 
                         <div style="margin-bottom: 12px;">
                             <label style="${estiloLabel}">Ruta de Cobro</label>
-                            <input type="text" id="cli-ruta-movil" list="rutas-sugeridas-movil" placeholder="-- Seleccione una Ruta --" style="${estiloInput}">
-                            <datalist id="rutas-sugeridas-movil">
-                                <option value="Ruta Centro"><option value="Ruta 1"><option value="Ruta 2"><option value="Ruta 3"><option value="Ruta 4"><option value="Ruta 5">
-                            </datalist>
+                            <select id="cli-ruta-movil" style="${estiloInput} background:#f8fafc;">
+                                <option value="">-- Seleccione una Ruta --</option>
+                                <option value="Ruta Norte">🏍️ Ruta Norte</option>
+                                <option value="Ruta Sur">🏍️ Ruta Sur</option>
+                                <option value="Ruta Centro">🏍️ Ruta Centro</option>
+                                <option value="Ruta Este">🏍️ Ruta Este</option>
+                                <option value="Ruta Oeste">🏍️ Ruta Oeste</option>
+                            </select>
                         </div>
 
                         <div style="margin-bottom: 12px;">
