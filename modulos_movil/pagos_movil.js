@@ -697,6 +697,78 @@ else if (modulo === 'clientes' || modulo === 'cliente') {
             });
         }
 
+else if (modulo === 'gastos' || modulo === 'gasto') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+
+            const estiloLabel = 'display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;';
+            const estiloInput = 'width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#0f172a; background:#ffffff; box-sizing:border-box; outline:none;';
+            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
+            const estiloTituloBloque = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 14px 0;';
+
+            vistaModulos.innerHTML = `
+                <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <div style="margin-bottom: 16px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">💸 Gastos Varios</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Control de egresos operativos y caja chica</div>
+                    </div>
+
+                    <!-- BLOQUE 1: REGISTRAR EGRESO DIARIO -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">REGISTRAR EGRESO DIARIO</h3>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Categoría del Gasto *</label>
+                            <select id="gasto-categoria-movil" style="${estiloInput} background:#f8fafc;">
+                                <option value="">-- Seleccione una Categoría --</option>
+                                <option value="Combustible / Gasolina">⛽ Combustible / Gasolina</option>
+                                <option value="Mantenimiento de Moto">🏍️ Mantenimiento de Moto</option>
+                                <option value="Alimentación / Viáticos">🍽️ Alimentación / Viáticos</option>
+                                <option value="Suministros de Oficina">📎 Suministros de Oficina</option>
+                                <option value="Recargas / Internet / Chip">📱 Recargas / Internet / Chip</option>
+                                <option value="Servicios Básicos">💡 Servicios Básicos</option>
+                                <option value="Otros Gastos Varios">📦 Otros Gastos Varios</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="${estiloLabel}">Monto del Egreso ($) *</label>
+                            <input type="number" id="gasto-monto-movil" step="0.01" placeholder="Ej: 15.00" style="${estiloInput} border:1.5px solid #ef4444; font-size:18px; font-weight:900; color:#ef4444;">
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <label style="${estiloLabel}">Concepto / Detalle para Auditoría *</label>
+                            <textarea id="gasto-concepto-movil" rows="2" placeholder="Ej: Compra de llanta trasera o recarga de combustible" style="${estiloInput} resize:vertical;"></textarea>
+                        </div>
+
+                        <button onclick="registrarGastoDiarioMovil()" style="width:100%; padding:14px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:14px; box-shadow:0 4px 10px rgba(239,68,68,0.25);">
+                            💸 REGISTRAR EGRESO AHORA
+                        </button>
+                    </div>
+
+                    <!-- BLOQUE 2: GASTOS REGISTRADOS HOY -->
+                    <div style="${estiloTarjeta}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin-bottom:14px;">
+                            <h3 style="font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; margin:0;">GASTOS REGISTRADOS HOY</h3>
+                            <div style="background:#fef2f2; border:1px solid #fecaca; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:900; color:#dc2626;">
+                                Total: <span id="total-gastos-hoy-txt-movil">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div id="lista-gastos-hoy-movil"></div>
+                    </div>
+
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof cargarGastosDeHoyMovil === 'function') cargarGastosDeHoyMovil();
+                }, 100);
+            });
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
