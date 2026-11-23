@@ -314,7 +314,7 @@ window.ejecutarAjusteDeCruceMovil = async function() {
 };
 
 // =========================================================================
-// 3. GENERAR PDF OFICIAL DE CIERRE DIARIO
+// 3. GENERAR PDF OFICIAL DE CIERRE DIARIO (CLON EXACTO DE COMPUTADORA)
 // =========================================================================
 window.generarPDFCierreDiarioMovil = async function() {
     if (!window.jspdf) {
@@ -324,52 +324,211 @@ window.generarPDFCierreDiarioMovil = async function() {
         return;
     }
 
-    const valMano = document.getElementById('cierre-efectivo-mano-movil').innerText;
-    if (valMano === "$0.00" || valMano === "Calculando...") {
-        alert("⚠️ Primero presione 'CALCULAR CIERRE DE HOY' antes de generar el PDF.");
+    const valEfectivoMano = document.getElementById('cierre-efectivo-mano-movil')?.innerText || "$0.00";
+    if (valEfectivoMano === "$0.00" || valEfectivoMano === "Calculando...") {
+        alert("⚠️ Por favor, primero presione 'CALCULAR CIERRE DE HOY' antes de generar el PDF.");
         return;
     }
 
+    alert("⏳ Recopilando la Radiografía del Día para el PDF... Presione Aceptar y espere un momento.");
+
     try {
+        const supa = window.supabaseClient;
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait', 'mm', 'a4');
+
+        // ENCABEZADO
         doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(15, 23, 42);
         doc.text("SISTEMA ALPHA V6", 14, 20);
-        doc.setFontSize(13); doc.setTextColor(2, 132, 199);
-        doc.text("ARQUEO Y CIERRE DE CAJA DIARIO (MÓVIL)", 14, 28);
 
-        const fImp = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        doc.setFontSize(14); doc.setTextColor(2, 132, 199);
+        doc.text("ARQUEO Y CIERRE DE CAJA DIARIO (AUDITORÍA DETALLADA)", 14, 28);
+
+        const fImpresion = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         doc.setFontSize(9); doc.setTextColor(100, 116, 139); doc.setFont(undefined, 'normal');
-        doc.text(`Fecha de Auditoría: ${fImp.toUpperCase()}`, 14, 34);
-        doc.line(14, 37, 196, 37);
+        doc.text(`Fecha y Hora de Auditoría: ${fImpresion.toUpperCase()}`, 14, 34);
+        doc.setDrawColor(200, 200, 200); doc.line(14, 37, 196, 37);
 
-        doc.setFillColor(15, 23, 42); doc.roundedRect(14, 43, 182, 24, 3, 3, 'F');
-        doc.setFontSize(9); doc.setTextColor(148, 163, 184); doc.setFont(undefined, 'bold');
-        doc.text("EFECTIVO FÍSICO TOTAL EN MANO:", 20, 51);
-        doc.setFontSize(20); doc.setTextColor(56, 189, 248);
-        doc.text(valMano, 20, 61);
+        // CAJA OSCURA: EFECTIVO EN MANO
+        doc.setFillColor(15, 23, 42); doc.roundedRect(14, 43, 182, 26, 3, 3, 'F');
+        doc.setFontSize(10); doc.setTextColor(148, 163, 184); doc.setFont(undefined, 'bold');
+        doc.text("EFECTIVO FÍSICO TOTAL QUE DEBE TENER EN SU MANO:", 20, 52);
+        doc.setFontSize(22); doc.setTextColor(56, 189, 248);
+        doc.text(valEfectivoMano, 20, 62);
 
-        let yPos = 75;
-        const pintar = (titulo, idEl, bg, txt) => {
-            const val = document.getElementById(idEl)?.innerText || "$0.00";
-            doc.setFillColor(...bg); doc.roundedRect(14, yPos, 182, 10, 1, 1, 'F');
-            doc.setFontSize(9); doc.setTextColor(...txt); doc.text(titulo, 18, yPos + 6.5);
-            doc.text(val, 188, yPos + 6.5, { align: 'right' });
+        // 3 CUADROS DE RESUMEN
+        const valIngresos = document.getElementById('cierre-total-ingresos-movil').innerText;
+        const valGastos = document.getElementById('cierre-total-gastos-movil').innerText;
+        const valPrestamos = document.getElementById('cierre-total-prestamos-movil').innerText;
+
+        doc.setFontSize(11); doc.setTextColor(15, 23, 42);
+        doc.text("RESUMEN DE MOVIMIENTOS DEL DÍA", 14, 78);
+
+        doc.setFillColor(236, 253, 245); doc.roundedRect(14, 82, 58, 16, 2, 2, 'F');
+        doc.setFontSize(8); doc.setTextColor(6, 78, 59); doc.text("TOTAL RECAUDADO", 17, 88);
+        doc.setFontSize(12); doc.text(valIngresos, 17, 95);
+
+        doc.setFillColor(254, 242, 242); doc.roundedRect(76, 82, 58, 16, 2, 2, 'F');
+        doc.setFontSize(8); doc.setTextColor(153, 27, 27); doc.text("GASTOS VARIOS", 79, 88);
+        doc.setFontSize(12); doc.text(valGastos, 79, 95);
+
+        doc.setFillColor(255, 251, 235); doc.roundedRect(138, 82, 58, 16, 2, 2, 'F');
+        doc.setFontSize(8); doc.setTextColor(180, 83, 9); doc.text("PRÉSTAMOS ENTREGADOS", 141, 88);
+        doc.setFontSize(12); doc.text(valPrestamos, 141, 95);
+
+        // SEPARACIÓN DE FONDOS
+        doc.setFontSize(11); doc.setTextColor(15, 23, 42); doc.text("SEPARACIÓN DE FONDOS", 14, 108);
+        doc.setDrawColor(200, 200, 200); doc.line(14, 111, 196, 111);
+
+        let yPos = 115;
+        const pintarCajita = (titulo, idElemento, colorBg, colorTxt) => {
+            const valor = document.getElementById(idElemento) ? document.getElementById(idElemento).innerText : "$0.00";
+            doc.setFillColor(...colorBg); doc.roundedRect(14, yPos, 182, 10, 1, 1, 'F');
+            doc.setFontSize(9); doc.setTextColor(...colorTxt); doc.text(titulo, 18, yPos + 7);
+            doc.setFontSize(10); doc.text(valor, 180, yPos + 7, { align: 'right' });
             yPos += 12;
         };
 
-        pintar("TOTAL RECAUDADO HOY", 'cierre-total-ingresos-movil', [236, 253, 245], [6, 78, 59]);
-        pintar("GASTOS VARIOS HOY", 'cierre-total-gastos-movil', [254, 242, 242], [153, 27, 27]);
-        pintar("PRÉSTAMOS ENTREGADOS HOY", 'cierre-total-prestamos-movil', [255, 251, 235], [180, 83, 9]);
-        pintar("CAJA FUERTE DE CAPITAL (Efectivo)", 'cierre-guardar-capital-movil', [241, 245, 249], [15, 23, 42]);
-        pintar("CAJA FUERTE DE UTILIDADES (Efectivo)", 'cierre-guardar-interes-movil', [254, 252, 232], [161, 98, 7]);
-        pintar("CAPITAL EN BANCOS (Transferencias)", 'cierre-banco-capital-movil', [245, 243, 255], [109, 40, 217]);
-        pintar("UTILIDADES EN BANCOS (Transferencias)", 'cierre-banco-interes-movil', [253, 244, 255], [192, 38, 211]);
+        pintarCajita("CAJA FUERTE DE CAPITAL (Efectivo)", 'cierre-guardar-capital-movil', [241, 245, 249], [15, 23, 42]);
+        pintarCajita("CAJA FUERTE DE UTILIDADES (Ganancia en Efectivo)", 'cierre-guardar-interes-movil', [254, 252, 232], [161, 98, 7]);
+        pintarCajita("CAPITAL EN BANCOS (Transferencias)", 'cierre-banco-capital-movil', [245, 243, 255], [109, 40, 217]);
+        pintarCajita("UTILIDADES EN BANCOS (Transferencias)", 'cierre-banco-interes-movil', [253, 244, 255], [192, 38, 211]);
+
+        // RADIOGRAFÍA DEL DÍA (TABLA DETALLADA)
+        const inicioDia = new Date(); inicioDia.setHours(0, 0, 0, 0);
+        const finDia = new Date(); finDia.setHours(23, 59, 59, 999);
+        const isoIni = inicioDia.toISOString(); const isoFin = finDia.toISOString();
+
+        let datosTabla = [];
+
+        // 1. BASE DE CAJA CHICA
+        const baseCajaChica = window.ultimaCajaChicaGuardadaMovil || 0;
+        if (baseCajaChica > 0) {
+            const fechaBase = new Date(); fechaBase.setHours(8, 0, 0, 0);
+            datosTabla.push({
+                fechaObj: fechaBase, hora: "08:00 a. m.", operacion: 'BASE INICIAL',
+                detalle: 'CAJA CHICA DEL DÍA', caja: 'EFECTIVO',
+                monto: `+$${baseCajaChica.toFixed(2)}`
+            });
+        }
+
+        // 2. PAGOS / RECAUDACIÓN
+        const { data: pagos } = await supa.from('historial_pagos').select(`*, creditos (*, clientes (*))`).gte('fecha_pago', isoIni).lte('fecha_pago', isoFin);
+        if (pagos) pagos.forEach(p => {
+            const cli = (p.creditos && p.creditos.clientes) ? `${p.creditos.clientes.nombres} ${p.creditos.clientes.apellidos}` : 'CLIENTE';
+            const detalleConDesglose = `${cli.toUpperCase()}\n[Capital: $${parseFloat(p.monto_capital || 0).toFixed(2)} | Interés: $${parseFloat(p.monto_interes || 0).toFixed(2)}]`;
+            datosTabla.push({
+                fechaObj: new Date(p.fecha_pago),
+                hora: new Date(p.fecha_pago).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+                operacion: 'INGRESO (ABONO)',
+                detalle: detalleConDesglose,
+                caja: (p.forma_pago || 'EFECTIVO').toUpperCase(),
+                monto: `+$${parseFloat(p.abono_total).toFixed(2)}`
+            });
+        });
+
+        // 3. GASTOS
+        const { data: gastos } = await supa.from('gastos_varios').select('*').gte('fecha_gasto', isoIni).lte('fecha_gasto', isoFin);
+        if (gastos) gastos.forEach(g => {
+            datosTabla.push({
+                fechaObj: new Date(g.fecha_gasto),
+                hora: new Date(g.fecha_gasto).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+                operacion: 'GASTO DEL DÍA',
+                detalle: (g.concepto || 'VARIO').toUpperCase(),
+                caja: 'EFECTIVO',
+                monto: `-$${parseFloat(g.monto).toFixed(2)}`
+            });
+        });
+
+        // 4. PRÉSTAMOS EN EFECTIVO
+        const { data: creditos } = await supa.from('creditos').select('*, clientes (*)').gte('fecha_emision', isoIni).lte('fecha_emision', isoFin);
+        if (creditos) {
+            const creditosEfectivo = creditos.filter(c => {
+                const forma = (c.forma_entrega || '').toString().toUpperCase();
+                return forma === '1' || forma.includes('EFECTIVO') || forma === '';
+            });
+            creditosEfectivo.forEach(c => {
+                const cli = c.clientes ? `${c.clientes.nombres} ${c.clientes.apellidos}` : 'CLIENTE';
+                const montoPrestado = parseFloat(c.monto_capital || c.monto || 0);
+                datosTabla.push({
+                    fechaObj: new Date(c.fecha_emision),
+                    hora: new Date(c.fecha_emision).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+                    operacion: 'NUEVO PRÉSTAMO',
+                    detalle: cli.toUpperCase(),
+                    caja: 'EFECTIVO',
+                    monto: `-$${montoPrestado.toFixed(2)}`
+                });
+            });
+        }
+
+        // 5. INYECCIONES DE CAPITAL
+        const { data: movsCapital } = await supa.from('historial_capital').select('*').gte('fecha_movimiento', isoIni).lte('fecha_movimiento', isoFin);
+        if (movsCapital) {
+            movsCapital.forEach(mov => {
+                const montoNum = parseFloat(mov.monto || 0);
+                const conceptoLimpio = (mov.concepto || '').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s\.,;:\-\_\(\)\[\]\|#\$%&!¿\?]/g, ' ').replace(/\s+/g, ' ').trim();
+                const conceptoTexto = conceptoLimpio.toUpperCase();
+                if (montoNum > 0 && !conceptoTexto.includes('RECUPERACION') && !conceptoTexto.includes('RECUPERACIÓN')) {
+                    datosTabla.push({
+                        fechaObj: new Date(mov.fecha_movimiento),
+                        hora: new Date(mov.fecha_movimiento).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+                        operacion: 'INYECCIÓN DE CAPITAL',
+                        detalle: conceptoTexto || 'FONDEO DE CAJA',
+                        caja: 'EFECTIVO',
+                        monto: `+$${montoNum.toFixed(2)}`
+                    });
+                }
+            });
+        }
+
+        // ORDENAR Y DIBUJAR TABLA
+        datosTabla.sort((a, b) => a.fechaObj - b.fechaObj);
+        const filasPDF = datosTabla.map(d => [d.hora, d.operacion, d.detalle, d.caja, d.monto]);
+
+        doc.setFontSize(11); doc.setTextColor(15, 23, 42); doc.text("DETALLE DE AUDITORÍA (RADIOGRAFÍA DEL DÍA)", 14, yPos + 10);
+
+        doc.autoTable({
+            startY: yPos + 14,
+            head: [['HORA', 'OPERACIÓN', 'CLIENTE / CONCEPTO', 'CAJA', 'VALOR']],
+            body: filasPDF,
+            theme: 'striped',
+            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontSize: 8 },
+            styles: { fontSize: 8, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 20 },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 'auto' },
+                3: { cellWidth: 25 },
+                4: { halign: 'right', fontStyle: 'bold', cellWidth: 20 }
+            },
+            didParseCell: function(data) {
+                if (data.section === 'body' && data.column.index === 4) {
+                    if (data.cell.raw.startsWith('+')) data.cell.styles.textColor = [16, 185, 129];
+                    else data.cell.styles.textColor = [220, 38, 38];
+                }
+            }
+        });
+
+        // FIRMAS Y PIE DE PÁGINA
+        let finalY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : yPos + 20) + 30;
+        if (finalY > 260) { doc.addPage(); finalY = 40; }
+
+        doc.setDrawColor(0, 0, 0); doc.line(30, finalY, 80, finalY);
+        doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.setTextColor(15, 23, 42);
+        doc.text("Firma del Cajero / Operador", 55, finalY + 5, { align: 'center' });
+
+        doc.line(130, finalY, 180, finalY);
+        doc.text("Firma de Gerencia / Auditoría", 155, finalY + 5, { align: 'center' });
+
+        doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+        doc.text("Documento auditado por Sistema Alpha V6. Todo sobrante o faltante es responsabilidad del operador.", 14, 280);
 
         const fechaFile = new Date().toISOString().split('T')[0];
-        doc.save(`Arqueo_Caja_Movil_${fechaFile}.pdf`);
-    } catch (e) {
-        alert("❌ Error al generar PDF: " + e.message);
+        doc.save(`Arqueo_Caja_Detallado_${fechaFile}.pdf`);
+
+    } catch (error) {
+        console.error("Error al generar PDF de Cierre Móvil:", error);
+        alert("❌ Error al generar el PDF: " + error.message);
     }
 };
 
