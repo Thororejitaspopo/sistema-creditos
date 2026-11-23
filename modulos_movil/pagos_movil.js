@@ -862,6 +862,27 @@ else if (modulo === 'capital' || modulo === 'caja') {
             });
         }
 
+else if (modulo === 'interes' || modulo === 'intereses' || modulo === 'utilidad') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+
+            vistaModulos.innerHTML = `
+                <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
+                    <div style="margin-bottom: 14px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">📈 Módulo Interés</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Bóveda de utilidades y ganancias netas</div>
+                    </div>
+                    <div id="mod-interes-movil"></div>
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof cargarModuloInteresMovil === 'function') cargarModuloInteresMovil();
+                }, 100);
+            });
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
