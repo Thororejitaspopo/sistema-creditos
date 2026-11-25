@@ -969,6 +969,59 @@ else if (modulo === 'cierre' || modulo === 'cierre_caja') {
             `;
         }
 
+else if (modulo === 'reportes' || modulo === 'reporte') {
+            const vistaModulos = document.getElementById('vista-modulos');
+            vistaModulos.style.display = 'block';
+
+            const estiloLabel = 'display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;';
+            const estiloInput = 'width:100%; padding:11px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#0f172a; background:#ffffff; box-sizing:border-box; outline:none;';
+            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
+            const estiloTituloBloque = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 14px 0;';
+
+            vistaModulos.innerHTML = `
+                <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
+                    
+                    <div style="margin-bottom: 16px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">📋 Reportes Corporativos</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Estado de Resultados y Auditoría de Ejercicio</div>
+                    </div>
+
+                    <!-- BLOQUE 1: AUDITORÍA CORPORATIVA -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTituloBloque}">👑 AUDITORÍA CORPORATIVA (PDF)</h3>
+                        <p style="font-size:12px; color:#64748b; margin:0 0 14px 0;">
+                            Seleccione el rango de fechas para auditar colocación, recuperación, intereses, gastos y utilidad neta real.
+                        </p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                            <div>
+                                <label style="${estiloLabel}">Fecha Inicio</label>
+                                <input type="date" id="mega-fecha-desde-movil" style="${estiloInput}">
+                            </div>
+                            <div>
+                                <label style="${estiloLabel}">Fecha Corte</label>
+                                <input type="date" id="mega-fecha-hasta-movil" style="${estiloInput}">
+                            </div>
+                        </div>
+
+                        <button onclick="generarAuditoriaCorporativaPDFMovil()" style="width:100%; padding:14px; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:13px; box-shadow:0 4px 10px rgba(15,23,42,0.25);">
+                            📄 GENERAR ESTADO DE RESULTADOS (PDF)
+                        </button>
+                    </div>
+
+                    <!-- BLOQUE 2: VISTA PREVIA EN PANTALLA -->
+                    <div id="resumen-auditoria-movil" style="display:none;"></div>
+
+                </div>
+            `;
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (typeof inicializarFechasReportesMovil === 'function') inicializarFechasReportesMovil();
+                }, 100);
+            });
+        }
+
         else {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
