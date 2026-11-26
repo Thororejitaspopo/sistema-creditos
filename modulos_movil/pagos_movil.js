@@ -973,44 +973,94 @@ else if (modulo === 'reportes' || modulo === 'reporte') {
             const vistaModulos = document.getElementById('vista-modulos');
             vistaModulos.style.display = 'block';
 
-            const estiloLabel = 'display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;';
-            const estiloInput = 'width:100%; padding:11px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#0f172a; background:#ffffff; box-sizing:border-box; outline:none;';
-            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
-            const estiloTituloBloque = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 14px 0;';
+            const estiloTarjeta = 'background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(15,23,42,0.04);';
+            const estiloTitulo = 'font-size:12px; font-weight:900; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin:0 0 12px 0;';
+            const estiloSelect = 'width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:bold; background:#f8fafc; color:#0f172a; box-sizing:border-box;';
 
             vistaModulos.innerHTML = `
                 <div style="padding: 16px; padding-bottom: 95px; background-color: var(--fondo); min-height: 100vh;">
                     
-                    <div style="margin-bottom: 16px;">
-                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">📋 Reportes Corporativos</h2>
-                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Estado de Resultados y Auditoría de Ejercicio</div>
+                    <div style="margin-bottom: 14px;">
+                        <h2 style="margin: 0; font-size: 21px; color: #0f172a; font-weight: 900;">📋 Reportes Ejecutivos</h2>
+                        <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Centro de Reportes e Inteligencia de Negocio</div>
                     </div>
 
-                    <!-- BLOQUE 1: AUDITORÍA CORPORATIVA -->
-                    <div style="${estiloTarjeta}">
-                        <h3 style="${estiloTituloBloque}">👑 AUDITORÍA CORPORATIVA (PDF)</h3>
-                        <p style="font-size:12px; color:#64748b; margin:0 0 14px 0;">
-                            Seleccione el rango de fechas para auditar colocación, recuperación, intereses, gastos y utilidad neta real.
-                        </p>
+                    <!-- FILTRO GLOBAL DE EXPORTACIÓN -->
+                    <div style="${estiloTarjeta} padding: 12px 16px;">
+                        <label style="display:block; font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:6px;">📅 FILTRO GLOBAL DE EXPORTACIÓN:</label>
+                        <select id="filtro-mes-reportes-movil" style="${estiloSelect}">
+                            <option value="actual">🗓️ Mes Actual Completo</option>
+                            <option value="anterior">⏮️ Mes Anterior Completo</option>
+                            <option value="todos">🌍 Todo el Historial</option>
+                        </select>
+                    </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                    <!-- BLOQUE 1: MEGA-REPORTE CORPORATIVO -->
+                    <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:white; border-radius:16px; padding:16px; margin-bottom:14px; box-shadow:0 6px 15px rgba(15,23,42,0.2);">
+                        <div style="font-size:13px; font-weight:900; color:#fbbf24; margin-bottom:4px;">👑 AUDITORÍA CORPORATIVA Y CIERRE</div>
+                        <div style="font-size:11px; color:#94a3b8; margin-bottom:12px;">Consolida operaciones y genera el Estado de Resultados con Utilidad Neta Real.</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
                             <div>
-                                <label style="${estiloLabel}">Fecha Inicio</label>
-                                <input type="date" id="mega-fecha-desde-movil" style="${estiloInput}">
+                                <label style="font-size:10px; color:#94a3b8; font-weight:bold; display:block; margin-bottom:4px;">DESDE:</label>
+                                <input type="date" id="mega-fecha-desde-movil" style="width:100%; padding:9px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:white; font-size:12px; box-sizing:border-box;">
                             </div>
                             <div>
-                                <label style="${estiloLabel}">Fecha Corte</label>
-                                <input type="date" id="mega-fecha-hasta-movil" style="${estiloInput}">
+                                <label style="font-size:10px; color:#94a3b8; font-weight:bold; display:block; margin-bottom:4px;">HASTA:</label>
+                                <input type="date" id="mega-fecha-hasta-movil" style="width:100%; padding:9px; border-radius:8px; border:1px solid #475569; background:#1e293b; color:white; font-size:12px; box-sizing:border-box;">
                             </div>
                         </div>
-
-                        <button onclick="generarAuditoriaCorporativaPDFMovil()" style="width:100%; padding:14px; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:white; border:none; border-radius:10px; font-weight:900; font-size:13px; box-shadow:0 4px 10px rgba(15,23,42,0.25);">
-                            📄 GENERAR ESTADO DE RESULTADOS (PDF)
-                        </button>
+                        <button onclick="generarAuditoriaCorporativaPDFMovil()" style="width:100%; padding:13px; background:#f59e0b; color:#0f172a; border:none; border-radius:10px; font-weight:900; font-size:13px;">📄 GENERAR MEGA-REPORTE</button>
                     </div>
 
-                    <!-- BLOQUE 2: VISTA PREVIA EN PANTALLA -->
-                    <div id="resumen-auditoria-movil" style="display:none;"></div>
+                    <!-- BLOQUE 2: BASE DE DATOS DE CLIENTES -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTitulo}">👥 BASE DE DATOS DE CLIENTES</h3>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <button onclick="exportarClientesExcelMovil()" style="padding:12px 8px; background:#16a34a; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📊 Clientes (Excel)</button>
+                            <button onclick="exportarClientesPDFMovil()" style="padding:12px 8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📄 Clientes (PDF)</button>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 3: AUDITORÍA DE CARTERA (CRÉDITOS) -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTitulo}">💰 AUDITORÍA DE CARTERA (CRÉDITOS)</h3>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <button onclick="exportarCreditosExcelMovil()" style="padding:12px 8px; background:#0284c7; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📊 Créditos (Excel)</button>
+                            <button onclick="exportarCreditosPDFMovil()" style="padding:12px 8px; background:#ea580c; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📄 Créditos (PDF)</button>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 4: AUDITORÍA FINANCIERA (CAPITAL E INTERESES) -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTitulo}">🏛️ AUDITORÍA FINANCIERA</h3>
+                        <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed #e2e8f0;">
+                            <div style="font-size:12px; font-weight:800; color:#10b981; margin-bottom:6px;">💵 Flujo de Capital</div>
+                            <select id="filtro-capital-reporte-movil" style="${estiloSelect} margin-bottom:8px;">
+                                <option value="actual">Mes Actual Completo</option>
+                                <option value="anterior">Mes Anterior Completo</option>
+                                <option value="todos">Todo el Historial</option>
+                            </select>
+                            <button onclick="exportarCapitalPDFMovil()" style="width:100%; padding:11px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📄 Generar Reporte Capital (PDF)</button>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; font-weight:800; color:#7c3aed; margin-bottom:6px;">💎 Bóveda de Utilidades</div>
+                            <select id="filtro-utilidad-reporte-movil" style="${estiloSelect} margin-bottom:8px;">
+                                <option value="actual">Mes Actual Completo</option>
+                                <option value="anterior">Mes Anterior Completo</option>
+                                <option value="todos">Todo el Historial</option>
+                            </select>
+                            <button onclick="exportarUtilidadesPDFMovil('filtro-utilidad-reporte-movil')" style="width:100%; padding:11px; background:#7c3aed; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📄 Generar Utilidades (PDF)</button>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 5: FLUJO DE UTILIDADES (EXCEL Y PDF) -->
+                    <div style="${estiloTarjeta}">
+                        <h3 style="${estiloTitulo}">📈 FLUJO DE UTILIDADES (INTERESES Y AJUSTES)</h3>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <button onclick="exportarUtilidadesExcelMovil()" style="padding:12px 8px; background:#059669; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📊 Utilidades (Excel)</button>
+                            <button onclick="exportarUtilidadesPDFMovil('filtro-mes-reportes-movil')" style="padding:12px 8px; background:#9333ea; color:white; border:none; border-radius:8px; font-weight:bold; font-size:12px;">📄 Utilidades (PDF)</button>
+                        </div>
+                    </div>
 
                 </div>
             `;
