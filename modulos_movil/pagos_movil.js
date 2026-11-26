@@ -395,8 +395,8 @@ else if (modulo === 'credito' || modulo === 'creditos') {
                                 <input type="text" inputmode="decimal" id="cred-monto-movil" oninput="calcularProyeccionCreditoMovil()" placeholder="Ej: 100" style="width: 100%; padding: 12px; border: 2px solid #0284c7; border-radius: 8px; font-size: 16px; font-weight: 900; box-sizing: border-box;">
                             </div>
                             <div>
-                                <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">3. Interés (%):</label>
-                                <input type="number" id="cred-tasa-interes-movil" value="${tasaDefecto}" oninput="calcularProyeccionCreditoMovil()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight: bold; box-sizing: border-box;">
+                              <label style="font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">3. Interés (%):</label>
+                              <input type="number" id="cred-tasa-interes-movil" value="${window.tasaBaseGlobal || 20}" oninput="calcularProyeccionCreditoMovil()" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight: bold; box-sizing: border-box;">
                             </div>
                         </div>
 

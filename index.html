@@ -196,11 +196,11 @@ window.iniciarSesionAlpha = async function() {
         </div>
         
         <div class="config-rapida">
-            <span>⚙️ Tasa Base:</span>
-            <div>
-                <input type="number" id="menu-tasa-base" class="input-interes" value="20" oninput="actualizarTasaMemoria()"> %
-            </div>
-        </div>
+    <span>⚙️ Tasa Base:</span>
+    <div>
+        <input type="number" id="menu-tasa-base" class="input-interes" value="20" oninput="actualizarTasaMemoria()" onchange="actualizarTasaBaseNube(this.value)"> %
+    </div>
+</div>
     </aside>
 
     <main>
@@ -1468,6 +1468,8 @@ window.iniciarSesionAlpha = async function() {
     <script src="modulos/cierre.js"></script>
     <!-- Conexión del Módulo de Reportes Ejecutivos -->
     <script src="modulos/reportes.js"></script>
+    <!-- Conexión del Módulo de tasa base -->
+    <script src="modulos_movil/tasa_sync.js?v=1"></script>
 
 </body>
 </html>

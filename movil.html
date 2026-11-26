@@ -349,7 +349,7 @@
         <span class="icono">⚙️</span>
         <span class="nombre">Tasa Base</span>
         <div style="display: flex; align-items: center; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px;">
-            <input type="number" value="20" style="width: 40px; border: none; background: transparent; font-weight: 900; text-align: center; color: var(--primario); outline: none; font-size: 14px;" id="tasa-base-movil">
+            <input type="number" value="20" style="width: 40px; border: none; background: transparent; font-weight: 900; text-align: center; color: var(--primario); outline: none; font-size: 14px;" id="tasa-base-movil" onchange="actualizarTasaBaseNube(this.value)">
             <span style="font-weight: bold; color: var(--texto-claro); margin-left: 2px; font-size: 14px;">%</span>
         </div>
     </div>
@@ -419,6 +419,7 @@
     <script src="modulos_movil/interes_movil.js?v=1"></script>
     <script src="modulos_movil/cierre_movil.js?v=1"></script>
     <script src="modulos_movil/reportes_movil.js?v=2"></script>
+    <script src="modulos_movil/tasa_sync.js?v=1"></script>
     <script src="app.js"></script>
 </body>
 </html>
